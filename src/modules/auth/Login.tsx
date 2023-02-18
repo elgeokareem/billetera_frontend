@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState } from "react";
 
 export default function Login() {
@@ -33,6 +34,23 @@ export default function Login() {
         <button
           type="submit"
           className="bg-blue-600 py-4 px-6 rounded-xl text-slate-100 font-bold"
+          onClick={async e => {
+            e.preventDefault();
+            const res = await axios.post(
+              `${import.meta.env.VITE_KEK}/auth/login`,
+              {
+                email: username,
+                password
+              }
+            );
+
+            if (res.status === 200) {
+              console.log("success");
+              // TODO: redirect to dashboard
+            } else {
+              console.log("error");
+            }
+          }}
         >
           Login
         </button>

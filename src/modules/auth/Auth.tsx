@@ -1,9 +1,18 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { authRoute } from "../../routes/routeAuth";
 
 export default function Auth() {
-  // TODO: Find a way to get the current route to make a redirect
-  // return <Navigate to="/posts/$postId" params={{ postId: 'my-first-post' }} />
+  const router = useRouter();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (router.state.currentLocation.pathname === authRoute.fullPath) {
+      navigate({
+        to: "/auth/login"
+      });
+    }
+  }, []);
 
   return (
     <div className="w-1/3 h-[500px] rounded-lg border-2 border-cyan-500 p-4 flex flex-col align-top mt-10">

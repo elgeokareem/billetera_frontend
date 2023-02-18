@@ -1,9 +1,12 @@
+import { useNavigate } from "@tanstack/react-router";
 import axios from "axios";
 import { useState } from "react";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
 
   return (
     <form action="" className="mt-10">
@@ -27,7 +30,7 @@ export default function Login() {
         value={password}
         onChange={e => setPassword(e.target.value)}
         placeholder="Password"
-        className="block border-1 shadow rounded-md h-12 px-2 mb-5 w-full"
+        className="block border-1 shadow rounded-md h-12 px-2 mb-10 w-full"
       />
 
       <div className="flex justify-around">
@@ -36,18 +39,16 @@ export default function Login() {
           className="bg-blue-600 py-4 px-6 rounded-xl text-slate-100 font-bold"
           onClick={async e => {
             e.preventDefault();
-            const res = await axios.post(
-              `${import.meta.env.VITE_KEK}/auth/login`,
-              {
+            try {
+              await axios.post(`${import.meta.env.VITE_KEK}/auth/login`, {
                 email: username,
                 password
-              }
-            );
-
-            if (res.status === 200) {
+              });
               console.log("success");
-              // TODO: redirect to dashboard
-            } else {
+              navigate({
+                to: "/"
+              });
+            } catch (error) {
               console.log("error");
             }
           }}

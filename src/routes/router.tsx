@@ -1,6 +1,7 @@
 import { ReactRouter, RootRoute, Route } from "@tanstack/react-router";
+import axios from "axios";
 import App from "../App";
-import Index from "../modules/dashboard/dashboard";
+import Dashboard from "../modules/dashboard/dashboard";
 import { aboutRoute } from "./routeAbout";
 import { authRoute, authLoginRoute, authRegisterRoute } from "./routeAuth";
 
@@ -13,7 +14,16 @@ export const rootRoute = new RootRoute({
 const indexRoute = new Route({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: Index
+  component: Dashboard,
+  onLoad: async function () {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_KEK}/auth/login`);
+
+      return res.data;
+    } catch (error) {
+      return error;
+    }
+  }
 });
 
 // Create the route tree using your routes

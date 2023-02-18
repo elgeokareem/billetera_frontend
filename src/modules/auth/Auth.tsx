@@ -15,7 +15,7 @@ export default function Auth() {
   }, []);
 
   return (
-    <div className="w-1/3 h-[500px] rounded-lg border-2 border-cyan-500 p-4 flex flex-col align-top mt-10">
+    <div className="w-[400px] h-[500px] rounded-lg border-2 border-cyan-500 p-4 flex flex-col align-top mt-10">
       <h1 className="self-center">Auth</h1>
       <div className="self-center w-full flex justify-center gap-11">
         <Link to="/auth/login">Login</Link>

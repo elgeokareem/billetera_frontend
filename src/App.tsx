@@ -8,9 +8,9 @@ export default function App() {
   const router = useRouter();
 
   // TODO: check if user is logged in. If not, redirect to login page
-  if (router.state.currentLocation.pathname === "/") {
-    return <Navigate to="/auth/login" />;
-  }
+  // if (router.state.currentLocation.pathname === "/") {
+  //   return <Navigate to="/auth/login" />;
+  // }
 
   return (
     <QueryClientProvider client={queryClient}>

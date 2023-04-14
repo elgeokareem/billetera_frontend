@@ -1,7 +1,7 @@
 import { ReactRouter, RootRoute, Route } from "@tanstack/react-router";
-import axios from "axios";
 import App from "../App";
 import Dashboard from "../modules/dashboard/dashboard";
+import { fetchServer } from "../shared/services/fetchService";
 import { aboutRoute } from "./routeAbout";
 import { authRoute, authLoginRoute, authRegisterRoute } from "./routeAuth";
 
@@ -17,11 +17,15 @@ const indexRoute = new Route({
   component: Dashboard,
   onLoad: async function () {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_KEK}/auth/login`);
+      console.log("pasa por el onLoad");
+      const res = await fetchServer.get("");
 
       return res.data;
     } catch (error) {
-      return error;
+      // TODO: Make a toaster depending on the error
+      authRoute.router?.navigate({
+        to: "/auth/login"
+      });
     }
   }
 });

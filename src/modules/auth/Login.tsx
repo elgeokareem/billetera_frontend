@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import axios from "axios";
 import { useState } from "react";
+import { fetchServer } from "../../shared/services/fetchService";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -40,7 +40,7 @@ export default function Login() {
           onClick={async e => {
             e.preventDefault();
             try {
-              await axios.post(`${import.meta.env.VITE_KEK}/auth/login`, {
+              await fetchServer.post(`/auth/login`, {
                 email: username,
                 password
               });
@@ -49,7 +49,7 @@ export default function Login() {
                 to: "/"
               });
             } catch (error) {
-              console.log("error");
+              console.log("error in form", error);
             }
           }}
         >

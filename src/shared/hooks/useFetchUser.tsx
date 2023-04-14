@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { fetchServer } from "../services/fetchService";
 
 // make a generic type object that has a message key with a string value
 type ErrorType = {
@@ -10,7 +10,7 @@ export function useFetchUser() {
   console.log("ENTRA AL USE FETCH USER");
   async function fetchTodoList() {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_KEK}/auth/login`);
+      const res = await fetchServer.get(`/auth/login`);
 
       return res.data;
     } catch (error) {

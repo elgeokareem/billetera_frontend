@@ -1,9 +1,8 @@
-import { createRootRoute } from "@tanstack/react-router";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MantineProvider } from "@mantine/core";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import App from "../App";
 import "@mantine/core/styles.css";
 
 // Create a client
@@ -14,7 +13,9 @@ export const Route = createRootRoute({
     <>
       <QueryClientProvider client={queryClient}>
         <MantineProvider>
-          <App />
+          <div>
+            <Outlet />
+          </div>
         </MantineProvider>
         <TanStackRouterDevtools />
         <ReactQueryDevtools initialIsOpen={false} />

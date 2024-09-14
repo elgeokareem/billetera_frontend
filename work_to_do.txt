@@ -1,0 +1,7 @@
+App
+- For now there will be landing, login, register and dashboard pages
+  - Login will have email and password
+  - Register will have email, password and binance token (optional, could be done later)
+  - Dashboard
+    - will have the user's wallet information
+    - graphs for the user's wallet

@@ -15,6 +15,9 @@ import {
 import { useForm } from "@mantine/form";
 import { joiResolver } from "mantine-form-joi-resolver";
 import { loginSchema } from "../modules/login/loginSchema";
+import { useMutation } from "@tanstack/react-query";
+import axios, { AxiosError } from "axios";
+import { toast } from "react-toastify";
 
 export const Route = createFileRoute("/login")({
   component: () => <Login />
@@ -31,6 +34,18 @@ function Login() {
     validate: joiResolver(loginSchema)
   });
 
+  const mutation = useMutation({
+    mutationFn: (values: typeof form.values) => {
+      return axios.post(
+        `${import.meta.env.VITE_BACKEND_ENDPOINT}/auth/login`,
+        values
+      );
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      toast.error(error?.response?.data?.message);
+    }
+  });
+
   return (
     <LandingLayout>
       <Container size={420} my={40}>
@@ -40,7 +55,7 @@ function Login() {
         </Text>
 
         <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-          <form onSubmit={form.onSubmit(values => console.log(values))}>
+          <form onSubmit={form.onSubmit(values => mutation.mutate(values))}>
             <TextInput
               label="Email"
               placeholder="you@mantine.dev"

@@ -12,7 +12,6 @@ import {
   TextInput,
   Title
 } from "@mantine/core";
-import classes from "../modules/login/login.module.css";
 import { useForm } from "@mantine/form";
 import { joiResolver } from "mantine-form-joi-resolver";
 import { loginSchema } from "../modules/login/loginSchema";
@@ -35,9 +34,7 @@ function Login() {
   return (
     <LandingLayout>
       <Container size={420} my={40}>
-        <Title ta="center" className={classes.title}>
-          Welcome back!
-        </Title>
+        <Title ta="center">Welcome back!</Title>
         <Text c="dimmed" size="sm" ta="center" mt={5}>
           Do not have an account yet? <Link to="/register">Create account</Link>
         </Text>
@@ -72,9 +69,9 @@ function Login() {
 
           {/* If errors show them */}
           {form.errors && (
-            <Paper mt={20} p={10} radius="md" className={classes.errors}>
+            <Paper mt={20} p={10} radius="md">
               {Object.values(form.errors).map((error, index) => (
-                <Text key={index} color="red" size="sm">
+                <Text key={index} c="red" size="sm">
                   {error?.toString()}
                 </Text>
               ))}

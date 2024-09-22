@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LandingLayout } from "../modules/shared/LandingLayout";
 import {
   Anchor,
@@ -15,21 +15,32 @@ import {
 import { useForm } from "@mantine/form";
 import { joiResolver } from "mantine-form-joi-resolver";
 import { registerSchema } from "../modules/register/registerSchema";
+import { useRegister } from "../modules/register/hooks";
 
 export const Route = createFileRoute("/register")({
   component: () => <Register />
 });
 
 function Register() {
+  const navigate = useNavigate();
   const form = useForm({
-    mode: "uncontrolled",
+    mode: "controlled",
     initialValues: {
       email: "",
-      password: ""
+      password: "",
+      confirm_password: ""
     },
 
     validate: joiResolver(registerSchema)
   });
+
+  const mutation = useRegister();
+
+  const onSubmit = async (values: typeof form.values) => {
+    mutation.mutate(values);
+    form.reset();
+    navigate({ to: "/login" });
+  };
 
   return (
     <LandingLayout>
@@ -40,7 +51,7 @@ function Register() {
         </Text>
 
         <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-          <form onSubmit={form.onSubmit(values => console.log(values))}>
+          <form onSubmit={form.onSubmit(onSubmit)}>
             <TextInput
               label="Email"
               placeholder="password"
@@ -62,7 +73,7 @@ function Register() {
               required
               mt="md"
               onChange={e =>
-                form.setFieldValue("confirmPassword", e.currentTarget.value)
+                form.setFieldValue("confirm_password", e.currentTarget.value)
               }
             />
             <Group mt={20}>
@@ -74,7 +85,13 @@ function Register() {
               />
               <Anchor href="#">Terms and conditions</Anchor>
             </Group>
-            <Button type="submit" variant="light" mt={20} fullWidth>
+            <Button
+              type="submit"
+              variant="light"
+              mt={20}
+              fullWidth
+              loading={mutation.isPending}
+            >
               Register
             </Button>
           </form>

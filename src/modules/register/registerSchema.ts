@@ -5,5 +5,5 @@ export const registerSchema = Joi.object({
     .email({ tlds: { allow: false } })
     .required(),
   password: Joi.string().min(3).required(),
-  confirmPassword: Joi.ref("password")
-}).with("password", "confirmPassword");
+  confirm_password: Joi.ref("password")
+}).with("password", "confirm_password");

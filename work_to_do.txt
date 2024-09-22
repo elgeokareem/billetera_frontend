@@ -5,3 +5,4 @@ App
   - Dashboard
     - will have the user's wallet information
     - graphs for the user's wallet
+    - Ingresos y egresos. La resta y un porcentaje.

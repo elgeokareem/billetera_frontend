@@ -18,6 +18,7 @@
     "@tanstack/react-router": "^1.57.13",
     "axios": "^1.7.7",
     "joi": "^17.13.3",
+    "jwt-decode": "^4.0.0",
     "mantine-form-joi-resolver": "^1.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tanstack/eslint-plugin-query": "^5.56.1",
+    "@tanstack/eslint-plugin-router": "^1.58.6",
     "@tanstack/router-devtools": "^1.57.13",
     "@tanstack/router-plugin": "^1.57.13",
     "@types/react": "^18.3.3",

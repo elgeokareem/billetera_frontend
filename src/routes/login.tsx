@@ -28,8 +28,8 @@ function Login() {
   const form = useForm({
     mode: "uncontrolled",
     initialValues: {
-      email: "",
-      password: ""
+      email: "elkareem123@proton.me",
+      password: "123456789"
     },
 
     validate: joiResolver(loginSchema)
@@ -37,10 +37,7 @@ function Login() {
 
   const mutation = useMutation({
     mutationFn: (values: typeof form.values) => {
-      return axios.post(
-        `${import.meta.env.VITE_BACKEND_ENDPOINT}/auth/login`,
-        values
-      );
+      return axios.post(`/auth/login`, values);
     },
     onError: (error: AxiosError<{ message: string }>) => {
       toast.error(error?.response?.data?.message);
@@ -61,6 +58,7 @@ function Login() {
               label="Email"
               placeholder="you@mantine.dev"
               required
+              value={form.values.email}
               onChange={e => form.setFieldValue("email", e.target.value)}
             />
             <PasswordInput
@@ -68,6 +66,7 @@ function Login() {
               placeholder="Your password"
               required
               mt="md"
+              value={form.values.password}
               onChange={e =>
                 form.setFieldValue("password", e.currentTarget.value)
               }

@@ -4,11 +4,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastContainer } from "react-toastify";
 import { MantineProvider } from "@mantine/core";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { axiosInterceptorsAndConfig } from "../modules/shared/axios-interceptors";
 import "react-toastify/dist/ReactToastify.css";
 import "@mantine/core/styles.css";
 
 // Create a client
 const queryClient = new QueryClient();
+
+axiosInterceptorsAndConfig();
 
 export const Route = createRootRoute({
   component: () => (

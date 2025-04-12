@@ -8,12 +8,13 @@ import { axiosInterceptorsAndConfig } from "../modules/shared/axios-interceptors
 import "react-toastify/dist/ReactToastify.css";
 import "@mantine/core/styles.css";
 
-// Create a client
 const queryClient = new QueryClient();
-
-axiosInterceptorsAndConfig();
+// Create a client
 
 export const Route = createRootRoute({
+  beforeLoad: () => {
+    axiosInterceptorsAndConfig();
+  },
   component: () => (
     <>
       <QueryClientProvider client={queryClient}>

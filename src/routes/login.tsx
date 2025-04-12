@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { LandingLayout } from "../modules/shared/LandingLayout";
+import { LandingLayout } from "../modules/shared/components/LandingLayout";
 import {
   Anchor,
   Button,
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
+
   const form = useForm({
     mode: "uncontrolled",
     initialValues: {
@@ -41,6 +42,10 @@ function Login() {
     },
     onError: (error: AxiosError<{ message: string }>) => {
       toast.error(error?.response?.data?.message);
+    },
+    onSuccess: () => {
+      toast.success("Logged In");
+      navigate({ to: "/dashboard" });
     }
   });
 

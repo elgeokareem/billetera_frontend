@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { LandingLayout } from "../modules/shared/LandingLayout";
+import { LandingLayout } from "../modules/shared/components/LandingLayout";
 import {
   Anchor,
   Button,

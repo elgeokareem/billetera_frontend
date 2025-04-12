@@ -2,14 +2,23 @@ import axios from "axios";
 import { getCookie } from "./utils";
 import { jwtDecode } from "jwt-decode";
 import { toast } from "react-toastify";
-import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
+import { createRouter } from "@tanstack/react-router";
 
 export function axiosInterceptorsAndConfig() {
+  const router = createRouter({ routeTree });
+  const nonAuthPaths = [
+    router.routesByPath["/"].path,
+    router.routesByPath["/login"].path,
+    router.routesByPath["/register"].path
+  ];
+  const currentPath = router.state.location
+    .pathname as (typeof nonAuthPaths)[number];
+
   axios.defaults.baseURL = import.meta.env.VITE_BACKEND_ENDPOINT;
   axios.defaults.withCredentials = true;
 
-  const router = createRouter({ routeTree });
+  // TODO: Probably need to take into consideration the loading state of the app
 
   axios.interceptors.request.use(config => {
     const serverToken = getCookie("token");
@@ -22,7 +31,9 @@ export function axiosInterceptorsAndConfig() {
 
       if (Number(decoded.exp) < now) {
         toast.error("Session expired. Please login again.");
-        router.navigate({ to: "/login" });
+        if (!nonAuthPaths.includes(currentPath)) {
+          router.navigate({ to: "/login" });
+        }
         return Promise.reject("Session expired");
       }
     }

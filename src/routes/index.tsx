@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Center, Box } from "@mantine/core";
-import { LandingLayout } from "../modules/shared/LandingLayout";
+import { LandingLayout } from "../modules/shared/components/LandingLayout";
 
 export const Route = createFileRoute("/")({
   component: () => <Landing />

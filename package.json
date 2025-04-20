@@ -13,9 +13,9 @@
     "@mantine/core": "^7.17.4",
     "@mantine/form": "^7.17.4",
     "@mantine/hooks": "^7.17.4",
-    "@tanstack/react-query": "^5.72.2",
-    "@tanstack/react-query-devtools": "^5.72.2",
-    "@tanstack/react-router": "^1.115.3",
+    "@tanstack/react-query": "^5.74.4",
+    "@tanstack/react-query-devtools": "^5.74.4",
+    "@tanstack/react-router": "^1.116.0",
     "axios": "^1.8.4",
     "joi": "^17.13.3",
     "jwt-decode": "^4.0.0",
@@ -27,15 +27,15 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@eslint/js": "^9.24.0",
-    "@tanstack/eslint-plugin-query": "^5.72.2",
+    "@eslint/js": "^9.25.0",
+    "@tanstack/eslint-plugin-query": "^5.73.3",
     "@tanstack/eslint-plugin-router": "^1.115.0",
-    "@tanstack/router-devtools": "^1.115.3",
-    "@tanstack/router-plugin": "^1.115.3",
-    "@types/react": "^19.1.1",
+    "@tanstack/router-devtools": "^1.116.0",
+    "@tanstack/router-plugin": "^1.116.1",
+    "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react-swc": "^3.8.1",
-    "eslint": "^9.24.0",
+    "@vitejs/plugin-react-swc": "^3.9.0",
+    "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
@@ -43,7 +43,7 @@
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.1",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.29.1",
-    "vite": "^6.2.6"
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.2"
   }
 }

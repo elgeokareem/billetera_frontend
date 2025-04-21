@@ -1,23 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Center, Box } from "@mantine/core";
-import { LandingLayout } from "../modules/shared/components/LandingLayout";
+import { Button, Container, Flex, useMantineTheme } from "@mantine/core";
+import { ThemedText } from "../modules/shared/components/CustomText";
 
 export const Route = createFileRoute("/")({
-  component: () => <Landing />
+  component: () => <Landing />,
 });
 
 function Landing() {
+  const theme = useMantineTheme();
+
   return (
-    <LandingLayout>
-      <Center>
-        <Box>
-          <h1>This is the landing page of the app</h1>
-          <p>
-            This is an app to track your crypto investments. You can register
-            for an account or login if you already have one.
-          </p>
-        </Box>
-      </Center>
-    </LandingLayout>
+    <Container fluid bg={theme.colors.dark[7]} h="100%">
+      <Flex justify="space-between">
+        <ThemedText>LOGO</ThemedText>
+        <div>
+          <Button>Login</Button>
+          <Button>Register</Button>
+        </div>
+      </Flex>
+    </Container>
   );
 }

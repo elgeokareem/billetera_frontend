@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastContainer } from "react-toastify";
 import {
+  colorsTuple,
   createTheme,
   DEFAULT_THEME,
   MantineProvider,
@@ -23,6 +24,7 @@ const theme = createTheme({
       dark: DEFAULT_THEME.colors.dark[7],
       light: DEFAULT_THEME.colors.gray[0],
     }),
+    primaryYellow: colorsTuple("#EAB307"),
   },
 });
 

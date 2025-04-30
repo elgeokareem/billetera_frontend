@@ -1,5 +1,5 @@
 import { Box, BoxProps, ElementProps } from "@mantine/core";
-import { Sidebar } from "./sidebar/sidebar";
+import { Sidebar } from "./sidebar/Sidebar";
 
 interface MyBoxProps extends BoxProps, ElementProps<"div", keyof BoxProps> {}
 
@@ -14,6 +14,7 @@ export function ModulesContainer(props: MyBoxProps) {
         flexDirection: "row",
       }}
     >
+      {/* TODO: Put the navbar */}
       <Sidebar />
       {props.children}
     </Box>

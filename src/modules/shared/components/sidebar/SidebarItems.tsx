@@ -11,7 +11,7 @@ export function SidebarItems({ title, children }: SidebarItemsProps) {
       <Text>{title}</Text>
       <Box
         component="ul"
-        style={{ display: "flex", flexDirection: "column", gap: "30px" }}
+        style={{ display: "flex", flexDirection: "column", gap: "20px" }}
       >
         {children}
       </Box>

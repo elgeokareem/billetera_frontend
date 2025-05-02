@@ -14,14 +14,15 @@ import {
   IconFolder,
   IconWallet,
 } from "@tabler/icons-react";
+import { LineChart } from "../modules/dashboard/LineChart";
+import { ButtonGroup } from "../modules/shared/components/Buttons";
+import { type } from "arktype";
 
+const dashboardSearchSchema = type({
+  graphType: '"overview" | "analytics" | "transactions" | "settings"',
+});
 export const Route = createFileRoute("/dashboard")({
-  // beforeLoad: async () => {
-  //   const hasAccess = isAuthenticated();
-  //   if (!hasAccess) {
-  //     return redirect({ to: "/login" });
-  //   }
-  // },
+  validateSearch: dashboardSearchSchema,
   component: () => (
     <ModulesContainer>
       <Dashboard />
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
+  const { graphType } = Route.useSearch();
   const theme = useMantineTheme();
 
   return (
@@ -67,6 +69,17 @@ function Dashboard() {
           subtitle="BTC, ETH, BNB & more"
         />
       </Flex>
+
+      <Box component="section" mt="3%">
+        <ButtonGroup
+          data={[
+            { label: "Overview", key: "overview" },
+            { label: "Analytics", key: "analytics" },
+          ]}
+          active={graphType}
+        />
+        <LineChart />
+      </Box>
     </ModuleLayout>
   );
 }

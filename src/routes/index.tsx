@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Container, Group, useMantineTheme } from "@mantine/core";
+import { Container, Group } from "@mantine/core";
 import { PrimaryButton } from "../modules/shared/components/Buttons";
 
 export const Route = createFileRoute("/")({
@@ -7,11 +7,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const theme = useMantineTheme();
   const navigate = useNavigate();
 
+  const onClickDashboard = () => {
+    navigate({ to: "/dashboard", search: { graphType: "overview" } });
+  };
+
   const onClickLogin = () => {
-    console.log("redirect to login");
     navigate({ to: "/login" });
   };
 
@@ -20,7 +22,7 @@ function Landing() {
   };
 
   return (
-    <Container fluid bg={theme.colors.dark[7]} h="100%">
+    <Container fluid h="100%">
       <Group justify="space-between">
         <Group style={{ width: "10%" }} justify="center">
           <img
@@ -30,6 +32,7 @@ function Landing() {
           />
         </Group>
         <Group gap="md">
+          <PrimaryButton onClick={onClickDashboard}>Dashboard</PrimaryButton>
           <PrimaryButton onClick={onClickLogin}>Login</PrimaryButton>
           <PrimaryButton onClick={onClickRegister}>Register</PrimaryButton>
         </Group>

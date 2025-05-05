@@ -5,7 +5,6 @@ import {
   Text,
   useMantineTheme,
 } from "@mantine/core";
-import { useNavigate } from "@tanstack/react-router";
 
 interface MyButtonProps
   extends ButtonProps,
@@ -20,32 +19,33 @@ export function PrimaryButton(props: MyButtonProps) {
   );
 }
 
-interface ButtonPropsInterface {
+interface ButtonPropsInterface<T extends string | number | boolean> {
   label: string;
-  key: unknown;
+  key: T;
 }
-export function ButtonGroup({
+export function ButtonGroup<T extends string | number | boolean>({
   data,
   active,
+  onClick,
 }: {
-  data: ButtonPropsInterface[];
+  data: ButtonPropsInterface<T>[];
   active: string;
+  onClick?: (key: T) => void;
 }) {
   const theme = useMantineTheme();
-  const navigate = useNavigate();
 
   return (
     <Button.Group>
       {data.map(({ label, key }) => {
         return (
           <Button
-            color={key === active ? theme.colors.gray[0] : "yellow"}
-            c={key === active ? theme.colors.dark[6] : "purple"}
+            color={key === active ? theme.colors.gray[0] : theme.colors.dark[4]}
+            c={key === active ? theme.colors.dark[6] : "white"}
             key={key as string}
             onClick={() => {
-              navigate({
-                search: { graphType: key },
-              });
+              if (onClick) {
+                onClick(key);
+              }
             }}
           >
             {label}

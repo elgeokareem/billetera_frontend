@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastContainer } from "react-toastify";
 import {
+  Box,
   colorsTuple,
   createTheme,
   DEFAULT_THEME,
@@ -21,8 +22,8 @@ const theme = createTheme({
   colors: {
     bgPrimary: virtualColor({
       name: "bgPrimary",
-      dark: DEFAULT_THEME.colors.dark[7],
-      light: DEFAULT_THEME.colors.gray[0],
+      dark: DEFAULT_THEME.colors.dark[0],
+      light: "indigo",
     }),
     primaryYellow: colorsTuple("#EAB307"),
   },
@@ -36,7 +37,10 @@ export const Route = createRootRoute({
     <>
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme} defaultColorScheme="dark">
-          <Outlet />
+          {/* TODO: Check how can i change the background color using a virtual color */}
+          <Box bg="bgPrimary" h="100%" id="testerino">
+            <Outlet />
+          </Box>
         </MantineProvider>
         <ToastContainer />
         <TanStackRouterDevtools />

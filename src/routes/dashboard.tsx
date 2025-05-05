@@ -14,14 +14,21 @@ import {
   IconFolder,
   IconWallet,
 } from "@tabler/icons-react";
-import { LineChart } from "../modules/dashboard/LineChart";
 import { ButtonGroup } from "../modules/shared/components/Buttons";
 import { type } from "arktype";
+import { GraphContainer } from "../modules/dashboard/GraphContainer";
 
 const dashboardSearchSchema = type({
   graphType: '"overview" | "analytics" | "transactions" | "settings"',
 });
+export type DashboardSearchSchema = typeof dashboardSearchSchema.infer;
 export const Route = createFileRoute("/dashboard")({
+  beforeLoad: async () => {
+    const hasAccess = isAuthenticated();
+    if (!hasAccess) {
+      return redirect({ to: "/login" });
+    }
+  },
   validateSearch: dashboardSearchSchema,
   component: () => (
     <ModulesContainer>
@@ -33,6 +40,19 @@ export const Route = createFileRoute("/dashboard")({
 function Dashboard() {
   const { graphType } = Route.useSearch();
   const theme = useMantineTheme();
+  const navigate = Route.useNavigate();
+
+  const onSearchNavigate = (value: DashboardSearchSchema["graphType"]) => {
+    navigate({ search: () => ({ graphType: value }) });
+  };
+
+  const BUTTONS_DATA: {
+    label: string;
+    key: DashboardSearchSchema["graphType"];
+  }[] = [
+    { label: "Overview", key: "overview" },
+    { label: "Analytics", key: "analytics" },
+  ];
 
   return (
     <ModuleLayout>
@@ -43,7 +63,7 @@ function Dashboard() {
         </ThemedText>
       </Box>
 
-      <Flex gap={3} justify="space-between" wrap="wrap" mt="5%">
+      <Flex gap={3} justify="space-between" wrap="wrap" mt="3%">
         <InfoCard
           title="Total Balance"
           icon={<IconCurrencyDollar color={theme.colors.primaryYellow[0]} />}
@@ -72,13 +92,12 @@ function Dashboard() {
 
       <Box component="section" mt="3%">
         <ButtonGroup
-          data={[
-            { label: "Overview", key: "overview" },
-            { label: "Analytics", key: "analytics" },
-          ]}
+          data={BUTTONS_DATA}
           active={graphType}
+          onClick={onSearchNavigate}
         />
-        <LineChart />
+
+        <GraphContainer switchValue={graphType} />
       </Box>
     </ModuleLayout>
   );

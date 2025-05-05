@@ -44,7 +44,7 @@ function Login() {
     },
     onSuccess: () => {
       toast.success("Logged In");
-      navigate({ to: "/dashboard" });
+      navigate({ to: "/dashboard", search: { graphType: "overview" } });
     },
   });
 

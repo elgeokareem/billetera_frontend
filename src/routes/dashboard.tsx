@@ -1,5 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { isAuthenticated } from "../modules/shared/auth";
+import { createFileRoute } from "@tanstack/react-router";
 import { ModulesContainer } from "../modules/shared/components/ModulesContainer";
 import { ModuleLayout } from "../modules/shared/components/ModuleLayout";
 import {
@@ -24,10 +23,10 @@ const dashboardSearchSchema = type({
 export type DashboardSearchSchema = typeof dashboardSearchSchema.infer;
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
-    const hasAccess = isAuthenticated();
-    if (!hasAccess) {
-      return redirect({ to: "/login" });
-    }
+    // const hasAccess = isAuthenticated();
+    // if (!hasAccess) {
+    //   return redirect({ to: "/login" });
+    // }
   },
   validateSearch: dashboardSearchSchema,
   component: () => (

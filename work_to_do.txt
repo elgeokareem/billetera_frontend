@@ -3,6 +3,15 @@ App
   - Login will have email and password
   - Register will have email, password and binance token (optional, could be done later)
   - Dashboard
-    - will have the user's wallet information
-    - graphs for the user's wallet
-    - Ingresos y egresos. La resta y un porcentaje.
+    - 2 cartas:
+        balance total (el actual, con subtitulo comparando con ayer)
+        total de assets (cripto monedas que se tienen, capaz poner un hover en la carta para mostrarlas todas)
+
+    - Grafico con 2 tabs 
+        - Overview: grafico historico en el tiempo del balance total
+        - Analytics: Coming soon tm
+
+
+QUE MAS TIENE QUE TENER?
+
+Tiene que haber una forma de poder mostrar no solo el balance total si no cada gasto hecho por el usuario para poder asignarle algun tipo de motivo (comida, viaje, etc)

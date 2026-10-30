@@ -35,3 +35,10 @@ Frontend of the billetera project.
 - `/sdd I want to create a new feature` - Start a new change
 - `/sdd I want to import an external spec` - Import changes from an external spec
 - `/sdd I want to continue` - Resume the current workflow
+
+## Conventions
+
+- Each change's `SPEC.md` and `PLAN.md` go in a flat `specs/YYYY-MM-DD-<name>/` folder. Never create the plugin's `changes/` tree, and don't run its `spec index` command. `specs/INDEX.md` and `specs/ROADMAP.md` are edited by hand.
+- Never commit, including SDD checkpoint commits. Leave changes uncommitted for review; commit only when asked.
+- Planning (specs, plans) goes to the `planner` agent, everything else (implementation, fixes, searches) to the `implementer` agent. Both are in `.claude/agents/`.
+- The backend API contract is `../backend/README.md`.

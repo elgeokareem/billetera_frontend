@@ -2,9 +2,9 @@ name: Deploy
 
 on:
   workflow_dispatch:
-  # After the VPS has the repo and the SSH_PRIVATE_KEY secret is set,
+  # After the VPS has the repo and these repository secrets are set:
+  #   SSH_PRIVATE_KEY, SSH_HOST, SSH_USER
   # uncomment this block to deploy on every push to main.
-  # Optional repository variables SSH_HOST and SSH_USER override the defaults.
   # push:
   #   branches: [main]
 
@@ -16,8 +16,8 @@ jobs:
     name: Deploy frontend
     runs-on: ubuntu-latest
     env:
-      SSH_HOST: ${{ vars.SSH_HOST || '172.233.186.139' }}
-      SSH_USER: ${{ vars.SSH_USER || 'root' }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
 
     steps:
       - name: Set up SSH

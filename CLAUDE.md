@@ -31,6 +31,30 @@ Frontend of the billetera project.
 
 `api:generate` and `api:check` read `OPENAPI_PATH` when it's set, so a pipeline can point them at another checkout, an artifact, or an http(s) URL instead of the sibling `backend` directory. They run the pinned generator through `pnpm dlx`, so they need network access the first time; `pnpm build` doesn't, because the generated file is committed.
 
+## Deploy
+
+`deploy.sh` deploys **only the frontend**. It expects:
+
+```text
+~/documents/projects/billetera/frontend   this repo
+~/documents/projects/billetera/deploy.env  site settings, untracked
+```
+
+`deploy.env` must set `BACKEND_URL=https://api.example.com`. It can also set `APP_DIR` (default `/opt/billetera/frontend`), `APP_USER`, `BRANCH` and `OPENAPI_PATH`.
+
+The script pulls this repo, installs dependencies, and if the backend OpenAPI file exists (default `../backend/docs/openapi/openapi.json`), regenerates `api-schema.d.ts` and runs `pnpm verify`. Otherwise it runs lint, tests and build with the committed types. It then copies `dist` to `$APP_DIR/dist`. It never pulls or deploys the backend.
+
+Caddy example for the static app:
+
+```caddy
+app.example.com {
+    root * /opt/billetera/frontend/dist
+    encode gzip
+    try_files {path} /index.html
+    file_server
+}
+```
+
 ## Spec-Driven Development
 
 1. **Specs are truth:** Every change needs a SPEC.md

@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  # After the VPS has the repo and these repository secrets are set:
+  #   SSH_PRIVATE_KEY, SSH_HOST, SSH_USER
+  # uncomment this block to deploy on every push to main.
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
+            cd ~/documents/projects/billetera/frontend
+            ./deploy.sh
+          EOF

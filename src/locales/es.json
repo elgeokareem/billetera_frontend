@@ -1,0 +1,401 @@
+{
+  "common": {
+    "appName": "billetera",
+    "comingSoon": "Próximamente",
+    "comingSoonBody": "Esta página aún no está lista.",
+    "language": "Idioma",
+    "openMenu": "Abrir menú",
+    "loading": "Cargando",
+    "retry": "Reintentar",
+    "somethingWrong": "Algo salió mal",
+    "close": "Cerrar"
+  },
+  "nav": {
+    "main": "Principal",
+    "dashboard": "Inicio",
+    "movements": "Movimientos",
+    "assets": "Activos",
+    "categories": "Categorías",
+    "settings": "Ajustes"
+  },
+  "auth": {
+    "email": "Correo",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Tu contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "loginTitle": "Hola de nuevo",
+    "loginSubtitle": "¿Aún no tienes cuenta?",
+    "loginLink": "Crear una",
+    "loginSubmit": "Iniciar sesión",
+    "loginSuccess": "Sesión iniciada",
+    "logout": "Cerrar sesión",
+    "registerTitle": "Crea tu cuenta",
+    "registerSubtitle": "¿Ya tienes cuenta?",
+    "registerLink": "Iniciar sesión",
+    "registerSubmit": "Crear cuenta",
+    "registerSuccess": "Cuenta creada. Ya puedes iniciar sesión.",
+    "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
+    "invalidEmail": "Escribe un correo válido",
+    "passwordRequired": "Escribe tu contraseña",
+    "passwordTooShort": "Usa al menos 3 caracteres",
+    "passwordMismatch": "Las contraseñas no coinciden"
+  },
+  "binance": {
+    "connect": {
+      "title": "Conecta Binance",
+      "subtitle": "Billetera lee tus saldos y movimientos con una clave de solo lectura de Binance.",
+      "stepsTitle": "Crea una clave de solo lectura en Binance",
+      "step1": "En tu cuenta de Binance, abre la gestión de API y crea una clave nueva.",
+      "step2": "Activa solo el permiso de lectura: deja desactivados el trading, los retiros y las transferencias.",
+      "step3": "Pega abajo la clave de API y el secreto.",
+      "submit": "Conectar",
+      "checking": "Comprobando la clave con Binance. Puede tardar unos segundos.",
+      "fetchingTitle": "Obteniendo tus datos",
+      "fetchingBody": "Puede tardar un minuto."
+    },
+    "form": {
+      "apiKey": "Clave de API",
+      "apiSecret": "Secreto de API",
+      "showSecret": "Mostrar secreto",
+      "keyRequired": "Escribe la clave de API",
+      "secretRequired": "Escribe el secreto de API",
+      "readOnlyHint": "Solo se aceptan claves de solo lectura."
+    },
+    "card": {
+      "title": "Conexión con Binance",
+      "apiKey": "Clave de API",
+      "status": "Estado",
+      "lastChecked": "Última comprobación",
+      "ipNote": "Esta clave no está limitada a direcciones IP concretas. En Binance puedes añadir una restricción por IP para protegerla más.",
+      "replace": "Reemplazar clave",
+      "remove": "Quitar clave",
+      "notConnected": "No hay ninguna clave de Binance conectada. Conecta una para empezar a sincronizar tus saldos y movimientos.",
+      "connect": "Conectar Binance"
+    },
+    "state": {
+      "active": "Activa",
+      "rejected": "Rechazada"
+    },
+    "rejected": {
+      "title": "Binance rechazó tu clave",
+      "body": "La sincronización se detuvo. Reemplaza la clave para volver a sincronizar.",
+      "goToSettings": "Ir a Ajustes"
+    },
+    "replace": {
+      "title": "Reemplazar clave de Binance",
+      "submit": "Guardar clave",
+      "saved": "Clave reemplazada."
+    },
+    "remove": {
+      "title": "¿Quitar la clave de Binance?",
+      "body": "Billetera dejará de sincronizarse con Binance. Tu historial se conserva: saldos, movimientos y categorías. Puedes volver a conectar una clave cuando quieras.",
+      "confirm": "Quitar clave",
+      "cancel": "Cancelar",
+      "removed": "Clave quitada. Tu historial se conserva."
+    }
+  },
+  "dashboard": {
+    "queue": {
+      "headline_one": "{{count}} movimiento necesita una etiqueta",
+      "headline_other": "{{count}} movimientos necesitan una etiqueta",
+      "allLabelled": "Todo etiquetado",
+      "subtitle": "Di para qué fue cada uno y el resumen del mes quedará completo.",
+      "nothingLeft": "No queda nada más por etiquetar este mes.",
+      "seeOlder": "Ver anteriores",
+      "reviewAll": "Revisar todos",
+      "categories": "Categorías"
+    },
+    "card": {
+      "moreCategories": "Más categorías",
+      "newCategory": "Nueva categoría",
+      "newCategoryLabel": "Nombre de la categoría",
+      "newCategoryPlaceholder": "Por ejemplo, Viajes",
+      "createCategory": "Crear",
+      "cancel": "Cancelar",
+      "reasonLabel": "Motivo (opcional)",
+      "reasonPlaceholder": "¿Para qué fue?",
+      "saveFailed": "No se guardó la etiqueta. Tu motivo sigue aquí.",
+      "labelled": "Etiquetado como {{category}}.",
+      "undo": "Deshacer",
+      "undone": "Etiqueta quitada."
+    },
+    "balance": {
+      "title": "Saldo total",
+      "change": "Cambio de saldo desde ayer",
+      "changeNote": "Incluye depósitos y retiros, no solo cambios de precio.",
+      "unpriced": "Algunas monedas no tienen precio, así que el total no las incluye.",
+      "updated": "Actualizado {{time}}",
+      "sparkline": "Saldo de los últimos 30 días",
+      "changeFailed": "No se pudo cargar el cambio.",
+      "chartFailed": "No se pudo cargar el gráfico."
+    },
+    "sync": {
+      "action": "Sincronizar",
+      "actionNow": "Sincronizar ahora"
+    },
+    "noSnapshot": {
+      "title": "Aún no hay datos de saldo",
+      "body": "Sincroniza con Binance para obtener tus saldos y movimientos.",
+      "holdings": "Sincroniza para ver lo que tienes."
+    },
+    "recent": {
+      "title": "Movimientos recientes",
+      "viewAll": "Ver todos",
+      "empty": "Aún no hay movimientos.",
+      "needsLabel": "Sin etiqueta",
+      "convert": "{{kind}} {{from}} → {{to}}",
+      "pending": "Pendiente",
+      "failed": "Fallido",
+      "pricing": "Calculando precio",
+      "noPrice": "Sin precio"
+    },
+    "spending": {
+      "title": "Gastos de {{month}}",
+      "summary_one": "{{total}} en {{count}} grupo",
+      "summary_other": "{{total}} en {{count}} grupos",
+      "empty": "No hay gastos este mes",
+      "noCategory": "Sin categoría",
+      "notPriced_one": "{{count}} movimiento sin precio. El total está incompleto.",
+      "notPriced_other": "{{count}} movimientos sin precio. El total está incompleto."
+    },
+    "holdings": {
+      "title": "Tenencias",
+      "viewAll": "Ver todas",
+      "empty": "Aún no tienes monedas.",
+      "noPrice": "Sin precio"
+    },
+    "section": {
+      "error": "No se pudo cargar esta sección."
+    }
+  },
+  "movements": {
+    "title": "Movimientos",
+    "subtitle": "Cada depósito, retiro, operación P2P, transferencia Pay y conversión de Binance.",
+    "kinds": {
+      "deposit": "Depósito",
+      "withdrawal": "Retiro",
+      "pay": "Transferencia Pay",
+      "convert": "Conversión",
+      "p2p": "P2P",
+      "p2pSale": "Venta P2P",
+      "p2pPurchase": "Compra P2P"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "completed": "Completado",
+      "failed": "Fallido"
+    },
+    "direction": {
+      "any": "Todos",
+      "in": "Entradas",
+      "out": "Salidas"
+    },
+    "reason": {
+      "any": "Todos",
+      "yes": "Con motivo",
+      "no": "Sin motivo"
+    },
+    "dates": {
+      "all": "Todas las fechas",
+      "thisMonth": "Este mes",
+      "lastMonth": "Mes pasado",
+      "last90Days": "Últimos 90 días"
+    },
+    "filters": {
+      "toggle": "Filtros",
+      "search": "Buscar",
+      "searchPlaceholder": "Buscar motivos y contrapartes",
+      "kind": "Tipo",
+      "status": "Estado",
+      "direction": "Dirección",
+      "asset": "Moneda",
+      "assetPlaceholder": "Por ejemplo, BTC",
+      "assetMatch": "Incluir la otra moneda de las conversiones",
+      "category": "Categoría",
+      "categoryPlaceholder": "Cualquier categoría",
+      "dates": "Fechas",
+      "reason": "Motivo",
+      "active": "Filtros activos",
+      "clearAll": "Quitar todos los filtros",
+      "needsLabel": "Sin etiqueta"
+    },
+    "chips": {
+      "labelled": "{{label}}: {{value}}",
+      "assetMatch": "Incluye conversiones",
+      "withReason": "Con motivo",
+      "withoutReason": "Sin motivo",
+      "remove": "Quitar {{label}}"
+    },
+    "table": {
+      "date": "Fecha",
+      "kind": "Tipo",
+      "category": "Categoría",
+      "reason": "Motivo",
+      "amount": "Cantidad",
+      "usd": "USD"
+    },
+    "needsLabel": "Sin etiqueta",
+    "noCategory": "Sin categoría",
+    "list": {
+      "count_one": "{{count}} movimiento",
+      "count_other": "{{count}} movimientos",
+      "loadMore": "Cargar más"
+    },
+    "empty": {
+      "noneTitle": "Aún no hay movimientos",
+      "noneBody": "Sincroniza con Binance para traer tus depósitos, retiros y operaciones.",
+      "nothingTitle": "Nada coincide",
+      "nothingBody": "Ningún movimiento coincide con estos filtros. Quítalos para ver todo."
+    },
+    "export": {
+      "button": "Exportar CSV"
+    },
+    "price": {
+      "priced": "Con precio",
+      "pending": "Calculando precio",
+      "unavailable": "Sin precio"
+    },
+    "drawer": {
+      "saved": "Movimiento guardado.",
+      "label": "Motivo y categoría",
+      "reason": "Motivo",
+      "reasonPlaceholder": "¿Para qué fue?",
+      "reasonHelp": "{{count}} de {{limit}} caracteres",
+      "category": "Categoría",
+      "details": "Detalles",
+      "kind": "Tipo",
+      "status": "Estado",
+      "sourceStatus": "Estado en Binance",
+      "direction": "Dirección",
+      "date": "Fecha y hora",
+      "amount": "Cantidad",
+      "usd": "Valor en USD",
+      "counter": "Otra parte",
+      "unitPrice": "Precio unitario",
+      "fee": "Comisión",
+      "feeUsd": "Comisión en USD",
+      "counterparty": "Contraparte",
+      "reasonSaved": "Motivo guardado",
+      "usdPrice": "Precio en USD",
+      "priceSource": "Origen del precio",
+      "priceStatus": "Estado del precio",
+      "source": "Origen",
+      "externalId": "ID en Binance",
+      "id": "ID",
+      "save": "Guardar cambios",
+      "saveFailed": "No se guardó el cambio."
+    }
+  },
+  "settings": {
+    "accountTitle": "Cuenta"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Inténtalo de nuevo.",
+    "network": "No se puede conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+    "invalidLogin": "Correo o contraseña incorrectos.",
+    "alreadyRegistered": "Ese correo ya tiene una cuenta.",
+    "passwordTooLong": "Esa contraseña es demasiado larga.",
+    "invalidKey": "Escribe la clave de API y el secreto.",
+    "keyRejected": "Binance rechazó esta clave. Comprueba que la copiaste bien.",
+    "keyNotReadOnly": "Esta clave puede hacer más que leer. Desactiva los permisos de trading, retiros y transferencias.",
+    "keyCannotRead": "Esta clave no puede leer tu cuenta. Activa el permiso de lectura.",
+    "binanceFailed": "Binance no respondió. Inténtalo de nuevo.",
+    "keyNotSet": "No hay ninguna clave de Binance conectada.",
+    "syncInProgress": "Ya hay una sincronización en curso.",
+    "categoryExists": "Ya existe una categoría con ese nombre.",
+    "categoryNotFound": "Esa categoría ya no existe.",
+    "invalidCategoryName": "El nombre de una categoría debe tener de 1 a 64 caracteres.",
+    "movementNotFound": "Ese movimiento ya no existe.",
+    "snapshotNotFound": "Aún no hay datos de saldo.",
+    "tooManyRows": "Demasiados movimientos para exportar. Ajusta los filtros."
+  },
+  "categories": {
+    "title": "Categorías",
+    "subtitle": "Cada categoría dice para qué fue un movimiento. Aquí ves cuánto costó cada una este mes.",
+    "newLabel": "Nombre de la nueva categoría",
+    "newPlaceholder": "Por ejemplo, Supermercado",
+    "create": "Crear",
+    "renameLabel": "Nombre de la categoría",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "rename": "Renombrar {{name}}",
+    "notPriced_one": "{{count}} sin precio",
+    "notPriced_other": "{{count}} sin precio",
+    "deleted": "Categoría eliminada.",
+    "empty": {
+      "title": "Crea tu primera categoría",
+      "body": "Las categorías dicen para qué fue cada movimiento. Empieza con una de estas o escribe la tuya arriba.",
+      "suggestions": "Empieza con una de estas"
+    },
+    "suggestions": {
+      "food": "Comida",
+      "rent": "Alquiler",
+      "travel": "Viajes",
+      "transfer": "Transferencia"
+    },
+    "delete": {
+      "action": "Eliminar {{name}}",
+      "title": "¿Eliminar {{name}}?",
+      "body": "Sus movimientos conservan el motivo, pero pierden esta categoría. Los gastos que estaban en ella volverán a necesitar una etiqueta.",
+      "confirm": "Eliminar categoría",
+      "cancel": "Cancelar"
+    }
+  },
+  "assets": {
+    "title": "Activos",
+    "subtitle": "Lo que tienes en Spot y Funding, y cómo ha cambiado.",
+    "summary": {
+      "total": "Saldo total",
+      "spot": "Spot",
+      "funding": "Funding",
+      "updated": "Actualizado {{time}}",
+      "unpriced": "Algunas monedas no tienen precio, así que el total no las incluye."
+    },
+    "history": {
+      "title": "Historial de saldo",
+      "chartLabel": "Saldo total a lo largo del tiempo",
+      "notEnough": "Aún no hay suficiente historial",
+      "notEnoughBody": "Para dibujar una línea hacen falta al menos dos sincronizaciones en este rango. Sincroniza otra vez más adelante.",
+      "gaps": "Los huecos son momentos en los que la moneda no tenía precio."
+    },
+    "range": {
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días",
+      "1y": "1 año"
+    },
+    "measure": {
+      "usd": "Valor en USD",
+      "amount": "Cantidad"
+    },
+    "coins": {
+      "title": "Monedas",
+      "coin": "Moneda",
+      "amount": "Cantidad",
+      "usd": "Valor en USD",
+      "share": "Participación",
+      "noPrice": "Sin precio",
+      "partlyPriced": "Parte sin precio",
+      "excluded": "Las monedas sin precio van al final, y el total no las incluye."
+    },
+    "detail": {
+      "allAssets": "Todos los activos",
+      "viewMovements": "Ver movimientos",
+      "wallets": "Billeteras",
+      "spot": "Spot",
+      "funding": "Funding",
+      "free": "Libre",
+      "locked": "Bloqueado",
+      "frozen": "Congelado",
+      "noLonger": "Ya no tienes {{asset}}. Abajo ves su historial.",
+      "chartLabel": "Historial de {{asset}}"
+    },
+    "notFound": {
+      "title": "Moneda no encontrada",
+      "invalid": "Eso no es un código de moneda. Los códigos son letras y números, como BTC.",
+      "unknown": "{{asset}} no está en tus saldos y nunca lo ha estado.",
+      "back": "Volver a activos"
+    }
+  }
+}

@@ -7,6 +7,205 @@ body,
   padding: 0;
 }
 
+body {
+  font-variant-numeric: tabular-nums;
+}
+
 li {
   list-style: none;
+}
+
+a {
+  color: var(--mantine-color-accent-6);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  color: var(--mantine-color-dark-0);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  background: var(--mantine-color-dark-5);
+}
+
+.nav-link[data-status="active"] {
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-accent-6);
+  font-weight: 600;
+}
+
+.language-switch {
+  display: flex;
+  padding: 3px;
+  border-radius: 22px;
+  background: var(--mantine-color-dark-6);
+}
+
+.language-switch button {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.language-switch button[aria-pressed="true"] {
+  background: var(--mantine-color-accent-6);
+  color: #16270c;
+  font-weight: 600;
+}
+
+.brand {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Dashboard. The left column is wider. Below 768px the sections form one column, in the order of the design: the label
+   queue, the balance, recent movements, spending, holdings. There the wrappers use display: contents, so each section is
+   an item of the column and the order rules apply. */
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.dash__main,
+.dash__side,
+.dash__pair {
+  display: contents;
+}
+
+.dash__queue,
+.dash__balance,
+.dash__recent,
+.dash__spending,
+.dash__holdings {
+  min-width: 0;
+}
+
+.dash__queue {
+  order: 1;
+}
+
+.dash__balance {
+  order: 2;
+}
+
+.dash__recent {
+  order: 3;
+}
+
+.dash__spending {
+  order: 4;
+}
+
+.dash__holdings {
+  order: 5;
+}
+
+.dash__card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash__card > * {
+  flex: 1 1 auto;
+}
+
+@media (min-width: 768px) {
+  .dash {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .dash__main,
+  .dash__side {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+
+  .dash__main {
+    flex: 3 1 0;
+  }
+
+  .dash__side {
+    flex: 2 1 0;
+  }
+
+  .dash__pair {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .dash__pair > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .dash__queue,
+  .dash__balance,
+  .dash__recent,
+  .dash__spending,
+  .dash__holdings {
+    order: 0;
+  }
+}
+
+/* A quiet link: text, not a button, with the 44px touch target. */
+.quiet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--mantine-color-dark-2);
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: var(--mantine-color-dark-4);
+  text-underline-offset: 3px;
+}
+
+.quiet-link:hover {
+  color: var(--mantine-color-dark-0);
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The placeholder of an inline category select that needs a label: the accent colour, as the Dashboard shows it. The longer
+   selector outranks Mantine's own placeholder colour, whatever the order of the stylesheets. */
+.mantine-Select-input.needs-label-input::placeholder {
+  color: var(--mantine-color-accent-6);
+  opacity: 1;
+}
+
+/* A row or card that opens a coin. It keeps its own text colour, and the whole row is the target. */
+.row-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.row-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--mantine-color-dark-4);
+  text-underline-offset: 3px;
 }

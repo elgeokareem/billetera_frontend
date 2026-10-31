@@ -1,0 +1,136 @@
+import { describe, expect, it } from "vitest";
+import type { Movement } from "../movements/types";
+import {
+  kindKey,
+  movementFiling,
+  movementTitle,
+  priceNote,
+  statusNote,
+} from "./movementText";
+
+// Returns the key with its options, so a test can read what was asked for.
+const t = (key: string, options?: Record<string, string>) =>
+  options ? `${key} ${JSON.stringify(options)}` : key;
+
+function movement(overrides: Partial<Movement>): Movement {
+  return {
+    id: 1,
+    source: "binance",
+    kind: "p2p",
+    external_id: "p2p-1",
+    direction: "out",
+    status: "completed",
+    source_status: null,
+    asset: "USDT",
+    amount: "54",
+    fee_asset: null,
+    fee_amount: null,
+    counter_asset: "ARS",
+    counter_amount: "74520",
+    unit_price: "1380",
+    counterparty: null,
+    occurred_at: "2026-10-29T12:00:00Z",
+    reason: null,
+    reason_updated_at: null,
+    category_id: null,
+    usd_price: "1",
+    usd_price_source: "binance-1m",
+    usd_price_status: "priced",
+    usd_value: "54",
+    fee_usd_value: null,
+    ...overrides,
+  };
+}
+
+describe("kindKey", () => {
+  it("reads a P2P trade as a sale when crypto leaves, and a purchase otherwise", () => {
+    expect(kindKey({ kind: "p2p", direction: "out" })).toBe("movements.kinds.p2pSale");
+    expect(kindKey({ kind: "p2p", direction: "in" })).toBe("movements.kinds.p2pPurchase");
+  });
+
+  it("names the other kinds", () => {
+    expect(kindKey({ kind: "pay", direction: "out" })).toBe("movements.kinds.pay");
+    expect(kindKey({ kind: "withdrawal", direction: "out" })).toBe("movements.kinds.withdrawal");
+    expect(kindKey({ kind: "deposit", direction: "in" })).toBe("movements.kinds.deposit");
+    expect(kindKey({ kind: "convert", direction: "out" })).toBe("movements.kinds.convert");
+  });
+});
+
+describe("movementTitle", () => {
+  it("uses the reason when there is one", () => {
+    expect(movementTitle(movement({ reason: "Gift for Carlos" }), t)).toBe("Gift for Carlos");
+  });
+
+  it("falls back to the kind when there is no reason", () => {
+    expect(movementTitle(movement({ kind: "pay" }), t)).toBe("movements.kinds.pay");
+  });
+
+  it("names both coins of a Convert", () => {
+    const convert = movement({ kind: "convert", direction: "out", asset: "BNB", counter_asset: "USDT" });
+    expect(movementTitle(convert, t)).toBe(
+      'dashboard.recent.convert {"kind":"movements.kinds.convert","from":"BNB","to":"USDT"}',
+    );
+  });
+});
+
+describe("movementFiling", () => {
+  it("shows the category's name", () => {
+    expect(movementFiling(movement({ category_id: 2 }), "Food", t)).toEqual({ text: "Food", needsLabel: false });
+  });
+
+  it("says spending with no category needs a label", () => {
+    expect(movementFiling(movement({ category_id: null }), undefined, t)).toEqual({
+      text: "dashboard.recent.needsLabel",
+      needsLabel: true,
+    });
+  });
+
+  it("never marks a Convert with no category as needing a label, and shows its kind", () => {
+    const convert = movement({ kind: "convert", direction: "out", category_id: null });
+    expect(movementFiling(convert, undefined, t)).toEqual({ text: "movements.kinds.convert", needsLabel: false });
+  });
+
+  it("never marks a deposit with no category as needing a label, and shows its kind", () => {
+    const deposit = movement({ kind: "deposit", direction: "in", category_id: null });
+    expect(movementFiling(deposit, undefined, t)).toEqual({ text: "movements.kinds.deposit", needsLabel: false });
+  });
+
+  it("doesn't mark a pending withdrawal as needing a label, since it isn't spending yet", () => {
+    const pending = movement({ kind: "withdrawal", status: "pending", category_id: null });
+    expect(movementFiling(pending, undefined, t)).toEqual({
+      text: "movements.kinds.withdrawal",
+      needsLabel: false,
+    });
+  });
+
+  it("still needs a label when it has a reason, since a reason alone isn't a label", () => {
+    const withReason = movement({ reason: "Dinner", category_id: null });
+    expect(movementFiling(withReason, undefined, t).needsLabel).toBe(true);
+  });
+});
+
+describe("statusNote", () => {
+  it("names a pending or failed movement, and has nothing for a completed one", () => {
+    expect(statusNote(movement({ status: "pending" }), t)).toBe("dashboard.recent.pending");
+    expect(statusNote(movement({ status: "failed" }), t)).toBe("dashboard.recent.failed");
+    expect(statusNote(movement({ status: "completed" }), t)).toBeNull();
+  });
+});
+
+describe("priceNote", () => {
+  it("says a missing price is still being looked up", () => {
+    expect(priceNote(movement({ usd_value: null, usd_price: null, usd_price_status: "pending" }), t)).toBe(
+      "dashboard.recent.pricing",
+    );
+  });
+
+  it("says Binance has no price when the coin is unavailable", () => {
+    expect(priceNote(movement({ usd_value: null, usd_price: null, usd_price_status: "unavailable" }), t)).toBe(
+      "dashboard.recent.noPrice",
+    );
+  });
+
+  it("adds no note when there is a value", () => {
+    expect(priceNote(movement({ usd_value: "54" }), t)).toBeNull();
+  });
+});

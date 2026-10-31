@@ -1,64 +1,39 @@
+import type { QueryClient } from "@tanstack/react-query";
+import type { AnyRouter } from "@tanstack/react-router";
 import axios from "axios";
-import { getCookie } from "./utils";
-import { jwtDecode } from "jwt-decode";
 import { toast } from "react-toastify";
-import { routeTree } from "../../routeTree.gen";
-import { createRouter } from "@tanstack/react-router";
+import i18n from "./i18n";
+import { SESSION_PATH } from "./session";
 
-export function axiosInterceptorsAndConfig() {
-  const router = createRouter({ routeTree });
-  const nonAuthPaths = [
-    router.routesByPath["/"].path,
-    router.routesByPath["/login"].path,
-    router.routesByPath["/register"].path
-  ];
-  const currentPath = router.state.location
-    .pathname as (typeof nonAuthPaths)[number];
+const PUBLIC_PATHS = ["/login", "/register"];
+const SESSION_EXPIRED_TOAST = "session-expired";
 
+export function axiosInterceptorsAndConfig(
+  router: AnyRouter,
+  queryClient: QueryClient,
+) {
   axios.defaults.baseURL = import.meta.env.VITE_BACKEND_ENDPOINT;
   axios.defaults.withCredentials = true;
 
-  // TODO: Probably need to take into consideration the loading state of the app
-
-  axios.interceptors.request.use(config => {
-    const serverToken = getCookie("token");
-    const token = serverToken?.split("+")[1];
-
-    if (token) {
-      const decoded = jwtDecode(token);
-
-      const now = Date.now() / 1000;
-
-      if (Number(decoded.exp) < now) {
-        toast.error("Session expired. Please login again.");
-        if (!nonAuthPaths.includes(currentPath)) {
-          router.navigate({ to: "/login" });
-        }
-        return Promise.reject("Session expired");
-      }
-    }
-
-    return config;
-  });
-
   axios.interceptors.response.use(
-    response => {
-      const serverToken = getCookie("token");
-      const token = serverToken?.split("+")[1];
+    (response) => response,
+    (error) => {
+      const { url, method } = error.config ?? {};
+      const isSessionCheck = method === "get" && url === SESSION_PATH;
+      const isAuthCall = url?.startsWith("/auth/");
 
-      if (token) {
-        const decoded = jwtDecode(token);
-
-        console.log(decoded);
-      }
-      return response;
-    },
-    error => {
-      if (error.response?.status === 401) {
-        console.error("Unauthorized");
+      if (error.response?.status === 401 && !isSessionCheck && !isAuthCall) {
+        queryClient.clear();
+        const { pathname, href } = router.state.location;
+        if (!PUBLIC_PATHS.includes(pathname)) {
+          toast.info(i18n.t("auth.sessionExpired"), {
+            toastId: SESSION_EXPIRED_TOAST,
+          });
+          router.navigate({ to: "/login", search: { redirect: href } });
+        }
       }
 
       return Promise.reject(error);
-    }
+    },
   );
 }

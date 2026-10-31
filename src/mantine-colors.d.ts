@@ -1,6 +1,6 @@
 import { DefaultMantineColor, MantineColorsTuple } from "@mantine/core";
 
-type ExtendedCustomColors = "bgPrimary" | "primaryYellow" | DefaultMantineColor;
+type ExtendedCustomColors = "accent" | DefaultMantineColor;
 
 declare module "@mantine/core" {
   export interface MantineThemeColorsOverride {

@@ -8,3 +8,9 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 
 | Change | Type | Status | Domain | Since |
 |--------|------|--------|--------|-------|
+| [App Foundation](2026-10-30-app-foundation/SPEC.md) ([plan](2026-10-30-app-foundation/PLAN.md)) | feature | built, backend not tested | Platform, Identity | 2026-10-30 |
+| [Binance Connection](2026-10-30-binance-connection/SPEC.md) ([plan](2026-10-30-binance-connection/PLAN.md)) | feature | built, backend not tested | Identity, Portfolio | 2026-10-30 |
+| [Dashboard](2026-10-30-dashboard/SPEC.md) ([plan](2026-10-30-dashboard/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-10-30 |
+| [Movements and Categories](2026-10-30-movements-categories/SPEC.md) ([plan](2026-10-30-movements-categories/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-10-30 |
+| [Assets](2026-10-30-assets/SPEC.md) ([plan](2026-10-30-assets/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-10-30 |
+| [Generated API Types](2026-10-31-generated-api-types/SPEC.md) ([plan](2026-10-31-generated-api-types/PLAN.md)) | refactor | built | Platform | 2026-10-31 |

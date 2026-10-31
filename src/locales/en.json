@@ -1,0 +1,401 @@
+{
+  "common": {
+    "appName": "billetera",
+    "comingSoon": "Coming soon",
+    "comingSoonBody": "This page isn't ready yet.",
+    "language": "Language",
+    "openMenu": "Open menu",
+    "loading": "Loading",
+    "retry": "Try again",
+    "somethingWrong": "Something went wrong",
+    "close": "Close"
+  },
+  "nav": {
+    "main": "Main",
+    "dashboard": "Dashboard",
+    "movements": "Movements",
+    "assets": "Assets",
+    "categories": "Categories",
+    "settings": "Settings"
+  },
+  "auth": {
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "confirmPassword": "Confirm password",
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Don't have an account yet?",
+    "loginLink": "Create one",
+    "loginSubmit": "Log in",
+    "loginSuccess": "Logged in",
+    "logout": "Log out",
+    "registerTitle": "Create your account",
+    "registerSubtitle": "Already have an account?",
+    "registerLink": "Log in",
+    "registerSubmit": "Create account",
+    "registerSuccess": "Account created. You can log in now.",
+    "sessionExpired": "Your session expired. Please log in again.",
+    "invalidEmail": "Enter a valid email",
+    "passwordRequired": "Enter your password",
+    "passwordTooShort": "Use at least 3 characters",
+    "passwordMismatch": "The passwords don't match"
+  },
+  "binance": {
+    "connect": {
+      "title": "Connect Binance",
+      "subtitle": "Billetera reads your balances and movements with a read-only Binance key.",
+      "stepsTitle": "Create a read-only key in Binance",
+      "step1": "In your Binance account, open API Management and create a new API key.",
+      "step2": "Turn on Enable Reading, and leave trading, withdrawals and transfers off.",
+      "step3": "Paste the API key and the secret below.",
+      "submit": "Connect",
+      "checking": "Checking the key with Binance. This can take a few seconds.",
+      "fetchingTitle": "Fetching your data",
+      "fetchingBody": "This can take a minute."
+    },
+    "form": {
+      "apiKey": "API key",
+      "apiSecret": "API secret",
+      "showSecret": "Show secret",
+      "keyRequired": "Enter the API key",
+      "secretRequired": "Enter the API secret",
+      "readOnlyHint": "Only read-only keys are accepted."
+    },
+    "card": {
+      "title": "Binance connection",
+      "apiKey": "API key",
+      "status": "Status",
+      "lastChecked": "Last checked",
+      "ipNote": "This key isn't limited to specific IP addresses. In Binance, you can add an IP restriction to make it safer.",
+      "replace": "Replace key",
+      "remove": "Remove key",
+      "notConnected": "No Binance key is connected. Connect one to start syncing your balances and movements.",
+      "connect": "Connect Binance"
+    },
+    "state": {
+      "active": "Active",
+      "rejected": "Rejected"
+    },
+    "rejected": {
+      "title": "Binance refused your key",
+      "body": "Syncing has stopped. Replace the key to start syncing again.",
+      "goToSettings": "Go to Settings"
+    },
+    "replace": {
+      "title": "Replace Binance key",
+      "submit": "Save key",
+      "saved": "Key replaced."
+    },
+    "remove": {
+      "title": "Remove Binance key?",
+      "body": "Billetera stops syncing with Binance. Your history stays: balances, movements and categories are kept. You can connect a key again at any time.",
+      "confirm": "Remove key",
+      "cancel": "Cancel",
+      "removed": "Key removed. Your history is kept."
+    }
+  },
+  "dashboard": {
+    "queue": {
+      "headline_one": "{{count}} movement needs a label",
+      "headline_other": "{{count}} movements need a label",
+      "allLabelled": "All labelled",
+      "subtitle": "Say what each one was for, and this month's picture is complete.",
+      "nothingLeft": "Nothing else needs a label this month.",
+      "seeOlder": "See older",
+      "reviewAll": "Review all",
+      "categories": "Categories"
+    },
+    "card": {
+      "moreCategories": "More categories",
+      "newCategory": "New category",
+      "newCategoryLabel": "Category name",
+      "newCategoryPlaceholder": "For example, Travel",
+      "createCategory": "Create",
+      "cancel": "Cancel",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "What was this for?",
+      "saveFailed": "The label wasn't saved. Your reason is still here.",
+      "labelled": "Labelled as {{category}}.",
+      "undo": "Undo",
+      "undone": "Label removed."
+    },
+    "balance": {
+      "title": "Total balance",
+      "change": "Balance change since yesterday",
+      "changeNote": "Includes deposits and withdrawals, not only price moves.",
+      "unpriced": "Some coins have no price, so the total leaves them out.",
+      "updated": "Updated {{time}}",
+      "sparkline": "Balance over the last 30 days",
+      "changeFailed": "Couldn't load the change.",
+      "chartFailed": "Couldn't load the chart."
+    },
+    "sync": {
+      "action": "Sync",
+      "actionNow": "Sync now"
+    },
+    "noSnapshot": {
+      "title": "No balance data yet",
+      "body": "Sync with Binance to fetch your balances and movements.",
+      "holdings": "Sync to see what you hold."
+    },
+    "recent": {
+      "title": "Recent movements",
+      "viewAll": "View all",
+      "empty": "No movements yet.",
+      "needsLabel": "Needs a label",
+      "convert": "{{kind}} {{from}} → {{to}}",
+      "pending": "Pending",
+      "failed": "Failed",
+      "pricing": "Pricing",
+      "noPrice": "No price"
+    },
+    "spending": {
+      "title": "{{month}} spending",
+      "summary_one": "{{total}} across {{count}} group",
+      "summary_other": "{{total}} across {{count}} groups",
+      "empty": "No spending this month",
+      "noCategory": "No category",
+      "notPriced_one": "{{count}} movement not priced. The total is incomplete.",
+      "notPriced_other": "{{count}} movements not priced. The total is incomplete."
+    },
+    "holdings": {
+      "title": "Holdings",
+      "viewAll": "View all",
+      "empty": "No coins held yet.",
+      "noPrice": "No price"
+    },
+    "section": {
+      "error": "Couldn't load this section."
+    }
+  },
+  "movements": {
+    "title": "Movements",
+    "subtitle": "Every deposit, withdrawal, P2P trade, Pay transfer and Convert from Binance.",
+    "kinds": {
+      "deposit": "Deposit",
+      "withdrawal": "Withdrawal",
+      "pay": "Pay transfer",
+      "convert": "Convert",
+      "p2p": "P2P",
+      "p2pSale": "P2P sale",
+      "p2pPurchase": "P2P purchase"
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "direction": {
+      "any": "All",
+      "in": "Money in",
+      "out": "Money out"
+    },
+    "reason": {
+      "any": "Any",
+      "yes": "With reason",
+      "no": "Without reason"
+    },
+    "dates": {
+      "all": "All dates",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "last90Days": "Last 90 days"
+    },
+    "filters": {
+      "toggle": "Filters",
+      "search": "Search",
+      "searchPlaceholder": "Search reasons and counterparties",
+      "kind": "Kind",
+      "status": "Status",
+      "direction": "Direction",
+      "asset": "Asset",
+      "assetPlaceholder": "For example, BTC",
+      "assetMatch": "Include the other side of a Convert",
+      "category": "Category",
+      "categoryPlaceholder": "Any category",
+      "dates": "Dates",
+      "reason": "Reason",
+      "active": "Active filters",
+      "clearAll": "Clear all",
+      "needsLabel": "Needs a label"
+    },
+    "chips": {
+      "labelled": "{{label}}: {{value}}",
+      "assetMatch": "Includes Convert",
+      "withReason": "With reason",
+      "withoutReason": "Without reason",
+      "remove": "Remove {{label}}"
+    },
+    "table": {
+      "date": "Date",
+      "kind": "Kind",
+      "category": "Category",
+      "reason": "Reason",
+      "amount": "Amount",
+      "usd": "USD"
+    },
+    "needsLabel": "Needs a label",
+    "noCategory": "No category",
+    "list": {
+      "count_one": "{{count}} movement",
+      "count_other": "{{count}} movements",
+      "loadMore": "Load more"
+    },
+    "empty": {
+      "noneTitle": "No movements yet",
+      "noneBody": "Sync with Binance to fetch your deposits, withdrawals and trades.",
+      "nothingTitle": "Nothing matches",
+      "nothingBody": "No movement matches these filters. Clear them to see everything."
+    },
+    "export": {
+      "button": "Export CSV"
+    },
+    "price": {
+      "priced": "Priced",
+      "pending": "Pricing",
+      "unavailable": "No price"
+    },
+    "drawer": {
+      "saved": "Movement saved.",
+      "label": "Reason and category",
+      "reason": "Reason",
+      "reasonPlaceholder": "What was this for?",
+      "reasonHelp": "{{count}} of {{limit}} characters",
+      "category": "Category",
+      "details": "Details",
+      "kind": "Kind",
+      "status": "Status",
+      "sourceStatus": "Binance status",
+      "direction": "Direction",
+      "date": "Date and time",
+      "amount": "Amount",
+      "usd": "USD value",
+      "counter": "Other side",
+      "unitPrice": "Unit price",
+      "fee": "Fee",
+      "feeUsd": "Fee in USD",
+      "counterparty": "Counterparty",
+      "reasonSaved": "Reason saved",
+      "usdPrice": "USD price",
+      "priceSource": "Price source",
+      "priceStatus": "Price status",
+      "source": "Source",
+      "externalId": "Binance ID",
+      "id": "ID",
+      "save": "Save changes",
+      "saveFailed": "The change wasn't saved."
+    }
+  },
+  "settings": {
+    "accountTitle": "Account"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Can't reach the server. Check your connection and try again.",
+    "invalidLogin": "Wrong email or password.",
+    "alreadyRegistered": "That email already has an account.",
+    "passwordTooLong": "That password is too long.",
+    "invalidKey": "Enter both the API key and the secret.",
+    "keyRejected": "Binance rejected this key. Check that you copied it correctly.",
+    "keyNotReadOnly": "This key can do more than read. Turn off trading, withdrawal and transfer permissions.",
+    "keyCannotRead": "This key can't read your account. Turn on read permission.",
+    "binanceFailed": "Binance didn't respond. Please try again.",
+    "keyNotSet": "No Binance key is connected.",
+    "syncInProgress": "A sync is already running.",
+    "categoryExists": "A category with that name already exists.",
+    "categoryNotFound": "That category no longer exists.",
+    "invalidCategoryName": "Category names must be 1 to 64 characters.",
+    "movementNotFound": "That movement no longer exists.",
+    "snapshotNotFound": "No balance data yet.",
+    "tooManyRows": "Too many movements to export. Narrow the filters."
+  },
+  "categories": {
+    "title": "Categories",
+    "subtitle": "Each category says what a movement was for. Here is what each one cost this month.",
+    "newLabel": "New category name",
+    "newPlaceholder": "For example, Groceries",
+    "create": "Create",
+    "renameLabel": "Category name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "rename": "Rename {{name}}",
+    "notPriced_one": "{{count}} unpriced",
+    "notPriced_other": "{{count}} unpriced",
+    "deleted": "Category deleted.",
+    "empty": {
+      "title": "Create your first category",
+      "body": "Categories say what each movement was for. Start with one of these, or type your own above.",
+      "suggestions": "Start with one of these"
+    },
+    "suggestions": {
+      "food": "Food",
+      "rent": "Rent",
+      "travel": "Travel",
+      "transfer": "Transfer"
+    },
+    "delete": {
+      "action": "Delete {{name}}",
+      "title": "Delete {{name}}?",
+      "body": "Its movements keep their reason but lose this category. Spending that was filed under it will need a label again.",
+      "confirm": "Delete category",
+      "cancel": "Cancel"
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "subtitle": "What you hold across Spot and Funding, and how it has changed.",
+    "summary": {
+      "total": "Total balance",
+      "spot": "Spot",
+      "funding": "Funding",
+      "updated": "Updated {{time}}",
+      "unpriced": "Some coins have no price, so the total leaves them out."
+    },
+    "history": {
+      "title": "Balance history",
+      "chartLabel": "Total balance over time",
+      "notEnough": "Not enough history yet",
+      "notEnoughBody": "A line needs at least two snapshots in the range. Sync again later to add one.",
+      "gaps": "Gaps are times when the coin had no price."
+    },
+    "range": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "1y": "1 year"
+    },
+    "measure": {
+      "usd": "USD value",
+      "amount": "Amount"
+    },
+    "coins": {
+      "title": "Coins",
+      "coin": "Coin",
+      "amount": "Amount",
+      "usd": "USD value",
+      "share": "Share",
+      "noPrice": "No price",
+      "partlyPriced": "Part has no price",
+      "excluded": "Coins with no price sit last, and the total leaves them out."
+    },
+    "detail": {
+      "allAssets": "All assets",
+      "viewMovements": "View movements",
+      "wallets": "Wallets",
+      "spot": "Spot",
+      "funding": "Funding",
+      "free": "Free",
+      "locked": "Locked",
+      "frozen": "Frozen",
+      "noLonger": "You don't hold {{asset}} any more. Its history is below.",
+      "chartLabel": "{{asset}} history"
+    },
+    "notFound": {
+      "title": "Not found",
+      "invalid": "That isn't a coin code. Codes are letters and numbers, such as BTC.",
+      "unknown": "{{asset}} isn't in your balances, and it never was.",
+      "back": "Back to assets"
+    }
+  }
+}

@@ -25,6 +25,11 @@ Frontend of the billetera project.
 - `pnpm dev` - Start the dev server
 - `pnpm build` - Type-check and build
 - `pnpm lint` - Run ESLint
+- `pnpm api:generate` - Regenerate `src/modules/shared/api-schema.d.ts` from `../backend/docs/openapi/openapi.json`
+- `pnpm api:check` - Fail when the committed API types are stale
+- `pnpm verify` - API check, lint, tests and build, for CI and deploy pipelines
+
+`api:generate` and `api:check` read `OPENAPI_PATH` when it's set, so a pipeline can point them at another checkout, an artifact, or an http(s) URL instead of the sibling `backend` directory. They run the pinned generator through `pnpm dlx`, so they need network access the first time; `pnpm build` doesn't, because the generated file is committed.
 
 ## Spec-Driven Development
 

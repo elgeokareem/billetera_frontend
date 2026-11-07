@@ -1,0 +1,64 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the frontend
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.14.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The backend repo is private. This step uses a fine-grained PAT with
+      # Contents: Read-only on billetera_backend.
+      - name: Check out the backend contract
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/checkout@v7
+        with:
+          repository: elgeokareem/billetera_backend
+          # Use the tag or commit the backend is deployed from, so the frontend
+          # checks the same contract.
+          ref: main
+          path: backend
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          persist-credentials: false
+
+      - name: Check the generated API types
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: pnpm api:check
+        env:
+          OPENAPI_PATH: backend/docs/openapi/openapi.json
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

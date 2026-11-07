@@ -1,0 +1,14 @@
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+  PNPM_VERSION = "12.14.0"
+
+# TanStack Router handles the routes in the browser. Netlify serves index.html
+# for a deep link or a reload instead of a 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

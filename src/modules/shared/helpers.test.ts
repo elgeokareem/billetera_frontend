@@ -1,6 +1,7 @@
 import { AxiosError, AxiosHeaders } from "axios";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getApiErrorKey } from "./api-errors";
+import { formatHourTick } from "./chartFormat";
 import {
   formatAmount,
   formatDate,
@@ -13,6 +14,9 @@ import { abs, compare, diff, isNegative, percentOf, sum, sumKnown } from "./mone
 
 // Intl separates a currency or percent sign with a non-breaking space.
 const plain = (text: string) => text.replace(/\u00a0/g, " ");
+
+// Newer ICU versions put a narrow no-break space before AM and PM, which the text comparison reads as a space.
+const spaced = (text: string) => text.replace(/[\u00a0\u202f]/g, " ");
 
 function apiError(status: number, data: unknown) {
   const config = { headers: new AxiosHeaders() };
@@ -122,6 +126,22 @@ describe("format", () => {
     expect(formatShortDate(null)).toBe("—");
     await i18n.changeLanguage("es");
     expect(formatShortDate(date)).toBe("15 oct");
+  });
+});
+
+describe("formatHourTick", () => {
+  // A local time, so the test reads the same in any zone.
+  const at = new Date(2026, 9, 30, 14, 5).getTime();
+
+  it("writes the time of day in English", async () => {
+    await i18n.changeLanguage("en");
+    expect(spaced(formatHourTick(at))).toBe("02:05 PM");
+  });
+
+  it("writes the time of day in Spanish, on the 24-hour clock", async () => {
+    await i18n.changeLanguage("es");
+    expect(spaced(formatHourTick(at))).toBe("14:05");
+    await i18n.changeLanguage("en");
   });
 });
 

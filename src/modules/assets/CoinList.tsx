@@ -3,7 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
-import { formatAmount, formatPercent, formatUsd } from "../shared/format";
+import { Sensitive } from "../shared/components/Sensitive";
+import { formatPercent, formatQuantity, formatUsd } from "../shared/format";
 import { percentOf } from "../shared/money";
 import { useLatestSnapshot } from "../snapshots/hooks";
 import { type Holding, mergeHoldings } from "../snapshots/holdings";
@@ -22,7 +23,7 @@ function UsdValue({ holding }: { holding: Holding }) {
   return (
     <Stack gap={0} align="flex-end">
       <Text size="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-        {formatUsd(holding.usd)}
+        <Sensitive>{formatUsd(holding.usd)}</Sensitive>
       </Text>
       {!holding.priced && (
         <Text size="xs" c="dimmed">
@@ -71,7 +72,7 @@ function CoinTable({ holdings, total }: { holdings: readonly Holding[]; total: s
                 </Link>
               </Table.Td>
               <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
-                {formatAmount(holding.amount, holding.asset)}
+                <Sensitive>{formatQuantity(holding.amount)}</Sensitive> {holding.asset}
               </Table.Td>
               <Table.Td ta="right">
                 <UsdValue holding={holding} />
@@ -105,7 +106,7 @@ function CoinCards({ holdings, total }: { holdings: readonly Holding[]; total: s
                   {holding.asset}
                 </Text>
                 <Text size="sm" c="dimmed" className="truncate">
-                  {formatAmount(holding.amount, holding.asset)}
+                  <Sensitive>{formatQuantity(holding.amount)}</Sensitive> {holding.asset}
                 </Text>
               </Stack>
               <Stack gap={2} align="flex-end" mt="sm">

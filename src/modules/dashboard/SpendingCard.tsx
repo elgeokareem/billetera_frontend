@@ -1,11 +1,14 @@
-import { Box, Group, Paper, Stack, Text } from "@mantine/core";
+import { Box, Group, Paper, Stack, Text, VisuallyHidden } from "@mantine/core";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
 import { useMovementTotals } from "../movements/hooks";
 import { spendingBreakdown, type CategorySpending } from "../movements/spending";
+import { Sensitive } from "../shared/components/Sensitive";
 import { formatMonth, formatUsd } from "../shared/format";
 import { compare, percentOf } from "../shared/money";
+import { MASK } from "../shared/privacy";
+import { useBalancesHidden } from "../shared/usePrivacy";
 import { dashboardQueries } from "./queries";
 import { SectionError, SectionSkeleton } from "./SectionStates";
 
@@ -21,6 +24,7 @@ interface SpendingCardProps {
 /** This month's spending by category, with the largest first and spending with no category last. */
 export function SpendingCard({ now, timeZone }: SpendingCardProps) {
   const { t } = useTranslation();
+  const hidden = useBalancesHidden();
   const queries = dashboardQueries(now, timeZone);
   const spending = useMovementTotals(queries.spending);
   const categories = useCategories();
@@ -59,14 +63,24 @@ export function SpendingCard({ now, timeZone }: SpendingCardProps) {
       return { color, share, key: group.categoryId ?? "none" };
     });
 
+    // The summary is a sentence with the total inside it. Hidden, the total shows as the mask, and is read as "Hidden".
+    const summary = (amount: string) => t("dashboard.spending.summary", { total: amount, count: groups.length });
+
     body = (
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          {t("dashboard.spending.summary", { total: formatUsd(total), count: groups.length })}
+          {hidden ? (
+            <>
+              <span aria-hidden="true">{summary(MASK)}</span>
+              <VisuallyHidden>{summary(t("privacy.hidden"))}</VisuallyHidden>
+            </>
+          ) : (
+            summary(formatUsd(total))
+          )}
         </Text>
         <Box
           role="img"
-          aria-label={t("dashboard.spending.summary", { total: formatUsd(total), count: groups.length })}
+          aria-label={summary(hidden ? t("privacy.hidden") : formatUsd(total))}
           style={{ display: "flex", gap: 2, height: 12, borderRadius: 6, overflow: "hidden" }}
         >
           {segments
@@ -82,7 +96,7 @@ export function SpendingCard({ now, timeZone }: SpendingCardProps) {
                 {nameOf(group)}
               </Text>
               <Text size="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-                {formatUsd(group.usd)}
+                {group.usd === null ? formatUsd(group.usd) : <Sensitive>{formatUsd(group.usd)}</Sensitive>}
               </Text>
             </Group>
           ))}

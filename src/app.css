@@ -74,9 +74,24 @@ a {
   font-weight: 700;
 }
 
+/* The wordmark as a link home, on the login and register pages. It keeps the brand's colour and the 44px target. */
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.brand-link:focus-visible {
+  outline: 2px solid var(--mantine-color-accent-6);
+  outline-offset: 2px;
+}
+
 /* Dashboard. The left column is wider. Below 768px the sections form one column, in the order of the design: the label
-   queue, the balance, recent movements, spending, holdings. There the wrappers use display: contents, so each section is
-   an item of the column and the order rules apply. */
+   queue, the balance, its chart over time, recent movements, spending, holdings. There the wrappers use display: contents,
+   so each section is an item of the column and the order rules apply. */
 .dash {
   display: flex;
   flex-direction: column;
@@ -92,6 +107,7 @@ a {
 
 .dash__queue,
 .dash__balance,
+.dash__history,
 .dash__recent,
 .dash__spending,
 .dash__holdings {
@@ -106,16 +122,20 @@ a {
   order: 2;
 }
 
-.dash__recent {
+.dash__history {
   order: 3;
 }
 
-.dash__spending {
+.dash__recent {
   order: 4;
 }
 
-.dash__holdings {
+.dash__spending {
   order: 5;
+}
+
+.dash__holdings {
+  order: 6;
 }
 
 .dash__card {
@@ -125,6 +145,36 @@ a {
 
 .dash__card > * {
   flex: 1 1 auto;
+}
+
+/* The head of a label card: the text, and the amount. Below 768px the amount sits under the text, at the start. From 768px it
+   sits at the end, beside the text. A grid, not a wrapping row, so the amount's width never decides where it goes: a masked
+   amount, which is narrower, doesn't change the height of the card. */
+.dash__label-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.dash__label-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .dash__label-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .dash__label-amount {
+    align-items: flex-end;
+    text-align: right;
+  }
 }
 
 @media (min-width: 768px) {
@@ -162,6 +212,7 @@ a {
 
   .dash__queue,
   .dash__balance,
+  .dash__history,
   .dash__recent,
   .dash__spending,
   .dash__holdings {
@@ -208,4 +259,134 @@ a {
   text-decoration: underline;
   text-decoration-color: var(--mantine-color-dark-4);
   text-underline-offset: 3px;
+}
+
+/* Landing page at /, for a visitor who isn't logged in. Dark, like the rest of the app. Below 768px everything stacks in
+   one column. From 768px the header is one row and the hero has two columns. */
+.landing a:focus-visible,
+.landing button:focus-visible {
+  outline: 2px solid var(--mantine-color-accent-6);
+  outline-offset: 2px;
+}
+
+/* The top bar. Below 768px, row one holds the wordmark and the language switch, and row two the two buttons. */
+.landing__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-block: 16px;
+}
+
+.landing__header-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.landing__hero {
+  display: grid;
+  gap: 40px;
+  align-items: center;
+  padding-block: 32px 56px;
+}
+
+.landing__title {
+  text-wrap: balance;
+}
+
+/* The illustration in the hero. It's an SVG, so it scales down on phones. */
+.landing__art {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  justify-self: center;
+}
+
+/* A section below the hero. */
+.landing__section {
+  padding-block: 48px;
+}
+
+/* The grids of cards. The cards are list items, so the list is reset. */
+.landing__grid {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The footer. The wordmark and the links share a row from 768px, and the note about Binance spans the row below. */
+.landing__footer {
+  padding-block: 40px 48px;
+  border-top: 1px solid var(--mantine-color-dark-5);
+}
+
+.landing__footer-inner {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  display: grid;
+  gap: 16px;
+  align-items: center;
+}
+
+.landing__footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: flex-start;
+}
+
+@media (min-width: 768px) {
+  .landing__footer-inner {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .landing__footer-links {
+    justify-content: flex-end;
+  }
+
+  .landing__footer-note {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 768px) {
+  .landing__header {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+
+  /* The wrapper gives way, so its two buttons sit in the header row. */
+  .landing__header-actions {
+    display: contents;
+  }
+
+  .landing__hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 48px;
+    padding-block: 72px 96px;
+  }
+
+  .landing__section {
+    padding-block: 88px;
+  }
+
+  .landing__features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .landing__steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .landing__security {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
 }

@@ -198,9 +198,23 @@ export function withoutKey(search: MovementsSearch, key: MovementsSearchKey): Mo
   return next;
 }
 
-/** Whether any filter is set. */
+/** The keys of the Movements filters. The search can also hold params that aren't filters. */
+const FILTER_KEYS = [
+  "q",
+  "kind",
+  "direction",
+  "status",
+  "asset",
+  "asset_match",
+  "category_id",
+  "from",
+  "to",
+  "has_reason",
+] as const satisfies readonly MovementsSearchKey[];
+
+/** Whether any filter is set. A param that isn't a filter doesn't count. */
 export function hasFilters(search: MovementsSearch) {
-  return Object.keys(search).length > 0;
+  return FILTER_KEYS.some((key) => search[key] !== undefined);
 }
 
 /** Sets the search text as the API takes it: trimmed, and at most 100 characters. Blank text removes it. */

@@ -1,9 +1,14 @@
-import i18n from "../shared/i18n";
-import { formatDateTime } from "../shared/format";
+import i18n from "./i18n";
+import { formatDateTime } from "./format";
 
 /** A day on the time axis, such as Oct 24. The tooltip shows the full time of a point. */
 export function formatDayTick(time: number) {
   return new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }).format(new Date(time));
+}
+
+/** A time of day on the time axis, such as 14:00 or 02:00 PM. The 24-hour range labels its axis with these. */
+export function formatHourTick(time: number) {
+  return new Intl.DateTimeFormat(i18n.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(time));
 }
 
 /** The full date and time of a point, for the tooltip. */

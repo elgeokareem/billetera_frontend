@@ -2,12 +2,12 @@ import { Group, Paper, Skeleton, Stack, Text } from "@mantine/core";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SectionError } from "../dashboard/SectionStates";
+import { balanceSeries, hasEnoughHistory } from "../shared/chart";
+import { formatDayTick, formatMoment, formatUsdTick } from "../shared/chartFormat";
+import { ASSET_RANGE_KEYS, DEFAULT_RANGE, type RangeKey, rangeQuery } from "../shared/chartRange";
+import { RangeChips } from "../shared/components/RangeChips";
 import { formatUsd } from "../shared/format";
 import { useSnapshotHistory } from "../snapshots/hooks";
-import { balanceSeries, hasEnoughHistory } from "./chart";
-import { formatDayTick, formatMoment, formatUsdTick } from "./chartFormat";
-import { RangeChips } from "./RangeChips";
-import { DEFAULT_RANGE, type RangeKey, rangeQuery } from "./queries";
 
 // The chart's library loads with the first chart, so the rest of the app doesn't wait for it.
 const BalanceChart = lazy(() => import("../shared/components/BalanceChart"));
@@ -35,9 +35,9 @@ export function BalanceHistory({ now, timeZone }: BalanceHistoryProps) {
   } else if (!hasEnoughHistory(points ?? [])) {
     body = (
       <Stack gap="xs" py="lg">
-        <Text fw={600}>{t("assets.history.notEnough")}</Text>
+        <Text fw={600}>{t("chart.notEnough")}</Text>
         <Text size="sm" c="dimmed">
-          {t("assets.history.notEnoughBody")}
+          {t("chart.notEnoughBody")}
         </Text>
       </Stack>
     );
@@ -64,7 +64,7 @@ export function BalanceHistory({ now, timeZone }: BalanceHistoryProps) {
           <Text component="h2" fw={600} fz={16} m={0}>
             {t("assets.history.title")}
           </Text>
-          <RangeChips value={range} onChange={setRange} />
+          <RangeChips value={range} keys={ASSET_RANGE_KEYS} onChange={setRange} />
         </Group>
         {body}
       </Stack>

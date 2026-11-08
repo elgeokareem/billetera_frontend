@@ -11,6 +11,7 @@ import { type CategorySpending, spendingBreakdown } from "../movements/spending"
 import { getApiErrorKey } from "../shared/api-errors";
 import { browserTimeZone } from "../shared/dateRange";
 import { PrimaryButton } from "../shared/components/Buttons";
+import { Sensitive } from "../shared/components/Sensitive";
 import { formatUsd } from "../shared/format";
 import { isValidCategoryName } from "./api";
 import { useCategories, useCreateCategory, useDeleteCategory, useRenameCategory } from "./hooks";
@@ -344,7 +345,11 @@ function SpendingCell({ spending, group }: { spending: ReturnType<typeof useMove
   return (
     <Stack gap={2} align="flex-end">
       <Text fz="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-        {group ? (group.usd === null ? t("dashboard.recent.noPrice") : formatUsd(group.usd)) : formatUsd("0")}
+        {group && group.usd === null ? (
+          t("dashboard.recent.noPrice")
+        ) : (
+          <Sensitive>{formatUsd(group ? group.usd : "0")}</Sensitive>
+        )}
       </Text>
       {group && group.unpricedCount > 0 && (
         <Text fz="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>

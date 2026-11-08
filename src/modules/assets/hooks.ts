@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchMovements, type MovementsQuery } from "../movements/api";
+import { rangeQuery } from "../shared/chartRange";
 import { movementKeys } from "../movements/hooks";
 import { useAssetHistory } from "../snapshots/hooks";
-import { everHeldQuery, rangeQuery } from "./queries";
+import { everHeldQuery } from "./queries";
 import { absentCoinStatus, type CoinStatus, everHeldIn } from "./status";
 
 /**

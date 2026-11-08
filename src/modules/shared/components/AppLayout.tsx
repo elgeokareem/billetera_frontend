@@ -3,6 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { RejectedKeyBanner } from "../../binance/RejectedKeyBanner";
+import { BalancesToggle } from "./BalancesToggle";
 import { LanguageSwitch } from "./LanguageSwitch";
 
 const NAV_ITEMS = [
@@ -27,21 +28,28 @@ export function AppLayout() {
       }}
       padding="xl"
     >
+      {/* The header and the navbar each hold a balances toggle. The CSS shows one of them, by the width of the screen. */}
       <AppShell.Header hiddenFrom="sm" withBorder={false}>
-        <Group h="100%" px="md" justify="space-between">
+        <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <span className="brand">{t("common.appName")}</span>
-          <Burger
-            opened={opened}
-            onClick={toggle}
-            aria-label={t("common.openMenu")}
-          />
+          <Group gap="xs" wrap="nowrap">
+            <BalancesToggle />
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              aria-label={t("common.openMenu")}
+            />
+          </Group>
         </Group>
       </AppShell.Header>
 
       <AppShell.Navbar p="md" withBorder={false}>
         <Stack gap="md">
           <AppShell.Section visibleFrom="sm" px={12} pt={8}>
-            <span className="brand">{t("common.appName")}</span>
+            <Group justify="space-between" align="center" wrap="nowrap">
+              <span className="brand">{t("common.appName")}</span>
+              <BalancesToggle />
+            </Group>
           </AppShell.Section>
           <AppShell.Section px={12}>
             <LanguageSwitch />

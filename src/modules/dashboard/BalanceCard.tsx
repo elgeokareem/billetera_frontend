@@ -6,13 +6,12 @@ import {
   formatDateTime,
   formatUsd,
 } from "../shared/format";
+import { Sensitive } from "../shared/components/Sensitive";
 import { diff, percentOf } from "../shared/money";
 import { INK_ON_ACCENT } from "../shared/theme";
 import { useLatestSnapshot, useSnapshotHistory } from "../snapshots/hooks";
 import { dashboardQueries } from "./queries";
 import { SectionSkeleton } from "./SectionStates";
-import { SPARKLINE_HEIGHT } from "./sparkline";
-import { Sparkline } from "./Sparkline";
 import { SyncNow } from "./SyncNow";
 
 const CARD_PADDING = { base: 20, sm: 24 };
@@ -23,15 +22,14 @@ interface BalanceCardProps {
 }
 
 /**
- * The total balance, its change over the last day, the 30-day line, and the sync. The change is a balance change, not a
- * price move, since deposits and withdrawals count too. Each part loads on its own.
+ * The total balance, its change over the last day, and the sync. The history is in the chart under this card. The change is a
+ * balance change, not a price move, since deposits and withdrawals count too. Each part loads on its own.
  */
 export function BalanceCard({ now, timeZone }: BalanceCardProps) {
   const { t } = useTranslation();
   const queries = dashboardQueries(now, timeZone);
   const latest = useLatestSnapshot();
   const change = useSnapshotHistory(queries.change);
-  const sparkline = useSnapshotHistory(queries.sparkline);
 
   if (latest.isPending) {
     return (
@@ -89,7 +87,7 @@ export function BalanceCard({ now, timeZone }: BalanceCardProps) {
         lh={1.15}
         ff="var(--mantine-font-family-headings)"
       >
-        {formatUsd(snapshot.total_usd)}
+        <Sensitive>{formatUsd(snapshot.total_usd)}</Sensitive>
       </Text>
 
       {snapshot.unpriced_count > 0 && (
@@ -110,24 +108,13 @@ export function BalanceCard({ now, timeZone }: BalanceCardProps) {
       {previous && delta !== null && (
         <Stack gap={2} mt="md">
           <Text size="sm" fw={600}>
-            {formatChangeUsd(delta)}
+            <Sensitive>{formatChangeUsd(delta)}</Sensitive>
             {percent !== null && ` (${formatChangePercent(percent)})`}
           </Text>
           <Text size="sm">{t("dashboard.balance.change")}</Text>
           <Text size="xs">{t("dashboard.balance.changeNote")}</Text>
         </Stack>
       )}
-
-      {sparkline.isPending && <Skeleton height={SPARKLINE_HEIGHT} mt={12} />}
-      {sparkline.isError && (
-        <Group gap="xs" mt="md">
-          <Text size="sm">{t("dashboard.balance.chartFailed")}</Text>
-          <Button variant="subtle" size="compact-sm" mih={44} c={INK_ON_ACCENT} onClick={() => sparkline.refetch()}>
-            {t("common.retry")}
-          </Button>
-        </Group>
-      )}
-      {sparkline.data && sparkline.data.points.length >= 2 && <Sparkline points={sparkline.data.points} />}
 
       <Stack gap="sm" mt="lg" align="flex-start">
         <Text size="sm">{t("dashboard.balance.updated", { time: formatDateTime(snapshot.captured_at) })}</Text>

@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import type { Category } from "../categories/types";
 import { kindKey, movementTitle, statusNote } from "../dashboard/movementText";
 import { PrimaryButton } from "../shared/components/Buttons";
+import { Sensitive } from "../shared/components/Sensitive";
 import { getApiErrorKey } from "../shared/api-errors";
 import { formatDateTime, formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
@@ -154,8 +155,10 @@ function DrawerForm({
           {movement.counter_amount !== null && movement.counter_asset !== null && (
             <Fact label={t("movements.drawer.counter")}>
               {/* The other side of a trade moves the other way: crypto out is fiat in. */}
-              {signOf({ direction: movement.direction === "in" ? "out" : "in" })}
-              {formatQuantity(abs(movement.counter_amount))} {movement.counter_asset}
+              <Sensitive>
+                {`${signOf({ direction: movement.direction === "in" ? "out" : "in" })}${formatQuantity(abs(movement.counter_amount))}`}
+              </Sensitive>{" "}
+              {movement.counter_asset}
             </Fact>
           )}
           {movement.unit_price !== null && (
@@ -166,11 +169,13 @@ function DrawerForm({
           )}
           {movement.fee_amount !== null && movement.fee_asset !== null && (
             <Fact label={t("movements.drawer.fee")}>
-              {formatQuantity(movement.fee_amount)} {movement.fee_asset}
+              <Sensitive>{formatQuantity(movement.fee_amount)}</Sensitive> {movement.fee_asset}
             </Fact>
           )}
           {movement.fee_usd_value !== null && (
-            <Fact label={t("movements.drawer.feeUsd")}>{formatUsd(movement.fee_usd_value)}</Fact>
+            <Fact label={t("movements.drawer.feeUsd")}>
+              <Sensitive>{formatUsd(movement.fee_usd_value)}</Sensitive>
+            </Fact>
           )}
           {movement.counterparty && <Fact label={t("movements.drawer.counterparty")}>{movement.counterparty}</Fact>}
           {movement.reason_updated_at && (

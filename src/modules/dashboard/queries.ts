@@ -1,6 +1,6 @@
 import type { MovementsQuery, TotalsQuery } from "../movements/api";
 import { SPENDING_FILTER } from "../movements/spending";
-import { apiInstant, daysBefore, hoursBefore, monthRange } from "../shared/dateRange";
+import { hoursBefore, monthRange } from "../shared/dateRange";
 import type { SnapshotHistoryQuery } from "../snapshots/api";
 
 /** The label queue shows this many cards. */
@@ -34,11 +34,6 @@ export function dashboardQueries(now: Date, timeZone: string) {
       tz: timeZone,
     } satisfies TotalsQuery,
     recent: { limit: RECENT_ROWS } satisfies MovementsQuery,
-    sparkline: {
-      from: daysBefore(now, 30),
-      to: apiInstant(now),
-      tz: timeZone,
-    } satisfies SnapshotHistoryQuery,
     change: {
       from: hoursBefore(now, 48),
       to: hoursBefore(now, 24),

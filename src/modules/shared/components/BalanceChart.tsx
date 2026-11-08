@@ -3,14 +3,26 @@ import { LineChart } from "@mantine/charts";
 import { Paper, Text } from "@mantine/core";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { type ChartPoint, gapSpans, valueDomain } from "../../assets/chart";
+import { type ChartPoint, fitValueAxis, gapSpans, valueDomain } from "../chart";
+import { maskText } from "../privacy";
+import { useBalancesHidden } from "../usePrivacy";
+
+/**
+ * Fits the value axis to the data, on every chart (the Dashboard balance chart's D10). Set it to false to bring back the axis
+ * from before: a USD axis from zero, and an amount axis on recharts' own scale. startsAtZero and valueDomain keep that axis
+ * compiled and tested.
+ */
+const FIT_VALUE_AXIS = true;
 
 interface BalanceChartProps {
   /** The points in time order. A point whose y is null is a gap, drawn as a break in the line and shaded. */
   series: ChartPoint[];
   /** Describes the chart to screen readers. */
   label: string;
-  /** Whether the value axis starts at zero. USD values do; an amount fits its own values. */
+  /**
+   * Whether the value axis starts at zero. It applies only when the fitted axis is off or has no point to fit: a USD value starts
+   * at zero, and an amount fits its own values.
+   */
   startsAtZero: boolean;
   /** Formats a point's exact value, which is the API's decimal string, for the tooltip. */
   formatValue: (value: string) => string;
@@ -38,6 +50,10 @@ interface DotProps {
  * A line chart of a balance over time, on @mantine/charts. A point with no price is a gap: the line breaks there, the stretch is
  * shaded, and the tooltip says No price. A priced point with no line beside it is drawn as a dot, so it can't disappear. The
  * values in the tooltip are the API's strings, so no money goes through a number here.
+ *
+ * The value axis fits the data, unless FIT_VALUE_AXIS is off (see there). While balances are hidden, the value axis and the
+ * tooltip's value show the mask. The line, the gaps and the time axis stay, and the axis keeps its width, so the plot doesn't
+ * move when the value is hidden or shown.
  */
 export default function BalanceChart({
   series,
@@ -49,7 +65,9 @@ export default function BalanceChart({
   formatTooltipTime,
 }: BalanceChartProps) {
   const { t } = useTranslation();
+  const hidden = useBalancesHidden();
   const spans = useMemo(() => gapSpans(series), [series]);
+  const axis = useMemo(() => (FIT_VALUE_AXIS ? fitValueAxis(series) : null), [series]);
 
   // A tooltip for the point under the pointer. Recharts leaves a point with no value out of its payload, so the point is found
   // by its time instead, which the axis gives. The value is the point's own string.
@@ -64,7 +82,7 @@ export default function BalanceChart({
           {formatTooltipTime(Number(time))}
         </Text>
         <Text size="sm" fw={600}>
-          {row.value === null ? t("assets.coins.noPrice") : formatValue(row.value)}
+          {row.value === null ? t("assets.coins.noPrice") : maskText(formatValue(row.value), hidden)}
         </Text>
       </Paper>
     );
@@ -97,9 +115,14 @@ export default function BalanceChart({
         domain: ["dataMin", "dataMax"],
         tickFormatter: (value) => formatTime(Number(value)),
       }}
-      // A USD axis starts at zero, so a line's height means the same at every point. An amount axis fits its values.
-      yAxisProps={{ width: 84, domain: valueDomain(startsAtZero) }}
-      valueFormatter={formatTick}
+      // The fitted axis spans the data, on round ticks. Without one (FIT_VALUE_AXIS off, or no point to fit), a USD axis starts
+      // at zero, so a line's height means the same at every point, and an amount axis fits its values. The width is the same.
+      yAxisProps={{
+        width: 84,
+        ...(axis ? { domain: axis.domain, ticks: axis.ticks } : { domain: valueDomain(startsAtZero) }),
+      }}
+      // The value axis's labels. The default tooltip uses the same formatter, but the custom one above replaces it.
+      valueFormatter={(value) => maskText(formatTick(value), hidden)}
       referenceAreas={spans.map((span) => ({
         x1: span.from,
         x2: span.to,

@@ -33,6 +33,7 @@ export function RegisterPage() {
 
   return (
     <PublicLayout
+      homeLink
       title={t("auth.registerTitle")}
       subtitle={
         <>

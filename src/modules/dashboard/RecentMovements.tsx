@@ -5,9 +5,10 @@ import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
 import { useMovementsList } from "../movements/hooks";
 import type { Movement } from "../movements/types";
+import { Sensitive } from "../shared/components/Sensitive";
 import {
-  formatAmount,
   formatDate,
+  formatQuantity,
   formatUsd,
 } from "../shared/format";
 import { abs } from "../shared/money";
@@ -105,13 +106,11 @@ function MovementRow({ movement, categoryName }: { movement: Movement; categoryN
       <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
         {movement.usd_value !== null ? (
           <Text size="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-            {sign}
-            {formatUsd(abs(movement.usd_value))}
+            <Sensitive>{`${sign}${formatUsd(abs(movement.usd_value))}`}</Sensitive>
           </Text>
         ) : (
           <Text size="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-            {sign}
-            {formatAmount(abs(movement.amount), movement.asset)}
+            <Sensitive>{`${sign}${formatQuantity(abs(movement.amount))}`}</Sensitive> {movement.asset}
           </Text>
         )}
         {missingPrice && (

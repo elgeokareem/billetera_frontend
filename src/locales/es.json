@@ -10,6 +10,10 @@
     "somethingWrong": "Algo salió mal",
     "close": "Cerrar"
   },
+  "privacy": {
+    "toggle": "Mostrar saldos",
+    "hidden": "Oculto"
+  },
   "nav": {
     "main": "Principal",
     "dashboard": "Inicio",
@@ -126,9 +130,11 @@
       "changeNote": "Incluye depósitos y retiros, no solo cambios de precio.",
       "unpriced": "Algunas monedas no tienen precio, así que el total no las incluye.",
       "updated": "Actualizado {{time}}",
-      "sparkline": "Saldo de los últimos 30 días",
-      "changeFailed": "No se pudo cargar el cambio.",
-      "chartFailed": "No se pudo cargar el gráfico."
+      "changeFailed": "No se pudo cargar el cambio."
+    },
+    "history": {
+      "title": "Saldo en el tiempo",
+      "chartLabel": "Saldo total en el tiempo"
     },
     "sync": {
       "action": "Sincronizar",
@@ -355,15 +361,7 @@
     "history": {
       "title": "Historial de saldo",
       "chartLabel": "Saldo total a lo largo del tiempo",
-      "notEnough": "Aún no hay suficiente historial",
-      "notEnoughBody": "Para dibujar una línea hacen falta al menos dos sincronizaciones en este rango. Sincroniza otra vez más adelante.",
       "gaps": "Los huecos son momentos en los que la moneda no tenía precio."
-    },
-    "range": {
-      "7d": "7 días",
-      "30d": "30 días",
-      "90d": "90 días",
-      "1y": "1 año"
     },
     "measure": {
       "usd": "Valor en USD",
@@ -396,6 +394,110 @@
       "invalid": "Eso no es un código de moneda. Los códigos son letras y números, como BTC.",
       "unknown": "{{asset}} no está en tus saldos y nunca lo ha estado.",
       "back": "Volver a activos"
+    }
+  },
+  "chart": {
+    "range": {
+      "24h": "24 horas",
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días",
+      "1y": "1 año"
+    },
+    "notEnough": "Aún no hay suficiente historial",
+    "notEnoughBody": "Para dibujar una línea hacen falta al menos dos sincronizaciones en este rango. Sincroniza otra vez más adelante."
+  },
+  "landing": {
+    "hero": {
+      "title": "Mira a dónde va tu dinero de Binance.",
+      "subtitle": "billetera lee tus saldos y movimientos de Binance con una clave de API de solo lectura, para que etiquetes tus gastos y veas tu historial en USD.",
+      "readOnly": "Solo se aceptan claves de solo lectura de Binance."
+    },
+    "features": {
+      "title": "Lo que obtienes",
+      "dashboard": {
+        "title": "Inicio",
+        "body": "Tu saldo total en USD, el cambio desde ayer, tus gastos del mes por categoría y tus principales tenencias."
+      },
+      "label": {
+        "title": "Etiqueta tus gastos",
+        "body": "Di para qué fue cada pago, con una categoría y un motivo, desde el propio panel."
+      },
+      "movements": {
+        "title": "Movimientos",
+        "body": "El historial completo de depósitos, retiros, transferencias Pay, P2P y conversiones, con filtros, búsqueda y exportación a CSV."
+      },
+      "assets": {
+        "title": "Activos",
+        "body": "Cada moneda en Spot y Funding, con su historial de saldo."
+      }
+    },
+    "steps": {
+      "title": "Cómo funciona",
+      "one": {
+        "title": "Regístrate",
+        "body": "Crea una cuenta con tu correo y una contraseña."
+      },
+      "two": {
+        "title": "Conecta Binance",
+        "body": "Crea una clave de API de solo lectura en Binance y pégala aquí. billetera la comprueba con Binance y la rechaza si puede hacer más que leer."
+      },
+      "three": {
+        "title": "Mira tu dinero",
+        "body": "La primera sincronización trae tus últimos 90 días de movimientos, y billetera sigue sincronizando cada hora."
+      }
+    },
+    "security": {
+      "title": "Tu dinero se queda donde está",
+      "readOnly": {
+        "title": "Solo lectura, sin excepciones",
+        "body": "Una clave que puede operar, retirar o transferir se rechaza al guardarla. billetera no puede mover tus fondos."
+      },
+      "encrypted": {
+        "title": "Cifrada en reposo",
+        "body": "Tu clave y tu secreto se cifran con AES-256-GCM. Después de guardarlos, solo se muestra una versión enmascarada."
+      },
+      "restrict": {
+        "title": "Restríngela más",
+        "body": "En Binance puedes limitar la clave a una dirección IP. En Ajustes ves si la tuya está limitada."
+      },
+      "control": {
+        "title": "Tú decides",
+        "body": "Quita la clave cuando quieras, y la sincronización se detiene."
+      }
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "moveMoney": {
+        "question": "¿Puede billetera mover o retirar mi dinero?",
+        "answer": "No. Solo se aceptan claves de solo lectura, así que billetera no puede operar, retirar ni transferir."
+      },
+      "spending": {
+        "question": "¿Qué cuenta como gasto?",
+        "answer": "El dinero que sale de Binance: retiros, ventas P2P y transferencias Pay que envías. Convertir una moneda en otra no es un gasto, y los depósitos no se cuentan."
+      },
+      "history": {
+        "question": "¿Hasta cuándo llega el historial?",
+        "answer": "90 días de movimientos en la primera sincronización. El historial de saldo empieza el día que conectas."
+      },
+      "frequency": {
+        "question": "¿Con qué frecuencia se actualiza?",
+        "answer": "Cada hora por su cuenta, o al momento con Sincronizar."
+      },
+      "usd": {
+        "question": "¿De dónde salen los valores en USD?",
+        "answer": "De los precios públicos de Binance en el minuto de cada movimiento. Algunas monedas no tienen precio, y la app lo dice en vez de adivinarlo."
+      },
+      "removeKey": {
+        "question": "¿Qué pasa si quito mi clave?",
+        "answer": "La sincronización se detiene. Tus saldos, movimientos y etiquetas se quedan."
+      }
+    },
+    "cta": {
+      "title": "¿Listo para ver a dónde va tu dinero?"
+    },
+    "footer": {
+      "affiliation": "billetera es un proyecto independiente y no está afiliado a Binance."
     }
   }
 }

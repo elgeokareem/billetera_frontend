@@ -2,6 +2,7 @@ import { Group, Paper, Stack, Text } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Sensitive } from "../shared/components/Sensitive";
 import { formatQuantity, formatUsd } from "../shared/format";
 import { useLatestSnapshot } from "../snapshots/hooks";
 import { mergeHoldings } from "../snapshots/holdings";
@@ -38,11 +39,11 @@ export function HoldingsCard() {
                 {holding.asset}
               </Text>
               <Text size="xs" c="dimmed" className="truncate">
-                {formatQuantity(holding.amount)}
+                <Sensitive>{formatQuantity(holding.amount)}</Sensitive>
               </Text>
             </Stack>
             <Text size="sm" fw={500} c={holding.usd === null ? "dimmed" : undefined} style={{ whiteSpace: "nowrap" }}>
-              {holding.usd === null ? t("dashboard.holdings.noPrice") : formatUsd(holding.usd)}
+              {holding.usd === null ? t("dashboard.holdings.noPrice") : <Sensitive>{formatUsd(holding.usd)}</Sensitive>}
             </Text>
           </Group>
         ))}

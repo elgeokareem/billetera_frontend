@@ -2,9 +2,10 @@ import { Alert, Button, Group, Paper, Select, Stack, Text, TextInput } from "@ma
 import { useTranslation } from "react-i18next";
 import type { Category } from "../categories/types";
 import type { Movement } from "../movements/types";
-import { formatAmount, formatDate, formatUsd } from "../shared/format";
+import { formatDate, formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
 import { PrimaryButton } from "../shared/components/Buttons";
+import { Sensitive } from "../shared/components/Sensitive";
 import { kindKey, priceNote } from "./movementText";
 
 /** The new-category form of one card, kept by the queue so it survives a failed save. */
@@ -54,13 +55,14 @@ export function LabelCard({
 
   return (
     <Paper bg="dark.6" radius={12} p={{ base: 20, sm: 24 }}>
-      <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
-        <Stack gap={2} miw={0} style={{ flex: "1 1 200px" }}>
+      {/* The head is a grid, not a wrapping row, so the amount's width (masked or not) never decides where the amount sits. */}
+      <div className="dash__label-head">
+        <Stack gap={2} miw={0}>
           <Text fw={600} fz={18} lh={1.3}>
             {t(kindKey(movement))}
           </Text>
           <Text size="sm" c="dimmed">
-            {formatDate(movement.occurred_at)} · {formatAmount(movement.amount, movement.asset)}
+            {formatDate(movement.occurred_at)} · <Sensitive>{formatQuantity(movement.amount)}</Sensitive> {movement.asset}
           </Text>
           {movement.counterparty && (
             <Text size="sm" c="dimmed" className="truncate">
@@ -68,7 +70,7 @@ export function LabelCard({
             </Text>
           )}
         </Stack>
-        <Stack gap={2} align="flex-end">
+        <div className="dash__label-amount">
           {movement.usd_value !== null ? (
             <Text
               fz={28}
@@ -77,13 +79,12 @@ export function LabelCard({
               ff="var(--mantine-font-family-headings)"
               style={{ whiteSpace: "nowrap" }}
             >
-              {movement.direction === "in" ? "+" : "-"}
-              {formatUsd(abs(movement.usd_value))}
+              <Sensitive>{`${movement.direction === "in" ? "+" : "-"}${formatUsd(abs(movement.usd_value))}`}</Sensitive>
             </Text>
           ) : (
-            <Text fz={28} fw={700} lh={1.1} ff="var(--mantine-font-family-headings)">
-              {movement.direction === "in" ? "+" : "-"}
-              {formatAmount(abs(movement.amount), movement.asset)}
+            <Text fz={28} fw={700} lh={1.1} ff="var(--mantine-font-family-headings)" style={{ whiteSpace: "nowrap" }}>
+              <Sensitive>{`${movement.direction === "in" ? "+" : "-"}${formatQuantity(abs(movement.amount))}`}</Sensitive>{" "}
+              {movement.asset}
             </Text>
           )}
           {missingPrice && (
@@ -91,8 +92,8 @@ export function LabelCard({
               {missingPrice}
             </Text>
           )}
-        </Stack>
-      </Group>
+        </div>
+      </div>
 
       <Group gap="sm" mt="lg" wrap="wrap" aria-label={t("dashboard.queue.categories")}>
         {buttons.map((category) => (

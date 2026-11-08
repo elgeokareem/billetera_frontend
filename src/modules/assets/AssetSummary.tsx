@@ -2,6 +2,7 @@ import { Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
 import { SyncNow } from "../dashboard/SyncNow";
+import { Sensitive } from "../shared/components/Sensitive";
 import { formatDateTime, formatUsd } from "../shared/format";
 import { INK_ON_ACCENT } from "../shared/theme";
 import { useLatestSnapshot } from "../snapshots/hooks";
@@ -52,7 +53,7 @@ export function AssetSummary() {
         lh={1.15}
         ff="var(--mantine-font-family-headings)"
       >
-        {formatUsd(snapshot.total_usd)}
+        <Sensitive>{formatUsd(snapshot.total_usd)}</Sensitive>
       </Text>
       {snapshot.unpriced_count > 0 && (
         <Text size="sm" mt="xs">
@@ -62,11 +63,15 @@ export function AssetSummary() {
       <SimpleGrid cols={2} mt="lg" spacing="md">
         <Stack gap={2}>
           <Text size="sm">{t("assets.summary.spot")}</Text>
-          <Text fw={600}>{formatUsd(snapshot.spot_total_usd)}</Text>
+          <Text fw={600}>
+            <Sensitive>{formatUsd(snapshot.spot_total_usd)}</Sensitive>
+          </Text>
         </Stack>
         <Stack gap={2}>
           <Text size="sm">{t("assets.summary.funding")}</Text>
-          <Text fw={600}>{formatUsd(snapshot.funding_total_usd)}</Text>
+          <Text fw={600}>
+            <Sensitive>{formatUsd(snapshot.funding_total_usd)}</Sensitive>
+          </Text>
         </Stack>
       </SimpleGrid>
       <Stack gap="sm" mt="lg" align="flex-start">

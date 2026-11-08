@@ -38,6 +38,7 @@ export function LoginPage() {
 
   return (
     <PublicLayout
+      homeLink
       title={t("auth.loginTitle")}
       subtitle={
         <>

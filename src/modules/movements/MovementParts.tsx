@@ -1,7 +1,8 @@
 import { Badge, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { priceNote, statusNote } from "../dashboard/movementText";
-import { formatAmount, formatUsd } from "../shared/format";
+import { Sensitive } from "../shared/components/Sensitive";
+import { formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
 import { signOf } from "./labels";
 import type { Movement } from "./types";
@@ -20,12 +21,23 @@ export function StatusBadge({ movement }: { movement: Movement }) {
   );
 }
 
+/**
+ * The amount in the coin, with its sign and code, such as -54 USDT. The sign and the number are the amount, so the mask takes
+ * them; the code stays, since a coin code isn't sensitive.
+ */
+function SignedCoinAmount({ movement }: { movement: Movement }) {
+  return (
+    <>
+      <Sensitive>{`${signOf(movement)}${formatQuantity(abs(movement.amount))}`}</Sensitive> {movement.asset}
+    </>
+  );
+}
+
 /** The amount in the coin, with its sign, such as -54 USDT. */
 export function CoinAmount({ movement }: { movement: Movement }) {
   return (
     <Text component="span" fz="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-      {signOf(movement)}
-      {formatAmount(abs(movement.amount), movement.asset)}
+      <SignedCoinAmount movement={movement} />
     </Text>
   );
 }
@@ -37,15 +49,15 @@ export function CoinAmount({ movement }: { movement: Movement }) {
 export function UsdValue({ movement, align = "right" }: { movement: Movement; align?: "left" | "right" }) {
   const { t } = useTranslation();
   const note = priceNote(movement, t);
-  const text =
-    movement.usd_value === null
-      ? `${signOf(movement)}${formatAmount(abs(movement.amount), movement.asset)}`
-      : `${signOf(movement)}${formatUsd(abs(movement.usd_value))}`;
 
   return (
     <>
       <Text component="span" fz="sm" fw={500} display="block" ta={align} style={{ whiteSpace: "nowrap" }}>
-        {text}
+        {movement.usd_value === null ? (
+          <SignedCoinAmount movement={movement} />
+        ) : (
+          <Sensitive>{`${signOf(movement)}${formatUsd(abs(movement.usd_value))}`}</Sensitive>
+        )}
       </Text>
       {note && (
         <Text component="span" fz="xs" c="dimmed" display="block" ta={align}>

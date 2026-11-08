@@ -10,6 +10,10 @@
     "somethingWrong": "Something went wrong",
     "close": "Close"
   },
+  "privacy": {
+    "toggle": "Show balances",
+    "hidden": "Hidden"
+  },
   "nav": {
     "main": "Main",
     "dashboard": "Dashboard",
@@ -126,9 +130,11 @@
       "changeNote": "Includes deposits and withdrawals, not only price moves.",
       "unpriced": "Some coins have no price, so the total leaves them out.",
       "updated": "Updated {{time}}",
-      "sparkline": "Balance over the last 30 days",
-      "changeFailed": "Couldn't load the change.",
-      "chartFailed": "Couldn't load the chart."
+      "changeFailed": "Couldn't load the change."
+    },
+    "history": {
+      "title": "Balance over time",
+      "chartLabel": "Total balance over time"
     },
     "sync": {
       "action": "Sync",
@@ -355,15 +361,7 @@
     "history": {
       "title": "Balance history",
       "chartLabel": "Total balance over time",
-      "notEnough": "Not enough history yet",
-      "notEnoughBody": "A line needs at least two snapshots in the range. Sync again later to add one.",
       "gaps": "Gaps are times when the coin had no price."
-    },
-    "range": {
-      "7d": "7 days",
-      "30d": "30 days",
-      "90d": "90 days",
-      "1y": "1 year"
     },
     "measure": {
       "usd": "USD value",
@@ -396,6 +394,110 @@
       "invalid": "That isn't a coin code. Codes are letters and numbers, such as BTC.",
       "unknown": "{{asset}} isn't in your balances, and it never was.",
       "back": "Back to assets"
+    }
+  },
+  "chart": {
+    "range": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "1y": "1 year"
+    },
+    "notEnough": "Not enough history yet",
+    "notEnoughBody": "A line needs at least two snapshots in the range. Sync again later to add one."
+  },
+  "landing": {
+    "hero": {
+      "title": "See where your Binance money goes.",
+      "subtitle": "billetera reads your Binance balances and movements with a read-only API key, so you can label your spending and see your history in USD.",
+      "readOnly": "Only read-only Binance keys are accepted."
+    },
+    "features": {
+      "title": "What you get",
+      "dashboard": {
+        "title": "Dashboard",
+        "body": "Your total balance in USD, the change since yesterday, this month's spending by category, and your top holdings."
+      },
+      "label": {
+        "title": "Label your spending",
+        "body": "Say what each payment was for, with a category and a reason, straight from the dashboard."
+      },
+      "movements": {
+        "title": "Movements",
+        "body": "The full history of deposits, withdrawals, Pay transfers, P2P and Convert, with filters, search and CSV export."
+      },
+      "assets": {
+        "title": "Assets",
+        "body": "Every coin across Spot and Funding, with its balance history."
+      }
+    },
+    "steps": {
+      "title": "How it works",
+      "one": {
+        "title": "Sign up",
+        "body": "Create an account with your email and a password."
+      },
+      "two": {
+        "title": "Connect Binance",
+        "body": "Create a read-only API key in Binance and paste it in. billetera checks it with Binance and refuses it if it can do more than read."
+      },
+      "three": {
+        "title": "See your money",
+        "body": "The first sync brings your last 90 days of movements, and billetera keeps syncing every hour."
+      }
+    },
+    "security": {
+      "title": "Your money stays where it is",
+      "readOnly": {
+        "title": "Read-only, enforced",
+        "body": "A key that can trade, withdraw or transfer is refused when you save it. billetera can't move your funds."
+      },
+      "encrypted": {
+        "title": "Encrypted at rest",
+        "body": "Your key and secret are encrypted with AES-256-GCM. After you save them, only a masked form is shown."
+      },
+      "restrict": {
+        "title": "Restrict it further",
+        "body": "In Binance, you can limit the key to an IP address. Settings tells you whether yours is limited."
+      },
+      "control": {
+        "title": "You stay in control",
+        "body": "Remove the key at any time, and syncing stops."
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "moveMoney": {
+        "question": "Can billetera move or withdraw my money?",
+        "answer": "No. Only read-only keys are accepted, so billetera can't trade, withdraw or transfer."
+      },
+      "spending": {
+        "question": "What counts as spending?",
+        "answer": "Money leaving Binance: withdrawals, P2P sales and Pay transfers you send. Converting one coin to another isn't spending, and deposits aren't counted."
+      },
+      "history": {
+        "question": "How far back does it go?",
+        "answer": "90 days of movements on the first sync. Balance history starts the day you connect."
+      },
+      "frequency": {
+        "question": "How often does it update?",
+        "answer": "Every hour on its own, or now with Sync."
+      },
+      "usd": {
+        "question": "Where do the USD values come from?",
+        "answer": "Binance's public prices at the minute of each movement. Some coins have no price, and the app says so instead of guessing."
+      },
+      "removeKey": {
+        "question": "What happens if I remove my key?",
+        "answer": "Syncing stops. Your balances, movements and labels stay."
+      }
+    },
+    "cta": {
+      "title": "Ready to see where your money goes?"
+    },
+    "footer": {
+      "affiliation": "billetera is an independent project and isn't affiliated with Binance."
     }
   }
 }

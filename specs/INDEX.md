@@ -14,3 +14,7 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 | [Movements and Categories](2026-10-30-movements-categories/SPEC.md) ([plan](2026-10-30-movements-categories/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-10-30 |
 | [Assets](2026-10-30-assets/SPEC.md) ([plan](2026-10-30-assets/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-10-30 |
 | [Generated API Types](2026-10-31-generated-api-types/SPEC.md) ([plan](2026-10-31-generated-api-types/PLAN.md)) | refactor | built | Platform | 2026-10-31 |
+| [Movement Tags](2026-11-07-movement-tags/SPEC.md) | feature | spec draft, needs backend | Portfolio | 2026-11-07 |
+| [Landing Page](2026-11-07-landing-page/SPEC.md) ([plan](2026-11-07-landing-page/PLAN.md)) | feature | built, backend not tested | Platform | 2026-11-07 |
+| [Hide Balances](2026-11-07-hide-balances/SPEC.md) ([plan](2026-11-07-hide-balances/PLAN.md)) | feature | built, backend not tested | Portfolio, Platform | 2026-11-07 |
+| [Dashboard Balance Chart](2026-11-07-dashboard-balance-chart/SPEC.md) ([plan](2026-11-07-dashboard-balance-chart/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-11-07 |

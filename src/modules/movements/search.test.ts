@@ -6,6 +6,7 @@ import {
   activePreset,
   assetSymbols,
   hasFilters,
+  type MovementsSearch,
   NEEDS_LABEL_SEARCH,
   parseMovementsSearch,
   presetRange,
@@ -191,5 +192,18 @@ describe("changing the search", () => {
 
   it("keeps only symbols, in upper case", () => {
     expect(assetSymbols(["btc", " usdt ", "BT C", "", "1INCH"])).toEqual(["BTC", "USDT", "1INCH"]);
+  });
+});
+
+describe("hasFilters with a param that isn't a filter", () => {
+  // The search can hold a param that isn't a Movements filter. It doesn't count.
+  const notAFilter = { other_param: "1" } as MovementsSearch;
+
+  it("doesn't count a key that isn't a filter", () => {
+    expect(hasFilters(notAFilter)).toBe(false);
+  });
+
+  it("counts a real filter alongside it", () => {
+    expect(hasFilters({ ...notAFilter, q: "rent" })).toBe(true);
   });
 });

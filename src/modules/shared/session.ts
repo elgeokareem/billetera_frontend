@@ -2,8 +2,9 @@ import {
   queryOptions,
   useMutation,
   useQueryClient,
+  type QueryClient,
 } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { redirect, useNavigate } from "@tanstack/react-router";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { getApiErrorKey } from "./api-errors";
@@ -48,6 +49,19 @@ export function safeRedirect(redirect: string | undefined) {
     return DEFAULT_ROUTE;
   }
   return redirect;
+}
+
+/**
+ * For the landing page at `/`. A logged-in user goes to the app, as `/login` and `/register` send them. A failed check
+ * (a network error or a 5xx) counts as logged out, so the page still shows and doesn't depend on the API being up.
+ */
+export async function redirectIfLoggedIn(queryClient: QueryClient) {
+  const session = await queryClient
+    .ensureQueryData(sessionQuery)
+    .catch(() => null);
+  if (session) {
+    throw redirect({ to: "/dashboard" });
+  }
 }
 
 /** Ends the session on the server, then clears the cached data and goes to the login page. */

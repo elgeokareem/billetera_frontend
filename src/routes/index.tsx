@@ -1,7 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { LandingPage } from "../modules/landing/LandingPage";
+import { redirectIfLoggedIn } from "../modules/shared/session";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: () => {
-    throw redirect({ to: "/dashboard" });
-  },
+  beforeLoad: ({ context }) => redirectIfLoggedIn(context.queryClient),
+  component: LandingPage,
 });

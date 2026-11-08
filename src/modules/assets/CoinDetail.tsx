@@ -15,17 +15,18 @@ import { lazy, type ReactNode, Suspense, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
 import { browserTimeZone } from "../shared/dateRange";
+import { Sensitive } from "../shared/components/Sensitive";
 import { formatAmount, formatQuantity, formatUsd } from "../shared/format";
 import { useAssetHistory, useLatestSnapshot } from "../snapshots/hooks";
 import { type CoinHolding, coinHoldings } from "../snapshots/holdings";
-import { assetSeries, gapSpans, hasEnoughHistory, type Measure } from "./chart";
-import { formatAmountTick, formatDayTick, formatMoment, formatUsdTick } from "./chartFormat";
+import { assetSeries, gapSpans, hasEnoughHistory, type Measure } from "../shared/chart";
+import { formatAmountTick, formatDayTick, formatMoment, formatUsdTick } from "../shared/chartFormat";
+import { ASSET_RANGE_KEYS, DEFAULT_RANGE, type RangeKey, rangeQuery } from "../shared/chartRange";
+import { RangeChips } from "../shared/components/RangeChips";
 import { assetCode } from "./codes";
 import { coinMovementsSearch } from "./links";
 import { NoSnapshot } from "./NoSnapshot";
 import { useAbsentCoinCheck } from "./hooks";
-import { DEFAULT_RANGE, type RangeKey, rangeQuery } from "./queries";
-import { RangeChips } from "./RangeChips";
 
 // The chart's library loads with the first chart, so the rest of the app doesn't wait for it.
 const BalanceChart = lazy(() => import("../shared/components/BalanceChart"));
@@ -123,9 +124,9 @@ function CoinPage({ code }: { code: string }) {
   } else if (!hasEnoughHistory(points ?? [])) {
     chart = (
       <Stack gap="xs" py="lg">
-        <Text fw={600}>{t("assets.history.notEnough")}</Text>
+        <Text fw={600}>{t("chart.notEnough")}</Text>
         <Text size="sm" c="dimmed">
-          {t("assets.history.notEnoughBody")}
+          {t("chart.notEnoughBody")}
         </Text>
       </Stack>
     );
@@ -164,7 +165,7 @@ function CoinPage({ code }: { code: string }) {
       <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
         <Stack gap={4}>
           <Text fz={{ base: 30, sm: 40 }} fw={700} lh={1.1} ff="var(--mantine-font-family-headings)">
-            {formatAmount(total.amount, code)}
+            <Sensitive>{formatQuantity(total.amount)}</Sensitive> {code}
           </Text>
           <UsdLine holding={total} />
         </Stack>
@@ -195,7 +196,7 @@ function CoinPage({ code }: { code: string }) {
               ]}
             />
           </Group>
-          <RangeChips value={range} onChange={setRange} />
+          <RangeChips value={range} keys={ASSET_RANGE_KEYS} onChange={setRange} />
           {chart}
           {hasGaps && (
             <Text size="sm" c="dimmed">
@@ -227,7 +228,7 @@ function UsdLine({ holding }: { holding: CoinHolding }) {
   }
   return (
     <Text c="dimmed">
-      {formatUsd(holding.usd)}
+      <Sensitive>{formatUsd(holding.usd)}</Sensitive>
       {!holding.priced && ` · ${t("assets.coins.partlyPriced")}`}
     </Text>
   );
@@ -240,7 +241,7 @@ function WalletBlock({ title, holding, asset }: { title: string; holding: CoinHo
     <Stack gap="xs">
       <Text fw={600}>{title}</Text>
       <Text fz={22} fw={700} lh={1.2} ff="var(--mantine-font-family-headings)">
-        {formatAmount(holding.amount, asset)}
+        <Sensitive>{formatQuantity(holding.amount)}</Sensitive> {asset}
       </Text>
       <UsdLine holding={holding} />
       <Stack gap={4} mt="xs">
@@ -259,7 +260,7 @@ function AmountRow({ label, value }: { label: string; value: string }) {
         {label}
       </Text>
       <Text size="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
-        {value}
+        <Sensitive>{value}</Sensitive>
       </Text>
     </Group>
   );

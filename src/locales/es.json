@@ -294,7 +294,8 @@
       "externalId": "ID en Binance",
       "id": "ID",
       "save": "Guardar cambios",
-      "saveFailed": "No se guardó el cambio."
+      "saveFailed": "No se guardó el cambio.",
+      "createdHint": "Categoría creada. Guarda los cambios para asignarla a este movimiento."
     }
   },
   "settings": {

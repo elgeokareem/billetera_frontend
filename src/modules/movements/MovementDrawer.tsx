@@ -3,6 +3,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
+import { useCreateCategory } from "../categories/hooks";
 import type { Category } from "../categories/types";
 import { kindKey, movementTitle, statusNote } from "../dashboard/movementText";
 import { PrimaryButton } from "../shared/components/Buttons";
@@ -12,7 +13,9 @@ import { formatDateTime, formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
 import { signOf } from "./labels";
 import { CoinAmount, UsdValue } from "./MovementParts";
-import { draftOf, NO_CATEGORY, type MovementDraft, patchFor } from "./patch";
+import { draftOf, type MovementDraft, patchFor } from "./patch";
+import { drawerCategoryOptions } from "./drawerCategories";
+import { NewCategoryField } from "./NewCategoryField";
 import { useUpdateMovement } from "./hooks";
 import type { Movement } from "./types";
 
@@ -71,17 +74,21 @@ function DrawerForm({
 }) {
   const { t } = useTranslation();
   const update = useUpdateMovement();
+  const create = useCreateCategory();
   const [draft, setDraft] = useState<MovementDraft>(() => draftOf(movement));
+  const [created, setCreated] = useState<Category[]>([]);
   const body = patchFor(movement, draft);
   const changed = Object.keys(body).length > 0;
-  const categoryData = [
-    { value: NO_CATEGORY, label: t("movements.noCategory") },
-    ...(categories ?? []).map((category) => ({ value: String(category.id), label: category.name })),
-  ];
+  const categoryData = drawerCategoryOptions(categories ?? [], created, t("movements.noCategory"));
   const reasonLength = [...draft.reason.trim()].length;
+  const busy = update.isPending || create.isPending;
+  const createdSelected = created.some((category) => String(category.id) === draft.category);
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    if (create.isPending) {
+      return;
+    }
     if (!changed) {
       onClose();
       return;
@@ -109,7 +116,7 @@ function DrawerForm({
             autosize
             minRows={2}
             maxRows={6}
-            disabled={update.isPending}
+            disabled={busy}
             onChange={(event) => {
               // Read now: React clears currentTarget after the event, and an updater runs later.
               const reason = event.currentTarget.value;
@@ -122,9 +129,20 @@ function DrawerForm({
             value={draft.category}
             placeholder={t("movements.categoryUnknown")}
             allowDeselect={false}
-            disabled={update.isPending || categories === undefined}
+            description={createdSelected ? t("movements.drawer.createdHint") : undefined}
+            disabled={busy || categories === undefined}
             onChange={(value) => value && setDraft((current) => ({ ...current, category: value }))}
             styles={{ input: { minHeight: 44 } }}
+          />
+          <NewCategoryField
+            categories={categories}
+            disabled={update.isPending}
+            creating={create.isPending}
+            onCreate={(name) => create.mutateAsync(name)}
+            onCreated={(category) => {
+              setCreated((list) => [...list, category]);
+              setDraft((current) => ({ ...current, category: String(category.id) }));
+            }}
           />
         </Stack>
 
@@ -135,7 +153,7 @@ function DrawerForm({
         )}
 
         <Group justify="flex-end" gap="sm">
-          <PrimaryButton type="submit" disabled={!changed} loading={update.isPending}>
+          <PrimaryButton type="submit" disabled={!changed || create.isPending} loading={update.isPending}>
             {t("movements.drawer.save")}
           </PrimaryButton>
         </Group>

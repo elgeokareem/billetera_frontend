@@ -294,7 +294,8 @@
       "externalId": "Binance ID",
       "id": "ID",
       "save": "Save changes",
-      "saveFailed": "The change wasn't saved."
+      "saveFailed": "The change wasn't saved.",
+      "createdHint": "Category created. Save changes to file this movement under it."
     }
   },
   "settings": {

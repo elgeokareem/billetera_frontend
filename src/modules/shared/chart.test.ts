@@ -1,6 +1,321 @@
 import { describe, expect, it } from "vitest";
 import type { AssetHistoryPoint, SnapshotPoint } from "../snapshots/types";
-import { assetSeries, balanceSeries, fitValueAxis, gapSpans, hasEnoughHistory, type ChartPoint, valueDomain } from "./chart";
+import {
+  assetSeries,
+  balanceSeries,
+  chartWindow,
+  clipToWindow,
+  fitValueAxis,
+  gapSpans,
+  hasEnoughHistory,
+  padEmptyWindow,
+  type ChartPoint,
+  timeAxisTicks,
+  valueDomain,
+} from "./chart";
+import { RANGE_DAYS } from "./chartRange";
+
+// The zone is pinned in vite.config.ts, so this run is the same on every machine. A run that bypasses the config would use the
+// shell's zone and fail here instead of passing by luck.
+describe("the test time zone", () => {
+  it("is pinned to America/Santiago", () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("America/Santiago");
+  });
+});
+
+const HOUR = 3_600_000;
+const DAY = 86_400_000;
+const RANGES = ["24h", "7d", "30d", "90d", "1y"] as const;
+
+/** A chart point, priced unless y is null. */
+const point = (time: number, y: number | null = 1): ChartPoint => ({
+  time,
+  y,
+  value: y === null ? null : String(y),
+});
+
+/** The calendar days between the local dates of two instants, from their fields, so DST can't skew it. */
+function calendarDays(from: number, to: number): number {
+  const a = new Date(from);
+  const b = new Date(to);
+  return Math.round(
+    (Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / DAY,
+  );
+}
+
+/** A range's window ending at a given instant, as the chart builds it. */
+function windowOf(range: (typeof RANGES)[number], end: number) {
+  return chartWindow(range, new Date(end).toISOString(), end);
+}
+
+describe("chartWindow", () => {
+  const to = "2026-11-09T15:00:00Z";
+
+  it("ends at the response's to and spans the range before it", () => {
+    for (const range of RANGES) {
+      const window = chartWindow(range, to, 0);
+      expect(window.end, range).toBe(Date.parse(to));
+      expect(window.end - window.start, range).toBe(RANGE_DAYS[range] * DAY);
+    }
+  });
+
+  it("falls back to when the response arrived when to can't be parsed", () => {
+    const fetchedAt = Date.UTC(2026, 10, 9, 15);
+    expect(chartWindow("7d", "not a time", fetchedAt)).toEqual({ start: fetchedAt - 7 * DAY, end: fetchedAt });
+  });
+});
+
+describe("clipToWindow", () => {
+  const window = { start: 100, end: 300 };
+
+  it("drops the points before the start and after the end, keeping the boundaries", () => {
+    const series = [point(50), point(100), point(150), point(300), point(301)];
+    expect(clipToWindow(series, window)).toEqual([point(100), point(150), point(300)]);
+  });
+
+  it("keeps a gap inside the window and the points in order", () => {
+    const series = [point(120, 5), point(200, null), point(260, 7)];
+    expect(clipToWindow(series, window)).toEqual(series);
+  });
+});
+
+describe("padEmptyWindow", () => {
+  const window = { start: 100, end: 300 };
+
+  it("lays the axis out with two null edge points when there are none", () => {
+    expect(padEmptyWindow([], window)).toEqual([
+      { time: 100, y: null, value: null },
+      { time: 300, y: null, value: null },
+    ]);
+  });
+
+  it("returns a series with a point unchanged", () => {
+    const series = [point(150, 3)];
+    expect(padEmptyWindow(series, window)).toEqual(series);
+  });
+});
+
+describe("gapSpans on a clipped series", () => {
+  const window = { start: 100, end: 300 };
+
+  it("shades nothing when the window has no points", () => {
+    expect(gapSpans(clipToWindow([], window))).toEqual([]);
+  });
+
+  it("shades nothing when every point is outside the window", () => {
+    expect(gapSpans(clipToWindow([point(50, null), point(350, null)], window))).toEqual([]);
+  });
+});
+
+describe("timeAxisTicks", () => {
+  // November 2026 has no DST change in Santiago. The 1y window crosses the changes, but no month start falls on one.
+  const END = new Date(2026, 10, 9, 15).getTime();
+
+  it("keeps every tick of every range inside the window, ascending and without duplicates", () => {
+    for (const range of RANGES) {
+      for (const compact of [false, true]) {
+        const window = windowOf(range, END);
+        const ticks = timeAxisTicks(range, window.start, window.end, compact);
+        expect(ticks.length, `${range} ${compact}`).toBeGreaterThan(0);
+        expect(ticks[0], `${range} ${compact}`).toBeGreaterThanOrEqual(window.start);
+        expect(ticks[ticks.length - 1], `${range} ${compact}`).toBeLessThanOrEqual(window.end);
+        expect(new Set(ticks).size, `${range} ${compact}`).toBe(ticks.length);
+        for (let index = 1; index < ticks.length; index += 1) {
+          expect(ticks[index], `${range} ${compact}`).toBeGreaterThan(ticks[index - 1]);
+        }
+      }
+    }
+  });
+
+  it("labels 24h every six hours, on local clock boundaries, with the compact form unchanged", () => {
+    const window = windowOf("24h", END);
+    const ticks = timeAxisTicks("24h", window.start, window.end);
+    expect(ticks.length).toBeGreaterThanOrEqual(4);
+    expect(ticks.length).toBeLessThanOrEqual(5);
+    for (const tick of ticks) {
+      const date = new Date(tick);
+      expect(date.getMinutes()).toBe(0);
+      expect(date.getSeconds()).toBe(0);
+      expect(date.getHours() % 6).toBe(0);
+    }
+    expect(timeAxisTicks("24h", window.start, window.end, true)).toEqual(ticks);
+  });
+
+  it("labels 7d at every local midnight", () => {
+    const window = windowOf("7d", END);
+    const ticks = timeAxisTicks("7d", window.start, window.end);
+    expect(ticks.length).toBeGreaterThanOrEqual(7);
+    expect(ticks.length).toBeLessThanOrEqual(8);
+    for (const tick of ticks) {
+      const date = new Date(tick);
+      expect([date.getHours(), date.getMinutes(), date.getSeconds()]).toEqual([0, 0, 0]);
+    }
+    for (let index = 1; index < ticks.length; index += 1) {
+      expect(calendarDays(ticks[index - 1], ticks[index])).toBe(1);
+    }
+  });
+
+  it("labels 30d at local midnights five calendar days apart", () => {
+    const window = windowOf("30d", END);
+    const ticks = timeAxisTicks("30d", window.start, window.end);
+    expect(ticks.length).toBeGreaterThanOrEqual(6);
+    expect(ticks.length).toBeLessThanOrEqual(7);
+    for (const tick of ticks) {
+      expect(new Date(tick).getHours()).toBe(0);
+    }
+    for (let index = 1; index < ticks.length; index += 1) {
+      expect(calendarDays(ticks[index - 1], ticks[index])).toBe(5);
+    }
+  });
+
+  it("labels 90d at local midnights fourteen calendar days apart, all Mondays", () => {
+    const window = windowOf("90d", END);
+    const ticks = timeAxisTicks("90d", window.start, window.end);
+    expect(ticks.length).toBeGreaterThan(0);
+    for (const tick of ticks) {
+      const date = new Date(tick);
+      expect(date.getHours()).toBe(0);
+      expect(date.getDay()).toBe(1);
+    }
+    for (let index = 1; index < ticks.length; index += 1) {
+      expect(calendarDays(ticks[index - 1], ticks[index])).toBe(14);
+    }
+  });
+
+  it("labels 1y at the first of each month, at local midnight", () => {
+    const window = windowOf("1y", END);
+    const ticks = timeAxisTicks("1y", window.start, window.end);
+    expect(ticks.length).toBeGreaterThanOrEqual(12);
+    expect(ticks.length).toBeLessThanOrEqual(13);
+    for (const tick of ticks) {
+      const date = new Date(tick);
+      expect(date.getDate()).toBe(1);
+      expect([date.getHours(), date.getMinutes(), date.getSeconds()]).toEqual([0, 0, 0]);
+    }
+  });
+
+  it("compacts the day ranges to twice the step, keeping them a subset of the regular ticks", () => {
+    const steps = { "7d": 1, "30d": 5, "90d": 14 } as const;
+    for (const range of ["7d", "30d", "90d"] as const) {
+      const window = windowOf(range, END);
+      const regular = timeAxisTicks(range, window.start, window.end);
+      const compact = timeAxisTicks(range, window.start, window.end, true);
+      expect(compact.length, range).toBeGreaterThan(0);
+      for (const tick of compact) {
+        expect(regular, range).toContain(tick);
+      }
+      for (let index = 1; index < compact.length; index += 1) {
+        expect(calendarDays(compact[index - 1], compact[index]), range).toBe(steps[range] * 2);
+      }
+    }
+  });
+
+  it("compacts a year to Jan, Mar, May and the other even months", () => {
+    const window = windowOf("1y", END);
+    const compact = timeAxisTicks("1y", window.start, window.end, true);
+    expect(compact.length).toBeGreaterThan(0);
+    for (const tick of compact) {
+      expect(new Date(tick).getMonth() % 2).toBe(0);
+    }
+  });
+
+  it("keeps the ticks that stay inside the window when it slides by an hour", () => {
+    for (const range of RANGES) {
+      const window = windowOf(range, END);
+      const regular = timeAxisTicks(range, window.start, window.end);
+      for (const shift of [-HOUR, HOUR]) {
+        const start = window.start + shift;
+        const end = window.end + shift;
+        const shifted = timeAxisTicks(range, start, end);
+        expect(shifted.filter((tick) => tick >= start && tick <= end), `${range} ${shift}`).toEqual(
+          regular.filter((tick) => tick >= start && tick <= end),
+        );
+      }
+    }
+  });
+});
+
+describe("timeAxisTicks across DST in America/Santiago", () => {
+  it("moves a skipped midnight to 01:00 on a 24h window across the spring gap", () => {
+    const end = Date.parse("2026-09-06T15:00:00Z");
+    expect(timeAxisTicks("24h", end - DAY, end)).toEqual([
+      Date.parse("2026-09-05T16:00:00Z"),
+      Date.parse("2026-09-05T22:00:00Z"),
+      Date.parse("2026-09-06T04:00:00Z"),
+      Date.parse("2026-09-06T09:00:00Z"),
+      Date.parse("2026-09-06T15:00:00Z"),
+    ]);
+  });
+
+  it("places each tick once on a 24h window across the fall-back", () => {
+    const end = Date.parse("2026-04-05T16:00:00Z");
+    expect(timeAxisTicks("24h", end - DAY, end)).toEqual([
+      Date.parse("2026-04-04T21:00:00Z"),
+      Date.parse("2026-04-05T04:00:00Z"),
+      Date.parse("2026-04-05T10:00:00Z"),
+      Date.parse("2026-04-05T16:00:00Z"),
+    ]);
+  });
+
+  it("keeps one midnight tick per day across the gap, the gap day at 01:00", () => {
+    const end = Date.parse("2026-09-09T15:00:00Z");
+    expect(timeAxisTicks("7d", end - 7 * DAY, end)).toEqual([
+      Date.parse("2026-09-03T04:00:00Z"),
+      Date.parse("2026-09-04T04:00:00Z"),
+      Date.parse("2026-09-05T04:00:00Z"),
+      Date.parse("2026-09-06T04:00:00Z"),
+      Date.parse("2026-09-07T03:00:00Z"),
+      Date.parse("2026-09-08T03:00:00Z"),
+      Date.parse("2026-09-09T03:00:00Z"),
+    ]);
+    const gapDay = new Date(Date.parse("2026-09-06T04:00:00Z"));
+    expect(gapDay.getDate()).toBe(6);
+    expect(gapDay.getHours()).toBe(1);
+  });
+
+  it("keeps 30d and 90d ticks at local midnight across the gap", () => {
+    const end = Date.parse("2026-09-20T15:00:00Z");
+    for (const range of ["30d", "90d"] as const) {
+      const step = range === "30d" ? 5 : 14;
+      const ticks = timeAxisTicks(range, end - RANGE_DAYS[range] * DAY, end);
+      expect(ticks.length, range).toBeGreaterThan(0);
+      for (const tick of ticks) {
+        expect(new Date(tick).getHours(), range).toBe(0);
+      }
+      for (let index = 1; index < ticks.length; index += 1) {
+        expect(calendarDays(ticks[index - 1], ticks[index]), range).toBe(step);
+      }
+      const onGapDay = ticks.filter((tick) => {
+        const date = new Date(tick);
+        return date.getMonth() === 8 && date.getDate() === 6;
+      });
+      expect(onGapDay, range).toEqual([]);
+    }
+  });
+
+  it("puts exactly one tick on the gap day in a 7d window, at 01:00", () => {
+    const end = Date.parse("2026-09-10T15:00:00Z");
+    const ticks = timeAxisTicks("7d", end - 7 * DAY, end);
+    const gapDay = ticks.filter((tick) => {
+      const date = new Date(tick);
+      return date.getMonth() === 8 && date.getDate() === 6;
+    });
+    expect(gapDay).toEqual([Date.parse("2026-09-06T04:00:00Z")]);
+  });
+
+  it("keeps the ticks that stay inside when the 7d gap window slides by an hour", () => {
+    const end = Date.parse("2026-09-09T15:00:00Z");
+    const start = end - 7 * DAY;
+    const base = timeAxisTicks("7d", start, end);
+    for (const shift of [-HOUR, HOUR]) {
+      const shiftedStart = start + shift;
+      const shiftedEnd = end + shift;
+      expect(timeAxisTicks("7d", shiftedStart, shiftedEnd)).toEqual(
+        base.filter((tick) => tick >= shiftedStart && tick <= shiftedEnd),
+      );
+    }
+  });
+});
 
 function coinPoint(overrides: Partial<AssetHistoryPoint>): AssetHistoryPoint {
   return {

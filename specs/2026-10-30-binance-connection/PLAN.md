@@ -32,7 +32,7 @@ Checks: the remaining criteria. Screenshots at 1440px and 375px.
 
 ## Implementation State
 
-Phases 1 and 2 are built, with the fake API in `scripts/fake-api.mjs` (`pnpm fake-api`). Nothing is committed. The Dashboard change is not started.
+Phases 1 and 2 are built, with the fake API in `scripts/fake-api.mjs` (`pnpm fake-api`). Nothing is committed. The Dashboard change is not started. *(Out of date: the Dashboard is built and everything is committed; see "Later changes" at the end. [Review Fixes](../2026-11-09-review-fixes/SPEC.md) adds the backend's 16-to-128 character check to the key form and changes the fake's test keys.)*
 
 **Verified:**
 - `pnpm lint` exits 0 with no warnings. `pnpm build` (`tsc -b && vite build`) exits 0. `pnpm test` passes 17 of 17.

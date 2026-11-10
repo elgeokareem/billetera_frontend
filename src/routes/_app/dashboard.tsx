@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashboardPage } from "../../modules/dashboard/DashboardPage";
-import { DASHBOARD_RANGE_KEYS, parseRangeSearch } from "../../modules/shared/chartRange";
+import { parseRangeSearch, RANGE_KEYS } from "../../modules/shared/chartRange";
 
-// The range of the balance chart is in the URL, so a view survives a reload. Only the Dashboard's own ranges are kept.
+// The range of the balance chart is in the URL, so a view survives a reload. Every chart's range is accepted.
 export const Route = createFileRoute("/_app/dashboard")({
-  validateSearch: (raw) => parseRangeSearch(raw, DASHBOARD_RANGE_KEYS),
+  validateSearch: (raw) => parseRangeSearch(raw, RANGE_KEYS),
   component: DashboardPage,
 });

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
+import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { useMovementsList } from "../movements/hooks";
 import type { Movement } from "../movements/types";
 import { Sensitive } from "../shared/components/Sensitive";
@@ -40,21 +41,28 @@ export function RecentMovements({ now, timeZone }: RecentMovementsProps) {
     body = <SectionSkeleton lines={5} />;
   } else if (recent.isError) {
     body = <SectionError error={recent.error} onRetry={() => recent.refetch()} />;
-  } else if (categories.isError) {
-    body = <SectionError error={categories.error} onRetry={() => categories.refetch()} />;
-  } else if (recent.data.movements.length === 0) {
-    body = <Text size="sm" c="dimmed">{t("dashboard.recent.empty")}</Text>;
   } else {
-    body = (
-      <Stack gap={0}>
-        {recent.data.movements.map((movement) => (
-          <MovementRow
-            key={movement.id}
-            movement={movement}
-            categoryName={movement.category_id === null ? undefined : names.get(movement.category_id)}
-          />
-        ))}
+    const content =
+      recent.data.movements.length === 0 ? (
+        <Text size="sm" c="dimmed">{t("dashboard.recent.empty")}</Text>
+      ) : (
+        <Stack gap={0}>
+          {recent.data.movements.map((movement) => (
+            <MovementRow
+              key={movement.id}
+              movement={movement}
+              categoryName={movement.category_id === null ? undefined : names.get(movement.category_id)}
+            />
+          ))}
+        </Stack>
+      );
+    body = categories.isError ? (
+      <Stack gap="sm">
+        {content}
+        <CategoriesUnavailable onRetry={() => categories.refetch()} />
       </Stack>
+    ) : (
+      content
     );
   }
 

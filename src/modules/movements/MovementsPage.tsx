@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useCategories } from "../categories/hooks";
+import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
 import { SyncNow } from "../dashboard/SyncNow";
 import { getApiErrorKey } from "../shared/api-errors";
@@ -38,6 +39,8 @@ export function MovementsPage() {
 
   const [text, setText] = useState(search.q ?? "");
   const timer = useRef<number | undefined>(undefined);
+  // The q this page last asked for. It tells a change from the page apart from one from outside, such as Back.
+  const committedText = useRef(search.q ?? "");
   // The movement whose drawer is open. It's kept as it was opened, so a refetch can't close the drawer under the user.
   const [opened, setOpened] = useState<Movement | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -67,8 +70,19 @@ export function MovementsPage() {
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // q changed from outside the page, such as Back or Forward. A search still waiting to be applied belongs to the old URL.
+  useEffect(() => {
+    if (urlText !== committedText.current) {
+      window.clearTimeout(timer.current);
+      committedText.current = urlText;
+    }
+  }, [urlText]);
+
   const go = useCallback(
     (next: MovementsSearch) => {
+      window.clearTimeout(timer.current);
+      committedText.current = next.q ?? "";
+      setText(next.q ?? "");
       navigate({ to: "/movements", search: next });
     },
     [navigate],
@@ -77,6 +91,7 @@ export function MovementsPage() {
   // Replaces the history entry, so each pause in typing doesn't leave a step to go back to.
   function commitText(value: string) {
     window.clearTimeout(timer.current);
+    committedText.current = withText({}, value).q ?? "";
     navigate({ to: "/movements", search: (prev) => withText(prev, value), replace: true });
   }
 
@@ -152,6 +167,8 @@ export function MovementsPage() {
       </Collapse>
 
       <FilterChips search={search} onChange={go} categoryName={categoryName} now={now} />
+
+      {categories.isError && <CategoriesUnavailable onRetry={() => categories.refetch()} />}
 
       {feed.isPending ? (
         <SectionSkeleton lines={6} />

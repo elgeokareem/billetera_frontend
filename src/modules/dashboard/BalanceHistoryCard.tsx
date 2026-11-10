@@ -2,9 +2,9 @@ import { Group, Paper, Skeleton, Stack, Text } from "@mantine/core";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { balanceSeries, hasEnoughHistory } from "../shared/chart";
-import { formatDayTick, formatHourTick, formatMoment, formatUsdTick } from "../shared/chartFormat";
-import { DASHBOARD_RANGE_KEYS, DEFAULT_RANGE, openRangeQuery, rangeOf, type RangeKey } from "../shared/chartRange";
+import { balanceSeries } from "../shared/chart";
+import { formatMoment, formatUsdTick } from "../shared/chartFormat";
+import { DEFAULT_RANGE, openRangeQuery, RANGE_KEYS, rangeOf, type RangeKey } from "../shared/chartRange";
 import { RangeChips } from "../shared/components/RangeChips";
 import { formatUsd } from "../shared/format";
 import { useSnapshotHistory } from "../snapshots/hooks";
@@ -26,7 +26,7 @@ interface BalanceHistoryCardProps {
 export function BalanceHistoryCard({ now, timeZone }: BalanceHistoryCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const range = useSearch({ from: "/_app/dashboard", select: (search) => rangeOf(search.range, DASHBOARD_RANGE_KEYS) });
+  const range = useSearch({ from: "/_app/dashboard", select: (search) => rangeOf(search.range, RANGE_KEYS) });
   // The window ends at each request's own time (no `to`), so a Sync's new snapshot shows on the refetch.
   const query = useMemo(() => openRangeQuery(now, range, timeZone), [now, range, timeZone]);
   const history = useSnapshotHistory(query);
@@ -48,15 +48,6 @@ export function BalanceHistoryCard({ now, timeZone }: BalanceHistoryCardProps) {
     body = <Skeleton height={260} radius="sm" />;
   } else if (history.isError) {
     body = <SectionError error={history.error} onRetry={() => history.refetch()} />;
-  } else if (!hasEnoughHistory(points ?? [])) {
-    body = (
-      <Stack gap="xs" py="lg">
-        <Text fw={600}>{t("chart.notEnough")}</Text>
-        <Text size="sm" c="dimmed">
-          {t("chart.notEnoughBody")}
-        </Text>
-      </Stack>
-    );
   } else {
     body = (
       <Suspense fallback={<Skeleton height={260} radius="sm" />}>
@@ -64,10 +55,11 @@ export function BalanceHistoryCard({ now, timeZone }: BalanceHistoryCardProps) {
           series={series}
           label={t("dashboard.history.chartLabel")}
           startsAtZero
+          range={range}
+          windowEnd={history.data.to}
+          fetchedAt={history.dataUpdatedAt}
           formatValue={formatUsd}
           formatTick={formatUsdTick}
-          // A one-day range labels its axis with hours, since every label would read the same day.
-          formatTime={range === "24h" ? formatHourTick : formatDayTick}
           formatTooltipTime={formatMoment}
         />
       </Suspense>
@@ -81,7 +73,7 @@ export function BalanceHistoryCard({ now, timeZone }: BalanceHistoryCardProps) {
           <Text component="h2" fw={600} fz={16} m={0}>
             {t("dashboard.history.title")}
           </Text>
-          <RangeChips value={range} keys={DASHBOARD_RANGE_KEYS} onChange={chooseRange} />
+          <RangeChips value={range} keys={RANGE_KEYS} onChange={chooseRange} />
         </Group>
         {body}
       </Stack>

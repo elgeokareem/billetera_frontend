@@ -8,14 +8,15 @@
 //
 // Login: test@example.com / password. A user who registers gets an empty account.
 //
-// Binance keys. PUT /binance/credentials decides by the trimmed api_key alone. A missing or empty api_key or api_secret
-// is 400 invalid credentials. The secret is never stored, logged or echoed back:
-//   readonly        saved, state active
-//   trading         422 key is not read-only
-//   noread          422 key cannot read
-//   anything else   422 binance rejected the key
-// The backend's character and length rules aren't applied, so the short keys above work. A saved key is masked the way
-// the backend masks it, so a key under 16 characters shows only "…".
+// Binance keys. PUT /binance/credentials decides by the trimmed api_key. Both the key and the secret must be 16 to 128
+// ASCII letters and digits, as the backend's CheckKeyPair requires; otherwise the answer is 400 invalid credentials. The
+// secret is never stored, logged or echoed back. The key's prefix picks the answer:
+//   readonly00000000   saved, state active
+//   trading000000000   422 key is not read-only
+//   noread0000000000   422 key cannot read
+//   anything else      422 binance rejected the key
+// A secret can be anything that follows the same rule, such as secret0000000000. A saved key is masked the way the
+// backend masks it: the first and last four characters around "…".
 //
 // Accounts. Each user has movements, categories and balance snapshots, as the backend has them, with money as exact decimal
 // strings. The account of test@example.com is "populated" at start and after reset. Its dates are relative to the moment
@@ -70,6 +71,7 @@ const MAX_CREDENTIALS_BODY = 4 << 10;
 const MAX_BODY = 64 << 10;
 const MAX_UPDATE_BODY = 16 << 10;
 const MASK_MIN_LENGTH = 16;
+const KEY_TEXT = /^[A-Za-z0-9]{16,128}$/;
 const MAX_DELAY_MS = 60_000;
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const ACCOUNT_KINDS = ["populated", "all-labelled", "many-unlabelled", "quiet-month", "single-snapshot", "long-history", "empty"];
@@ -242,28 +244,28 @@ function registerBindingError(body) {
   return null;
 }
 
-// What the fake Binance says about a candidate key, by its value. Only readonly is accepted.
+// What the fake Binance says about a candidate key, by its prefix. Only a readonly key is accepted.
 function checkCandidateKey(apiKey) {
-  switch (apiKey) {
-    case "readonly":
-      return null;
-    case "trading":
-      return {
-        status: 422,
-        body: { error: "key is not read-only", permissions: ["enableSpotAndMarginTrading"] },
-      };
-    case "noread":
-      return { status: 422, body: { error: "key cannot read" } };
-    default:
-      return {
-        status: 422,
-        body: { error: "binance rejected the key", binance_code: -2015 },
-      };
+  if (apiKey.startsWith("readonly")) {
+    return null;
   }
+  if (apiKey.startsWith("trading")) {
+    return {
+      status: 422,
+      body: { error: "key is not read-only", permissions: ["enableSpotAndMarginTrading"] },
+    };
+  }
+  if (apiKey.startsWith("noread")) {
+    return { status: 422, body: { error: "key cannot read" } };
+  }
+  return {
+    status: 422,
+    body: { error: "binance rejected the key", binance_code: -2015 },
+  };
 }
 
-// The body of PUT /binance/credentials. Both fields must be non-empty strings once trimmed, which is the only check here.
-// The secret is checked and then dropped: only the trimmed key comes back.
+// The body of PUT /binance/credentials. Both fields must be 16 to 128 ASCII letters and digits once trimmed, as the
+// backend's CheckKeyPair requires. The secret is checked and then dropped: only the trimmed key comes back.
 function parseCredentials(raw) {
   if (raw === null || Buffer.byteLength(raw) > MAX_CREDENTIALS_BODY) {
     return null;
@@ -274,7 +276,7 @@ function parseCredentials(raw) {
   }
   const apiKey = body.api_key.trim();
   const apiSecret = body.api_secret.trim();
-  if (apiKey === "" || apiSecret === "") {
+  if (!KEY_TEXT.test(apiKey) || !KEY_TEXT.test(apiSecret)) {
     return null;
   }
   return apiKey;

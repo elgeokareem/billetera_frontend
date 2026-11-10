@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
@@ -25,6 +26,9 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
-    plugins: [TanStackRouterVite(), react()]
+    plugins: [TanStackRouterVite(), react()],
+    // Tests run in one fixed zone, so every run is the same on every machine (Chart Time Axis B12). Santiago has DST changes at
+    // midnight, the hardest case for the time axis. forks, not threads: TZ only takes effect in a new process.
+    test: { env: { TZ: "America/Santiago" }, pool: "forks" },
   };
 });

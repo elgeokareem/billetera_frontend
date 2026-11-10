@@ -27,7 +27,13 @@ function MovementCardsView({ rows, categoryNames, onOpen }: MovementCardsProps) 
       {rows.map((movement) => {
         const name = movement.category_id === null ? undefined : categoryNames.get(movement.category_id);
         const labelNeeded = name === undefined && needsLabel(movement);
-        const filing = name ?? (labelNeeded ? t("movements.needsLabel") : t("movements.noCategory"));
+        const filing =
+          name ??
+          (movement.category_id !== null
+            ? t("movements.categoryUnknown")
+            : labelNeeded
+              ? t("movements.needsLabel")
+              : t("movements.noCategory"));
         return (
           <Paper
             key={movement.id}

@@ -123,3 +123,5 @@ Checks:
 ## Implementation State
 
 Phases 1 to 3 implemented (uncommitted), with the URL mechanism that Phase 4 removes. The earlier Phase 4 (entry rule) is cancelled and being reverted. Phase 4 (move state from URL to localStorage store) not started.
+
+*Update 2026-11-09:* all four phases are implemented and committed in `a40391d` ("feat: landing page, hide balances toggle and dashboard balance chart"). The setting lives in the Zustand store `src/modules/shared/balancesStore.ts`, saved in `localStorage`, and no URL carries `show_balances`. One drift: the "not a filter" test in `src/modules/movements/search.test.ts` uses `other_param` instead of a stale `show_balances`; [Review Fixes](../2026-11-09-review-fixes/SPEC.md) changes it.

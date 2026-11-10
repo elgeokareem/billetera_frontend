@@ -6,7 +6,7 @@ status: draft
 domain: Platform, Identity
 issue: none
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-09
 sdd_version: 7.3.0
 ---
 
@@ -47,6 +47,7 @@ Every product claim on the page comes from this list, which is taken from `../ba
 | Movements can be filtered, searched and exported as CSV | README: `GET /movements`, `/movements/export` |
 | Assets by coin, across the Spot and Funding wallets, with history up to a year | [Assets](../2026-10-30-assets/SPEC.md) |
 | Removing the key stops syncing and keeps your history | README: `DELETE /binance/credentials` |
+| Disabling or deleting the key in Binance also cuts billetera's access | How Binance API keys work: a disabled or deleted key is refused. The backend then marks the key `rejected` (Binance Connection, the rejected-key banner). *(Added 2026-11-09: the security section already stated this.)* |
 
 The page doesn't claim: a price, that it's free, user counts, uptime, account deletion (there's no endpoint for it), other exchanges, or any affiliation with Binance.
 
@@ -85,7 +86,7 @@ The page doesn't claim: a price, that it's free, user counts, uptime, account de
 
 One page, in this order, inside `<header>`, `<main>` and `<footer>` landmarks. One `<h1>` (the hero headline). Each section has an `<h2>`.
 
-1. **Header:** the `brand` wordmark (as in `PublicLayout`), the language switch, and a "Log in" link. Below 768px the header keeps all three on one row; the "Log in" link may shrink to text, but stays 44px tall. No burger menu.
+1. **Header:** the `brand` wordmark (as in `PublicLayout`), the language switch, and two buttons: "Log in" (default) and "Create account" (primary). From 768px all four sit on one row. Below 768px the wordmark and the language switch share the first row, and the two buttons take a second row. Every target stays 44px tall. No burger menu. *(Amended 2026-11-09: the first version asked for one "Log in" link on one row. The built header, `LandingHeader.tsx` with `.landing__header` in `app.css`, has both buttons and wraps to two rows on phones. The user accepted it.)*
 2. **Hero:** headline, one-sentence subhead, a short read-only reassurance line with a lock icon, and two CTAs: "Create account" (`PrimaryButton`, links to `/register`) and "Log in" (secondary, links to `/login`). Next to it on wide screens, below it on phones: the decorative label-card illustration (D7), `aria-hidden`.
 3. **What you get:** four items, each an icon, a title and one or two sentences:
    - Dashboard: total balance in USD, the change since yesterday, this month's spending by category, and your top holdings.
@@ -161,7 +162,7 @@ Copy above is the English intent. The implementer writes the final English and S
 - Screenshots of the app.
 - Changing `/login`, `/register` or `PublicLayout`.
 - A way for a logged-in user to see the landing page.
-- Code splitting, so the landing page doesn't load the app's charts. The router plugin's `autoCodeSplitting` is off today.
+- Route-level code splitting. The router plugin's `autoCodeSplitting` is still off. *(Updated 2026-11-09: the chart is already split out: `BalanceChart` is loaded with `React.lazy` by the Dashboard and Assets, so the landing page doesn't download the chart library.)*
 
 ## Open Questions
 

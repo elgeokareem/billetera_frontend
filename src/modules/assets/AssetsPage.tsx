@@ -7,8 +7,8 @@ import { BalanceHistory } from "./BalanceHistory";
 import { CoinList } from "./CoinList";
 
 /**
- * The Assets view: the total of the latest snapshot, the balance over a range, and the coins. The day and the zone are taken
- * once, so the query keys hold while the page is open, the same as the Dashboard.
+ * The Assets view: the total of the latest snapshot, the balance over a range, and the coins. The start of each range and the
+ * zone are taken once, so the query keys hold while the page is open, the same as the Dashboard.
  */
 export function AssetsPage() {
   const { t } = useTranslation();

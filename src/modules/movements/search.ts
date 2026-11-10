@@ -89,7 +89,7 @@ export function parseMovementsSearch(raw: Record<string, unknown>): MovementsSea
   put("direction", raw.direction === "in" || raw.direction === "out" ? raw.direction : undefined);
   put("status", readList(raw.status, (item) => MOVEMENT_STATUSES.includes(item as MovementStatus)));
   put("asset", readList(raw.asset, (item) => ASSET_SYMBOL.test(item), (item) => item.toUpperCase()));
-  put("asset_match", raw.asset_match === "any" ? "any" : undefined);
+  put("asset_match", search.asset !== undefined && raw.asset_match === "any" ? "any" : undefined);
   put("category_id", readList(raw.category_id, readCategory));
   put("has_reason", raw.has_reason === "true" || raw.has_reason === "false" ? raw.has_reason : undefined);
 
@@ -167,9 +167,14 @@ export function assetSymbols(items: readonly string[]) {
   return items.map((item) => item.trim().toUpperCase()).filter((item) => ASSET_SYMBOL.test(item));
 }
 
-/** Sets a list filter to these items, or removes it when there are none. */
+/** Sets a list filter to these items, or removes it when there are none. A coin filter with no coins also drops asset_match. */
 export function withList(search: MovementsSearch, key: "kind" | "status" | "asset" | "category_id", items: string[]) {
-  return withFilter(search, key, unique(items).join(",") || undefined);
+  const value = unique(items).join(",") || undefined;
+  const next = withFilter(search, key, value);
+  if (key === "asset" && value === undefined) {
+    delete next.asset_match;
+  }
+  return next;
 }
 
 /** Sets one filter, or removes it when the value is undefined. A removed key leaves no trace, so "any filter set" stays true. */
@@ -187,13 +192,16 @@ export function withFilter<K extends MovementsSearchKey>(
   return next;
 }
 
-/** Removes one key of the search. A date range goes as a whole, since its two ends belong together. */
+/** Removes one key of the search. A date range goes as a whole, since its two ends belong together, and a coin goes with asset_match. */
 export function withoutKey(search: MovementsSearch, key: MovementsSearchKey): MovementsSearch {
   const next = { ...search };
   delete next[key];
   if (key === "from" || key === "to") {
     delete next.from;
     delete next.to;
+  }
+  if (key === "asset") {
+    delete next.asset_match;
   }
   return next;
 }

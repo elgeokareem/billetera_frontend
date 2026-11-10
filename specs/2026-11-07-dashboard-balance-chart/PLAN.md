@@ -94,3 +94,5 @@ Checks:
 ## Implementation State
 
 Phases 1 to 3 implemented (uncommitted). Phase 4 not started.
+
+*Update 2026-11-09:* all four phases are implemented and committed in `a40391d`. Phase 4 is the fitted value axis: `fitValueAxis` in `src/modules/shared/chart.ts` and the `FIT_VALUE_AXIS` switch in `BalanceChart.tsx`, on. The time axis is being reworked by [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md).

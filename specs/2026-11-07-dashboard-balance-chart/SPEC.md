@@ -6,7 +6,7 @@ status: draft
 domain: Portfolio
 issue: none
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-08
 sdd_version: 7.3.0
 ---
 
@@ -51,7 +51,7 @@ All five are supported with no `bucket` sent. "All time" would need `week` or `m
 | D4 | The range is the `range` search param of `/dashboard`. Absent means 30d, and choosing 30d removes it. An unknown value is ignored (30d). Changing it replaces the history entry and keeps the scroll position | Like the Movements filters, a view survives a reload and can be shared. Replace and no scroll reset, as for the Hide Balances toggle. `range` isn't retained when leaving the Dashboard. (Hide Balances no longer uses the URL; see its D15.) |
 | D5 | The range control is the existing `RangeChips`, moved to shared with a `keys` prop, rather than a new segmented control | Same control as Assets. The card header already wraps, so five chips fit the narrow column on two lines if needed (Open Question 4) |
 | D6 | The Dashboard chart sends `from` and `tz` and leaves `to` out, so the backend ends the range at the time of each request. `from` is fixed when the page mounts, so the query key holds | A Sync refetches the chart, and the new snapshot must appear on it, matching the Balance card's total |
-| D7 | The 24h range labels its time axis with hours (such as 14:00), the others with days, as Assets does | Day labels on a one-day range would all read the same |
+| D7 | The 24h range labels its time axis with hours (such as 14:00), the others with days, as Assets does. *(Superseded 2026-11-08 by [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md): the time axis spans the selected window, with clock-aligned ticks from `timeAxisTicks`; 1y is labelled by month; the format comes from the range inside `BalanceChart`.)* | Day labels on a one-day range would all read the same |
 | D8 | In hidden-balances mode the line is still drawn. The value-axis ticks read `••••`, and the tooltip shows the time and `••••`. This comes from `BalanceChart` itself (Hide Balances, Phase 2), so this change adds no masking code | The shape shows direction, not size. With the fitted axis (D10) the shape doesn't even give ratios to the total: only up, down and the relative size of moves within the range |
 | D9 | Remove the Balance card's 30-day sparkline, with `Sparkline.tsx`, `sparkline.ts`, its test, the `sparkline` query and its translation keys | The new chart right under it shows the same 30 days, with axes and ranges. Two charts of one series would be redundant. Needs the user's confirmation (Open Question 1); it's the last phase, so it can be dropped |
 | D10 | *(Amendment.)* **The value axis fits the data** instead of starting at zero: from a little below the range's lowest value to a little above its highest, on round ticks, never below 0. It applies to **every** `BalanceChart`: the Dashboard chart, the Assets total, and the coin page's USD and amount charts. Behind one constant in `BalanceChart`, so turning it off restores the old axis | Moves of a few hundred dollars on a five-figure balance become visible. All four charts share the component, and one axis rule across the app is easier to read than a zero-based Dashboard next to a fitted coin chart (the amount chart already fitted its values, through recharts' `auto`). One switch keeps the trial cheap to undo. This supersedes the Assets spec's "a USD value starts at zero" for the value axis |
@@ -104,7 +104,7 @@ The implementer recomputes these from the formula in the test and fixes this tab
 - `src/modules/dashboard/BalanceHistoryCard.tsx` (new), rendered by `DashboardPage` in `<section className="dash__history">` after `.dash__balance`. It takes the page's `now` and `timeZone`.
 - Data: `useSnapshotHistory(openRangeQuery(now, range, timeZone))`, which is `GET /snapshots?from=<now − range>&tz=<browser zone>`. Times are `Z` instants, so no `+` reaches the URL.
 - Header: title `dashboard.history.title` and `RangeChips` with `DASHBOARD_RANGE_KEYS`, in a wrapping `Group`, as `BalanceHistory` lays it out.
-- Chart: the lazy `BalanceChart` with `balanceSeries(points)`, `startsAtZero` (ignored while D10's axis applies), `formatUsd` for the tooltip, `formatUsdTick` for the value axis, `formatHourTick` for 24h and `formatDayTick` otherwise for the time axis, `formatMoment` for the tooltip time, and `label` `dashboard.history.chartLabel`.
+- Chart: the lazy `BalanceChart` with `balanceSeries(points)`, `startsAtZero` (ignored while D10's axis applies), `formatUsd` for the tooltip, `formatUsdTick` for the value axis, `formatHourTick` for 24h and `formatDayTick` otherwise for the time axis *(amended 2026-11-08: replaced by `range`, `windowEnd` and `fetchedAt` props, see [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md))*, `formatMoment` for the tooltip time, and `label` `dashboard.history.chartLabel`.
 - Choosing a chip: `navigate({ to: "/dashboard", search: (prev) => ({ ...prev, range: key === DEFAULT_RANGE ? undefined : key }), replace: true, resetScroll: false })`. The hidden/shown state isn't in the URL, so a range change doesn't affect it.
 - Surface: `Paper bg="dark.6"`, radius 12, padding 20/24, like the other Dashboard cards. Chart height 260px at every width, as on Assets.
 
@@ -112,7 +112,7 @@ The implementer recomputes these from the formula in the test and fixes this tab
 
 - **Loading:** a 260px skeleton under the header, while the request or the chart chunk loads. The header and chips show at once.
 - **Error:** `SectionError` from `SectionStates.tsx`, with a retry. The other sections are unaffected.
-- **Not enough history:** fewer than 2 points (`hasEnoughHistory`) shows `chart.notEnough` and `chart.notEnoughBody`. A new user with one snapshot sees this on every range; with two hourly snapshots, 24h, 7d and 30d draw a line.
+- **Not enough history:** fewer than 2 points (`hasEnoughHistory`) shows `chart.notEnough` and `chart.notEnoughBody`. A new user with one snapshot sees this on every range; with two hourly snapshots, 24h, 7d and 30d draw a line. *(Amended 2026-11-08 by [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md): the text is now a caption under the chart, not a replacement for it. One point draws its dot on the full window axis; zero points draw the empty window axis.)*
 - **No snapshot yet:** when `GET /snapshots/latest` is 404 (`useLatestSnapshot()` returns `null`), the section isn't rendered. The Balance card already shows the sync prompt. While the latest snapshot is loading, the section renders as normal.
 - **After a Sync:** the chart refetches with the rest (D6) and the new snapshot is its last point.
 - **Hidden balances:** as D8.
@@ -143,7 +143,7 @@ The chart's label doesn't name the range: the selected chip already says it, and
 - **Given** `/dashboard?range=1y`, **then** 1 year is selected and the chart loads with no `range too large for bucket` error.
 - **Given** `/dashboard?range=2y`, **then** 30 days is selected.
 - **Given** 24 hours, **then** the time axis shows hours and the tooltip shows the full date and time.
-- **Given** an account with a single snapshot, **then** the chart section says "Not enough history yet" on every range.
+- **Given** an account with a single snapshot, **then** the chart section says "Not enough history yet" on every range. *(Amended 2026-11-08: as a caption under a chart that shows the one point on the selected window; see [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md).)*
 - **Given** an account with no snapshot, **then** the Balance card shows the sync prompt and no chart section shows.
 - **Given** the history request fails, **then** the section shows an error with Try again, and the other sections are unaffected.
 - **Given** the user clicks Sync, **then** the chart's last point is the new snapshot, and its value matches the Balance card total.
@@ -151,7 +151,7 @@ The chart's label doesn't name the range: the selected chip already says it, and
 - **Given** balances shown and `?range=90d`, **when** the user changes the range, **then** balances stay shown. **When** the user goes to Movements, **then** `range` is dropped and balances stay shown.
 - **Given** a 375px screen, **then** the chart is full width right after the Balance card, the chips wrap, and nothing overflows.
 - **Given** Spanish, **then** the title, chips, axis labels, tooltip and empty state are in Spanish.
-- **Given** Assets after the refactor, **then** its ranges, requests, text and charts are as before (apart from the value axis, changed by D10).
+- **Given** Assets after the refactor, **then** its ranges, requests, text and charts are as before (apart from the value axis, changed by D10). *(Later changed by [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md): Assets gains 24h and drops `to`.)*
 - **Given** a balance near $12,500 that moved a few hundred dollars in the range, **when** the Dashboard chart draws, **then** the value axis spans about that movement on round ticks (not from $0), and the line uses most of the chart's height.
 - **Given** a flat balance over the range, **then** the line sits around the middle of the chart, not on its top or bottom edge.
 - **Given** any chart, **then** no value-axis tick is below $0 (or below 0 for an amount).
@@ -161,12 +161,12 @@ The chart's label doesn't name the range: the selected chip already says it, and
 
 ## Out of Scope
 
-An "All time" range, custom date ranges, Spot and Funding as separate lines, per-coin lines on the Dashboard, a marker for deposits and withdrawals, putting the Assets range in the URL, adding 24h to Assets, and an unpriced-coins note on the chart (the Balance card has one).
+An "All time" range, custom date ranges, Spot and Funding as separate lines, per-coin lines on the Dashboard, a marker for deposits and withdrawals, putting the Assets range in the URL, adding 24h to Assets (since done by [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md)), and an unpriced-coins note on the chart (the Balance card has one).
 
 ## Open Questions
 
 1. Remove the Balance card's 30-day sparkline (D9)? **Recommendation: yes.** If the user prefers to keep it, drop Phase 3 of the plan.
-2. Should Assets get the same treatment later: 24h, the range in the URL (Assets PLAN open question 2), and the open-ended `to` so a Sync shows on its charts? **Recommendation: yes, as a separate small change.** This one keeps Assets as it is.
+2. Should Assets get the same treatment later: 24h, the range in the URL (Assets PLAN open question 2), and the open-ended `to` so a Sync shows on its charts? **Recommendation: yes, as a separate small change.** This one keeps Assets as it is. **Resolved 2026-11-08 by [Chart Time Axis](../2026-11-08-chart-time-axis/SPEC.md):** Assets gets 24h and the open-ended `to` (a Sync now shows on its charts); the range stays local state, not in the URL.
 3. Add "All time"? It needs a start date (the first snapshot isn't exposed; `everHeldQuery` uses 2000-01-01 with `month` buckets) and `week` or `month` buckets. **Recommendation: not now.** History started recently.
 4. Five chips in the right column may wrap to two lines at some widths. Is that fine, or should the Dashboard use a compact `SegmentedControl` with short labels (24h, 7d, 30d, 90d, 1y)? **Recommendation: chips**, for one control across the app.
 5. *(Amendment.)* After trying the fitted axis, keep it, keep it only on some charts, or revert (set `FIT_VALUE_AXIS` to `false`)? **Recommendation: keep it on all four charts** (D10). The fitted axis exaggerates small moves; if that reads as alarming on the Dashboard, the 8% padding or the 2% minimum span can be widened rather than reverting.

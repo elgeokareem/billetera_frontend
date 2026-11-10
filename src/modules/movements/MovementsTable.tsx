@@ -92,7 +92,13 @@ function MovementsTableView({
                       aria-label={t("movements.table.category")}
                       data={categoryData}
                       value={movement.category_id === null ? null : String(movement.category_id)}
-                      placeholder={labelNeeded ? t("movements.needsLabel") : t("movements.noCategory")}
+                      placeholder={
+                        movement.category_id !== null
+                          ? t("movements.categoryUnknown")
+                          : labelNeeded
+                            ? t("movements.needsLabel")
+                            : t("movements.noCategory")
+                      }
                       classNames={{ input: labelNeeded ? "needs-label-input" : undefined }}
                       styles={{ input: { minHeight: 44, fontSize: 14 } }}
                       // A list of 50 rows would otherwise keep 50 hidden dropdowns in the page.

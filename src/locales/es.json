@@ -62,8 +62,11 @@
       "apiKey": "Clave de API",
       "apiSecret": "Secreto de API",
       "showSecret": "Mostrar secreto",
+      "hideSecret": "Ocultar secreto",
       "keyRequired": "Escribe la clave de API",
+      "keyInvalid": "La clave de API tiene de 16 a 128 letras y números, sin espacios ni símbolos.",
       "secretRequired": "Escribe el secreto de API",
+      "secretInvalid": "El secreto tiene de 16 a 128 letras y números, sin espacios ni símbolos.",
       "readOnlyHint": "Solo se aceptan claves de solo lectura."
     },
     "card": {
@@ -243,6 +246,7 @@
     },
     "needsLabel": "Sin etiqueta",
     "noCategory": "Sin categoría",
+    "categoryUnknown": "Categoría sin cargar",
     "list": {
       "count_one": "{{count}} movimiento",
       "count_other": "{{count}} movimientos",
@@ -302,7 +306,7 @@
     "invalidLogin": "Correo o contraseña incorrectos.",
     "alreadyRegistered": "Ese correo ya tiene una cuenta.",
     "passwordTooLong": "Esa contraseña es demasiado larga.",
-    "invalidKey": "Escribe la clave de API y el secreto.",
+    "invalidKey": "La clave de API y el secreto deben tener cada uno de 16 a 128 letras y números. Cópialos de nuevo desde Binance.",
     "keyRejected": "Binance rechazó esta clave. Comprueba que la copiaste bien.",
     "keyNotReadOnly": "Esta clave puede hacer más que leer. Desactiva los permisos de trading, retiros y transferencias.",
     "keyCannotRead": "Esta clave no puede leer tu cuenta. Activa el permiso de lectura.",
@@ -319,6 +323,7 @@
   "categories": {
     "title": "Categorías",
     "subtitle": "Cada categoría dice para qué fue un movimiento. Aquí ves cuánto costó cada una este mes.",
+    "unavailable": "No se pudieron cargar los nombres de las categorías.",
     "newLabel": "Nombre de la nueva categoría",
     "newPlaceholder": "Por ejemplo, Supermercado",
     "create": "Crear",
@@ -463,7 +468,7 @@
       },
       "control": {
         "title": "Tú decides",
-        "body": "Quita la clave cuando quieras, y la sincronización se detiene."
+        "body": "Quita la clave cuando quieras, y la sincronización se detiene. Si desactivas la clave en Binance, también se corta el acceso."
       }
     },
     "faq": {

@@ -74,3 +74,11 @@ All five phases are built. Nothing is committed.
 - Removed `joi` and `mantine-form-joi-resolver`. Form validators now use translated messages.
 - Unit tests run with Vitest's default config, so `vite.config.ts` is unchanged.
 - The error page is set as the router's default, because a root `errorComponent` doesn't cover child routes.
+
+**Later changes (as of 2026-11-09):** the notes above describe this change when it was built, and some are out of date.
+- `pnpm lint` runs and passes. The "ESLint crashes" note no longer applies.
+- `/dashboard` isn't a placeholder: the [Dashboard](../2026-10-30-dashboard/SPEC.md) change built it.
+- `/` shows the [Landing Page](../2026-11-07-landing-page/SPEC.md) to logged-out visitors, which supersedes D8.
+- `pnpm test` passes 227 tests in 22 files.
+- Everything here is committed.
+- [Review Fixes](../2026-11-09-review-fixes/SPEC.md) brings the 401 handling back in line with this spec: a session-check 401 and every `/auth` call except `POST /auth/login` now clear cached data.

@@ -78,6 +78,13 @@ describe("movementFiling", () => {
     expect(movementFiling(movement({ category_id: 2 }), "Food", t)).toEqual({ text: "Food", needsLabel: false });
   });
 
+  it("names a category whose name didn't load as not loaded", () => {
+    expect(movementFiling(movement({ category_id: 7 }), undefined, t)).toEqual({
+      text: "movements.categoryUnknown",
+      needsLabel: false,
+    });
+  });
+
   it("says spending with no category needs a label", () => {
     expect(movementFiling(movement({ category_id: null }), undefined, t)).toEqual({
       text: "dashboard.recent.needsLabel",

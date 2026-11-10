@@ -9,7 +9,7 @@ import { getApiErrorKey } from "../shared/api-errors";
 import { PrimaryButton } from "../shared/components/Buttons";
 import { PublicLayout } from "../shared/components/PublicLayout";
 import i18n from "../shared/i18n";
-import { safeRedirect, sessionQuery } from "../shared/session";
+import { safeRedirect } from "../shared/session";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -31,7 +31,8 @@ export function LoginPage() {
       axios.post("/auth/login", values),
     onSuccess: () => {
       toast.success(t("auth.loginSuccess"));
-      queryClient.removeQueries({ queryKey: sessionQuery.queryKey });
+      // Nothing from an earlier session may show in this one.
+      queryClient.clear();
       router.history.push(safeRedirect(redirectTo));
     },
   });

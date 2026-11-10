@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import type { Schemas } from "../shared/api-types";
 import { type BinanceCredentials, sessionQuery } from "../shared/session";
+import { syncFailure } from "./sync";
 
 export interface CredentialsValues {
   apiKey: string;
@@ -54,19 +55,23 @@ export function useDeleteCredentials() {
   });
 }
 
-/** Runs the balance sync and the movements sync side by side. It fails when either one fails, once both are done. */
+/**
+ * Runs the balance sync and the movements sync side by side. It fails when either one fails, once both are done. A real
+ * failure is reported before a sync that's already running.
+ */
 export function useSyncBinanceData() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      const results = await Promise.allSettled([
-        axios.post("/binance/sync"),
-        axios.post("/binance/movements/sync"),
-      ]);
-      const failed = results.find((result) => result.status === "rejected");
-      if (failed) {
-        throw failed.reason;
+      const failure = syncFailure(
+        await Promise.allSettled([
+          axios.post("/binance/sync"),
+          axios.post("/binance/movements/sync"),
+        ]),
+      );
+      if (failure !== undefined) {
+        throw failure;
       }
     },
     onSettled: () => {

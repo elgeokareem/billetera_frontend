@@ -120,6 +120,7 @@ function DrawerForm({
             label={t("movements.drawer.category")}
             data={categoryData}
             value={draft.category}
+            placeholder={t("movements.categoryUnknown")}
             allowDeselect={false}
             disabled={update.isPending || categories === undefined}
             onChange={(value) => value && setDraft((current) => ({ ...current, category: value }))}

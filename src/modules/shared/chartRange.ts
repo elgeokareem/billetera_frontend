@@ -12,26 +12,23 @@ export const RANGE_DAYS = {
 
 export type RangeKey = keyof typeof RANGE_DAYS;
 
-/** The Assets chips, in the order they show. Assets has no 24-hour range. */
-export const ASSET_RANGE_KEYS: readonly RangeKey[] = ["7d", "30d", "90d", "1y"];
+/** The ranges every chart offers, in the order they show. Every chart passes these keys. */
+export const RANGE_KEYS: readonly RangeKey[] = ["24h", "7d", "30d", "90d", "1y"];
 
-/** The Dashboard's chips, in the order they show. */
-export const DASHBOARD_RANGE_KEYS: readonly RangeKey[] = ["24h", "7d", "30d", "90d", "1y"];
-
-/** The range that's picked first, on both charts. */
+/** The range that's picked first, on every chart. */
 export const DEFAULT_RANGE: RangeKey = "30d";
 
 /**
  * The history of one range, ending now. No bucket is sent: the backend picks one from the length of the range (raw up to 2
  * days, hourly up to 31, daily up to 731), and every preset stays under its 2000-bucket limit. tz is the browser's zone, so
- * the buckets start at its midnights.
+ * the buckets start at its midnights. Only the not-found check uses this now; every chart uses openRangeQuery.
  */
 export function rangeQuery(now: Date, key: RangeKey, timeZone: string): SnapshotHistoryQuery {
   return { from: daysBefore(now, RANGE_DAYS[key]), to: apiInstant(now), tz: timeZone };
 }
 
 /**
- * The Dashboard's history query: from the start of the range, with no `to`, so the backend ends the range at the time of each
+ * Every chart's history query: from the start of the range, with no `to`, so the backend ends the range at the time of each
  * request. A Sync refetches it, and the new snapshot is on it. `from` is fixed when the page mounts, so the query key holds.
  */
 export function openRangeQuery(now: Date, key: RangeKey, timeZone: string): SnapshotHistoryQuery {

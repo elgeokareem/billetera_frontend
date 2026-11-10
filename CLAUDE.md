@@ -62,5 +62,6 @@ HTTPS uses a custom Let's Encrypt certificate, issued on the VPS with certbot DN
 
 - Each change's `SPEC.md` and `PLAN.md` go in a flat `specs/YYYY-MM-DD-<name>/` folder. Never create the plugin's `changes/` tree, and don't run its `spec index` command. `specs/INDEX.md` and `specs/ROADMAP.md` are edited by hand.
 - Never commit, including SDD checkpoint commits. Leave changes uncommitted for review; commit only when asked.
-- Planning (specs, plans) goes to the `planner` agent, everything else (implementation, fixes, searches) to the `implementer` agent. Both are in `.claude/agents/`.
+- Planning (specs, plans) goes to the `planner` agent in `.claude/agents/` (Opus, medium effort). Everything else (implementation, fixes, searches, reviews) goes to DeepSeek V4.1 Flash (`opencode-go/deepseek-v4.1-flash`, variant `max`) through T3 Code's `delegate_task`. Those agents can write files and report back to the orchestrating Opus session, which checks their work.
 - The backend API contract is `../backend/README.md`.
+- Times are UTC in the database and the API. The client shows and computes everything in the user's timezone (the browser's, sent as `tz`). Tests run in a pinned zone with DST, `America/Santiago`, set in the `test` block of `vite.config.ts`.

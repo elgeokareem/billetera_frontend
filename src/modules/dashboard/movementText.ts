@@ -38,8 +38,9 @@ export function movementTitle(movement: Movement, t: Translate) {
 }
 
 /**
- * What a movement is filed under, in one short line. A category shows its name. Spending with no category says it needs a
- * label. Anything else, a deposit or a Convert with no category, shows its kind instead.
+ * What a movement is filed under, in one short line. A category shows its name, and one whose name didn't load says so.
+ * Spending with no category says it needs a label. Anything else, a deposit or a Convert with no category, shows its kind
+ * instead.
  */
 export function movementFiling(
   movement: Movement,
@@ -48,6 +49,9 @@ export function movementFiling(
 ) {
   if (movement.category_id !== null && categoryName !== undefined) {
     return { text: categoryName, needsLabel: false };
+  }
+  if (movement.category_id !== null) {
+    return { text: t("movements.categoryUnknown"), needsLabel: false };
   }
   if (needsLabel(movement)) {
     return { text: t("dashboard.recent.needsLabel"), needsLabel: true };

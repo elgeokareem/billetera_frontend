@@ -1,7 +1,7 @@
 import { AxiosError, AxiosHeaders } from "axios";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getApiErrorKey } from "./api-errors";
-import { formatHourTick } from "./chartFormat";
+import { formatDayTick, formatHourTick, formatMonthTick, timeTickFormatter } from "./chartFormat";
 import {
   formatAmount,
   formatDate,
@@ -142,6 +142,32 @@ describe("formatHourTick", () => {
     await i18n.changeLanguage("es");
     expect(spaced(formatHourTick(at))).toBe("14:05");
     await i18n.changeLanguage("en");
+  });
+});
+
+describe("chart time-axis format", () => {
+  const november = new Date(2026, 10, 1, 12).getTime();
+
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  it("writes a month in English", () => {
+    expect(formatMonthTick(november)).toBe("Nov");
+  });
+
+  it("writes a month in Spanish, with or without the ICU's trailing dot", async () => {
+    await i18n.changeLanguage("es");
+    expect(formatMonthTick(november)).toMatch(/^nov\.?$/);
+    await i18n.changeLanguage("en");
+  });
+
+  it("picks the formatter from the range", () => {
+    expect(timeTickFormatter("24h")).toBe(formatHourTick);
+    expect(timeTickFormatter("7d")).toBe(formatDayTick);
+    expect(timeTickFormatter("30d")).toBe(formatDayTick);
+    expect(timeTickFormatter("90d")).toBe(formatDayTick);
+    expect(timeTickFormatter("1y")).toBe(formatMonthTick);
   });
 });
 

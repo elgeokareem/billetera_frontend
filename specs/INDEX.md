@@ -18,3 +18,5 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 | [Landing Page](2026-11-07-landing-page/SPEC.md) ([plan](2026-11-07-landing-page/PLAN.md)) | feature | built, backend not tested | Platform | 2026-11-07 |
 | [Hide Balances](2026-11-07-hide-balances/SPEC.md) ([plan](2026-11-07-hide-balances/PLAN.md)) | feature | built, backend not tested | Portfolio, Platform | 2026-11-07 |
 | [Dashboard Balance Chart](2026-11-07-dashboard-balance-chart/SPEC.md) ([plan](2026-11-07-dashboard-balance-chart/PLAN.md)) | feature | built, backend not tested | Portfolio | 2026-11-07 |
+| [Chart Time Axis](2026-11-08-chart-time-axis/SPEC.md) ([plan](2026-11-08-chart-time-axis/PLAN.md)) | bugfix | planned | Portfolio | 2026-11-08 |
+| [Review Fixes](2026-11-09-review-fixes/SPEC.md) ([plan](2026-11-09-review-fixes/PLAN.md)) | bugfix | planned | Platform, Identity, Portfolio | 2026-11-09 |

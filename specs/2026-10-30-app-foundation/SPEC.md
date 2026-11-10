@@ -37,7 +37,7 @@ Replaces the first-version shell with the base every other view needs: a working
 | D5 | Add `big.js` for money math | Money is a full-precision decimal string and is never parsed to `number` for math. Numbers are allowed only for chart coordinates |
 | D6 | Add `vitest`, for pure helpers only | Formatting and money math are easy to get wrong and have no UI to reveal it. No component tests in the MVP |
 | D7 | Fonts load with a Google Fonts `<link>` in `index.html` | Matches the design with no extra dependency |
-| D8 | `/` redirects to `/dashboard`. The landing page is a later step | The current landing page is three buttons |
+| D8 | `/` redirects to `/dashboard`. The landing page is a later step. *(Superseded by [Landing Page](../2026-11-07-landing-page/SPEC.md) D1: `/` shows the landing page to a logged-out visitor, and a logged-in one goes to `/dashboard`.)* | The current landing page is three buttons |
 | D9 | Dark theme only in the MVP | The design is one fixed palette |
 
 ## Requirements

@@ -62,8 +62,11 @@
       "apiKey": "API key",
       "apiSecret": "API secret",
       "showSecret": "Show secret",
+      "hideSecret": "Hide secret",
       "keyRequired": "Enter the API key",
+      "keyInvalid": "The API key is 16 to 128 letters and numbers, with no spaces or symbols.",
       "secretRequired": "Enter the API secret",
+      "secretInvalid": "The secret is 16 to 128 letters and numbers, with no spaces or symbols.",
       "readOnlyHint": "Only read-only keys are accepted."
     },
     "card": {
@@ -243,6 +246,7 @@
     },
     "needsLabel": "Needs a label",
     "noCategory": "No category",
+    "categoryUnknown": "Category not loaded",
     "list": {
       "count_one": "{{count}} movement",
       "count_other": "{{count}} movements",
@@ -302,7 +306,7 @@
     "invalidLogin": "Wrong email or password.",
     "alreadyRegistered": "That email already has an account.",
     "passwordTooLong": "That password is too long.",
-    "invalidKey": "Enter both the API key and the secret.",
+    "invalidKey": "The API key and the secret must each be 16 to 128 letters and numbers. Copy them again from Binance.",
     "keyRejected": "Binance rejected this key. Check that you copied it correctly.",
     "keyNotReadOnly": "This key can do more than read. Turn off trading, withdrawal and transfer permissions.",
     "keyCannotRead": "This key can't read your account. Turn on read permission.",
@@ -319,6 +323,7 @@
   "categories": {
     "title": "Categories",
     "subtitle": "Each category says what a movement was for. Here is what each one cost this month.",
+    "unavailable": "Category names couldn't load.",
     "newLabel": "New category name",
     "newPlaceholder": "For example, Groceries",
     "create": "Create",
@@ -463,7 +468,7 @@
       },
       "control": {
         "title": "You stay in control",
-        "body": "Remove the key at any time, and syncing stops."
+        "body": "Remove the key at any time, and syncing stops. Disabling the key in Binance also cuts access."
       }
     },
     "faq": {

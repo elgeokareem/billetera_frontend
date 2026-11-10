@@ -1,4 +1,5 @@
 import type { AssetHistoryPoint, SnapshotPoint } from "../snapshots/types";
+import { RANGE_DAYS, type RangeKey } from "./chartRange";
 
 /** The value of a coin's history that the chart draws. */
 export type Measure = "usd" | "amount";
@@ -14,8 +15,45 @@ export type ChartPoint = {
   value: string | null;
 };
 
-/** A line needs two points. A range with fewer shows "Not enough history yet" instead of a chart. */
+/** A line needs two points. A range with fewer draws its points on the window's axis, with "Not enough history yet" as a caption. */
 export const MIN_POINTS = 2;
+
+const DAY_MS = 86_400_000;
+
+/** A chart's time window, in epoch milliseconds: the selected range, ending at the history response's `to`. */
+export type TimeWindow = { start: number; end: number };
+
+/**
+ * The window a range covers. `to` is the history response's own end, so the newest data sits at the right edge and a refetch
+ * moves the window forward; `fallbackEnd` is when the response arrived, used only when `to` can't be parsed (the schema requires
+ * it, so that's a guard alone). The length comes from the range chip, not from the request's `from`, which is fixed when the page
+ * mounts.
+ */
+export function chartWindow(range: RangeKey, to: string, fallbackEnd: number): TimeWindow {
+  const parsed = Date.parse(to);
+  const end = Number.isFinite(parsed) ? parsed : fallbackEnd;
+  return { start: end - RANGE_DAYS[range] * DAY_MS, end };
+}
+
+/** The points inside the window, in their order. A gap inside it stays; a point outside is dropped. */
+export function clipToWindow(series: readonly ChartPoint[], window: TimeWindow): ChartPoint[] {
+  return series.filter((point) => window.start <= point.time && point.time <= window.end);
+}
+
+/**
+ * The series the chart is drawn with. Recharts draws no time labels without a point, so an empty series gets two null points at
+ * the window's edges, which lay the axis out: they have no value, so they add no line, dot or shading. A series with a point is
+ * returned as it is.
+ */
+export function padEmptyWindow(series: readonly ChartPoint[], window: TimeWindow): ChartPoint[] {
+  if (series.length > 0) {
+    return [...series];
+  }
+  return [
+    { time: window.start, y: null, value: null },
+    { time: window.end, y: null, value: null },
+  ];
+}
 
 /** A decimal string as a chart coordinate. Blank or non-numeric text is null, which is a gap, never a zero. */
 function coordinate(value: string | null): number | null {
@@ -83,9 +121,96 @@ export function gapSpans(series: readonly ChartPoint[]): GapSpan[] {
   return spans;
 }
 
-/** Whether the points are enough to draw a line. */
+/** Whether the points are enough to draw a line. Fewer than MIN_POINTS still draw, with the caption under the axis. */
 export function hasEnoughHistory(points: readonly unknown[]): boolean {
   return points.length >= MIN_POINTS;
+}
+
+/** The Monday the multi-day tick steps are anchored on: 2000-01-03. */
+const DAY_INDEX_ORIGIN = Date.UTC(2000, 0, 3);
+
+/** Calendar days from DAY_INDEX_ORIGIN to a local date, from its fields, so a DST change can't move it. */
+function dayIndex(year: number, month: number, day: number): number {
+  return Math.round((Date.UTC(year, month, day) - DAY_INDEX_ORIGIN) / DAY_MS);
+}
+
+/** The step, in calendar days, between the midnights of a day range, doubled when the ticks have to be compact. */
+function dayStep(range: RangeKey, compact: boolean): number {
+  const step = range === "30d" ? 5 : range === "90d" ? 14 : 1;
+  return compact ? step * 2 : step;
+}
+
+/**
+ * The times the time axis is labelled at, on the local clock, which is the browser's zone and the same `tz` the requests send.
+ * 24h gets every six hours, 7d, 30d and 90d get local midnights on a fixed day step, and 1y gets the first of each month. The
+ * step doesn't move as the window slides: the day steps are anchored on Monday 2000-01-03 (so 14 and 28 days fall on Mondays) and
+ * the month steps on the calendar month, so a compact year is Jan, Mar, May and so on.
+ *
+ * Each candidate is built from calendar fields, never by adding milliseconds, and the Date constructor is used as it is: a local
+ * time that doesn't exist moves to the first instant after the gap, and a repeated one takes its first occurrence. In
+ * America/Santiago the clocks change at midnight, so that is what keeps one tick per day. Returns epoch milliseconds, ascending,
+ * inside [start, end], with no duplicates. The compact form is for a narrow chart.
+ */
+export function timeAxisTicks(range: RangeKey, start: number, end: number, compact = false): number[] {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return [];
+  }
+  const ticks: number[] = [];
+  const first = new Date(start);
+  const last = new Date(end);
+  const firstDay = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+  const lastDay = new Date(last.getFullYear(), last.getMonth(), last.getDate());
+
+  if (range === "24h") {
+    for (let offset = 0; ; offset += 1) {
+      const day = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + offset);
+      if (day > lastDay) {
+        break;
+      }
+      for (const hour of [0, 6, 12, 18]) {
+        const tick = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour).getTime();
+        if (tick >= start && tick <= end) {
+          ticks.push(tick);
+        }
+      }
+    }
+    return ticks;
+  }
+
+  if (range === "1y") {
+    const lastYear = last.getFullYear();
+    const lastMonth = last.getMonth();
+    for (let offset = 0; ; offset += 1) {
+      const year = firstDay.getFullYear() + Math.floor((firstDay.getMonth() + offset) / 12);
+      const month = (firstDay.getMonth() + offset) % 12;
+      if (year > lastYear || (year === lastYear && month > lastMonth)) {
+        break;
+      }
+      if (compact && month % 2 !== 0) {
+        continue;
+      }
+      const tick = new Date(year, month, 1).getTime();
+      if (tick >= start && tick <= end) {
+        ticks.push(tick);
+      }
+    }
+    return ticks;
+  }
+
+  const step = dayStep(range, compact);
+  for (let offset = 0; ; offset += 1) {
+    const day = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + offset);
+    if (day > lastDay) {
+      break;
+    }
+    if (dayIndex(day.getFullYear(), day.getMonth(), day.getDate()) % step === 0) {
+      const tick = day.getTime();
+      if (tick >= start && tick <= end) {
+        ticks.push(tick);
+      }
+    }
+  }
+  return ticks;
 }
 
 /**

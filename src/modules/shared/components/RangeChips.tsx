@@ -5,7 +5,7 @@ import type { RangeKey } from "../chartRange";
 /** Chips are at least 44px tall, as every control is. */
 const CHIP_STYLES = { label: { minHeight: 44, paddingInline: 16 } };
 
-/** The ranges of a chart, one chip each, in the order given. One is always picked. Assets and the Dashboard give their own keys. */
+/** The ranges of a chart, one chip each, in the order given. One is always picked. Every chart passes `RANGE_KEYS`. */
 export function RangeChips({
   value,
   keys,

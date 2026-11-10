@@ -13,6 +13,11 @@ Each step depends on the ones before it.
 5. [Assets](2026-10-30-assets/SPEC.md): holdings by coin and wallet, with history
 6. Backend integration: run every view against the real backend, including its cookie and origin checks. Until this step, views are checked against a fake API built from `../backend/README.md`
 
+## Open fixes
+
+- **[Chart Time Axis](2026-11-08-chart-time-axis/SPEC.md):** every balance chart's time axis spans the selected range, with clock-aligned ticks; Assets gets 24h and sees a Sync's snapshot without a reload. Tests run in a pinned zone, `America/Santiago`. Planned.
+- **[Review Fixes](2026-11-09-review-fixes/SPEC.md):** six bugs from a spec-versus-code audit: cached data surviving a session change, the Binance key format message, the search box undoing Clear all, a 409 hiding a sync failure, a leftover `asset_match`, and sections hidden when categories fail to load. Planned.
+
 ## Later
 
 - **Catalog deposits:** let the user give deposits a category and reason, and see income by category, as they do for spending. The backend already supports this: `PATCH /movements/:id` works on any movement, and `GET /movements/totals` filters by `direction=in`. In the MVP, deposits aren't in the labelling cards or the spending totals.

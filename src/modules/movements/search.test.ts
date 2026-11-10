@@ -62,6 +62,12 @@ describe("parseMovementsSearch", () => {
     expect(parse({ direction: "both", has_reason: "yes", asset_match: "asset" })).toEqual({});
   });
 
+  it("keeps asset_match only with a coin", () => {
+    expect(parse({ asset_match: "any" })).toEqual({});
+    expect(parse({ asset: "!!", asset_match: "any" })).toEqual({});
+    expect(parse({ asset: "btc", asset_match: "any" })).toEqual({ asset: "BTC", asset_match: "any" });
+  });
+
   it("keeps the search text as typed, but trimmed and at most 100 characters", () => {
     expect(parse({ q: "  1.50  " })).toEqual({ q: "1.50" });
     expect(parse({ q: "   " })).toEqual({});
@@ -168,6 +174,21 @@ describe("changing the search", () => {
     expect(withList(search, "kind", [])).toEqual({ category_id: "none", direction: "out" });
   });
 
+  it("drops asset_match when the last coin goes", () => {
+    expect(withList({ asset: "BTC", asset_match: "any", kind: "pay" }, "asset", [])).toEqual({ kind: "pay" });
+  });
+
+  it("keeps asset_match while a coin is left", () => {
+    expect(withList({ asset: "BTC,ETH", asset_match: "any" }, "asset", ["BTC"])).toEqual({
+      asset: "BTC",
+      asset_match: "any",
+    });
+  });
+
+  it("removing the asset filter drops asset_match too", () => {
+    expect(withoutKey({ asset: "BTC", asset_match: "any" }, "asset")).toEqual({});
+  });
+
   it("sets or removes one filter, with no undefined key left behind", () => {
     const cleared = withFilter(search, "direction", undefined);
     expect(cleared).not.toHaveProperty("direction");
@@ -196,8 +217,8 @@ describe("changing the search", () => {
 });
 
 describe("hasFilters with a param that isn't a filter", () => {
-  // The search can hold a param that isn't a Movements filter. It doesn't count.
-  const notAFilter = { other_param: "1" } as MovementsSearch;
+  // A stale show_balances param from an old URL (Hide Balances D21) isn't a filter.
+  const notAFilter = { show_balances: "true" } as MovementsSearch;
 
   it("doesn't count a key that isn't a filter", () => {
     expect(hasFilters(notAFilter)).toBe(false);

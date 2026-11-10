@@ -39,5 +39,5 @@ sdd_version: 7.3.0
 ## Verification
 
 - Backend: `make test` passed, including `openapi-check`, the seed check and the contract tests.
-- Frontend: `pnpm verify` passed; 19 test files and 183 tests.
+- Frontend: `pnpm verify` passed; 19 test files and 183 tests. *(As of 2026-11-09, after later changes, `pnpm test` passes 227 tests in 22 files.)*
 - A compile-time comparison against the old hand-written API types passed for movements, totals, snapshots, categories and credentials.

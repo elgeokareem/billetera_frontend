@@ -19,9 +19,9 @@ import { Sensitive } from "../shared/components/Sensitive";
 import { formatAmount, formatQuantity, formatUsd } from "../shared/format";
 import { useAssetHistory, useLatestSnapshot } from "../snapshots/hooks";
 import { type CoinHolding, coinHoldings } from "../snapshots/holdings";
-import { assetSeries, gapSpans, hasEnoughHistory, type Measure } from "../shared/chart";
-import { formatAmountTick, formatDayTick, formatMoment, formatUsdTick } from "../shared/chartFormat";
-import { ASSET_RANGE_KEYS, DEFAULT_RANGE, type RangeKey, rangeQuery } from "../shared/chartRange";
+import { assetSeries, chartWindow, clipToWindow, gapSpans, type Measure } from "../shared/chart";
+import { formatAmountTick, formatMoment, formatUsdTick } from "../shared/chartFormat";
+import { DEFAULT_RANGE, openRangeQuery, RANGE_KEYS, type RangeKey } from "../shared/chartRange";
 import { RangeChips } from "../shared/components/RangeChips";
 import { assetCode } from "./codes";
 import { coinMovementsSearch } from "./links";
@@ -53,7 +53,7 @@ export function CoinDetail() {
 
 function CoinPage({ code }: { code: string }) {
   const { t } = useTranslation();
-  // Taken once, so the query keys hold while the page is open, the same as the other pages.
+  // Taken once, so each range's start and the query keys hold while the page is open, the same as the other pages.
   const [now] = useState(() => new Date());
   const [timeZone] = useState(browserTimeZone);
   const [range, setRange] = useState<RangeKey>(DEFAULT_RANGE);
@@ -63,7 +63,8 @@ function CoinPage({ code }: { code: string }) {
   const current = latest.data ? coinHoldings(latest.data.assets, code) : undefined;
   const held = current?.held ?? false;
 
-  const query = useMemo(() => rangeQuery(now, range, timeZone), [now, range, timeZone]);
+  // The chart's request has no end, so a Sync's new snapshot shows on the refetch. The not-found check keeps its `to`.
+  const query = useMemo(() => openRangeQuery(now, range, timeZone), [now, range, timeZone]);
   const history = useAssetHistory(code, query);
 
   // Only a coin the latest snapshot doesn't hold needs the checks that tell a coin that was held from one never held.
@@ -73,6 +74,13 @@ function CoinPage({ code }: { code: string }) {
   // Taken before any early return, so the hooks run in the same order on every render.
   const points = history.data?.points;
   const series = useMemo(() => assetSeries(points ?? [], measure), [points, measure]);
+  // The chart's window, shared with the gaps note so both read the same clipped points.
+  const windowEnd = history.data?.to ?? "";
+  const window = useMemo(
+    () => chartWindow(range, windowEnd, history.dataUpdatedAt),
+    [range, windowEnd, history.dataUpdatedAt],
+  );
+  const windowSeries = useMemo(() => clipToWindow(series, window), [series, window]);
 
   if (latest.isPending) {
     return (
@@ -114,22 +122,13 @@ function CoinPage({ code }: { code: string }) {
   }
 
   const total = current.total;
-  const hasGaps = measure === "usd" && gapSpans(series).length > 0;
+  const hasGaps = measure === "usd" && gapSpans(windowSeries).length > 0;
 
   let chart;
   if (history.isPending) {
     chart = <Skeleton height={260} radius="sm" />;
   } else if (history.isError) {
     chart = <SectionError error={history.error} onRetry={() => history.refetch()} />;
-  } else if (!hasEnoughHistory(points ?? [])) {
-    chart = (
-      <Stack gap="xs" py="lg">
-        <Text fw={600}>{t("chart.notEnough")}</Text>
-        <Text size="sm" c="dimmed">
-          {t("chart.notEnoughBody")}
-        </Text>
-      </Stack>
-    );
   } else {
     chart = (
       <Suspense fallback={<Skeleton height={260} radius="sm" />}>
@@ -137,9 +136,11 @@ function CoinPage({ code }: { code: string }) {
           series={series}
           label={t("assets.detail.chartLabel", { asset: code })}
           startsAtZero={measure === "usd"}
+          range={range}
+          windowEnd={windowEnd}
+          fetchedAt={history.dataUpdatedAt}
           formatValue={measure === "usd" ? formatUsd : (value) => formatAmount(value, code)}
           formatTick={measure === "usd" ? formatUsdTick : formatAmountTick}
-          formatTime={formatDayTick}
           formatTooltipTime={formatMoment}
         />
       </Suspense>
@@ -196,7 +197,7 @@ function CoinPage({ code }: { code: string }) {
               ]}
             />
           </Group>
-          <RangeChips value={range} keys={ASSET_RANGE_KEYS} onChange={setRange} />
+          <RangeChips value={range} keys={RANGE_KEYS} onChange={setRange} />
           {chart}
           {hasGaps && (
             <Text size="sm" c="dimmed">

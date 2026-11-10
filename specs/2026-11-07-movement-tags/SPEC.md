@@ -6,7 +6,7 @@ status: draft
 domain: Portfolio
 issue: none
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-09
 sdd_version: 7.3.0
 ---
 
@@ -56,7 +56,7 @@ Depends on [Movements and Categories](../2026-10-30-movements-categories/SPEC.md
 |--------|-------|-------|
 | Tag | `tag` | Multi-value. A `TagsInput` with the known tags as suggestions. Matches movements with any of the tags |
 
-- `search.ts` reads `tag` as a comma list: each item must be a valid tag name, at most 20 items, repeats ignoring case dropped. Case is kept as written. `toMovementsQuery` passes it on, so the export gets it too.
+- `search.ts` reads `tag` as a comma list: each item must be a valid tag name, at most 20 items, repeats ignoring case dropped. Case is kept as written. `toMovementsQuery` passes it on, so the export gets it too. The existing `readList` and `unique` in `search.ts` drop repeats case-sensitively (a `Set` of the raw strings), so `tag` needs its own dedupe, keyed on `item.toLocaleLowerCase()` with the first spelling kept. The same applies to `withList` when the tag filter changes, and to chip removal.
 - Typed text that's not a known tag is still a valid filter, and simply matches nothing.
 - `chips.ts` adds one chip per tag, "Tag: trip-2026", built with the existing `labelled` helper, removable on its own like a category chip.
 - The "Needs a label" preset keeps replacing every filter, `tag` included.
@@ -126,6 +126,12 @@ Depends on [Movements and Categories](../2026-10-30-movements-categories/SPEC.md
 
 - Returns `{"tags": [{"name": "trip-2026", "movement_count": 12}]}`, the tags at least one of the user's movements uses, sorted by name ignoring case. No paging.
 - Needs a login and gets the same 401, 403 and 500 entries as the other routes, an `@ID` such as `tags.list`, and a regenerated OpenAPI file.
+
+**Counts and tests the backend change must update**
+
+- `README.md` says `docs/openapi/openapi.json` "documents all 23 routes". `GET /tags` makes it 24.
+- The frontend error texts go from 17 to 19 (`invalid tag`, `too many tags`). In `../backend/routes/openapi_spec_test.go`: the `frontendErrorTexts` list and its comment ("the 17 texts", around line 28), and `TestFrontendErrorTexts_InSource`, which checks `len(frontendErrorTexts) != 17` (around lines 674-679). The README line "update the 17 texts in `routes/openapi_spec_test.go`" changes too.
+- The export: `csvHeader` in `../backend/modules/movements/export.go` gets `tags`, appended after the USD columns (new columns are only ever appended there). `TestCSVHeader_MatchesJSONFields` (`modules/movements/export_test.go`, around lines 180-197) requires every header to be a JSON field of `MovementResponse` and the counts to match, so `tags` must be added to both. `TestOpenAPI_ExportResponses` (`routes/openapi_spec_test.go`, around lines 634-667) checks the export's HTTP response headers (four today); a new CSV column doesn't change them, so it only changes if the export also gets a new HTTP header.
 
 **Not needed now**
 

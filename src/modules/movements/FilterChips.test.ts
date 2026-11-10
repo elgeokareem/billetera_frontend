@@ -38,6 +38,12 @@ describe("filterChips", () => {
     expect(only.without).toEqual({});
   });
 
+  it("removing the only coin chip drops asset_match too", () => {
+    const search = parseMovementsSearch({ asset: "BTC", asset_match: "any" });
+    const only = filterChips(search, { now, t, categoryName }).find((chip) => chip.key === "asset:BTC");
+    expect(only?.without).toEqual({});
+  });
+
   it("names a category by its name, and no category as such", () => {
     const labels = chipsOf({ category_id: "3,none,99" }).map((chip) => chip.label);
     expect(labels).toEqual([

@@ -12,6 +12,7 @@ import {
   listItems,
   MOVEMENT_KINDS,
   MOVEMENT_STATUSES,
+  REVIEW_ITEMS,
   type MovementsSearch,
   presetRange,
   withFilter,
@@ -62,6 +63,22 @@ export function MovementFilters({ search, onChange, categories, knownTags, now }
             {MOVEMENT_KINDS.map((kind) => (
               <Chip key={kind} value={kind} variant="outline" color="accent" styles={CHIP_STYLES}>
                 {t(KIND_KEYS[kind])}
+              </Chip>
+            ))}
+          </Group>
+        </Chip.Group>
+      </FilterGroup>
+
+      <FilterGroup label={t("movements.filters.review")}>
+        <Chip.Group
+          multiple
+          value={listItems(search.review)}
+          onChange={(items) => onChange(withList(search, "review", items))}
+        >
+          <Group gap="xs">
+            {REVIEW_ITEMS.map((item) => (
+              <Chip key={item} value={item} variant="outline" color="accent" styles={CHIP_STYLES}>
+                {t(`movements.review.${item}`)}
               </Chip>
             ))}
           </Group>

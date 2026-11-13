@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Movement } from "../movements/types";
+import type { Movement, MovementKind } from "../movements/types";
 import {
   kindKey,
   movementFiling,
@@ -39,6 +39,8 @@ function movement(overrides: Partial<Movement>): Movement {
     usd_price_status: "priced",
     usd_value: "54",
     fee_usd_value: null,
+    review_status: null,
+    detection: null,
     ...overrides,
   };
 }
@@ -54,6 +56,17 @@ describe("kindKey", () => {
     expect(kindKey({ kind: "withdrawal", direction: "out" })).toBe("movements.kinds.withdrawal");
     expect(kindKey({ kind: "deposit", direction: "in" })).toBe("movements.kinds.deposit");
     expect(kindKey({ kind: "convert", direction: "out" })).toBe("movements.kinds.convert");
+  });
+
+  it("names the detected kinds", () => {
+    expect(kindKey({ kind: "card_spend", direction: "out" })).toBe("movements.kinds.cardSpend");
+    expect(kindKey({ kind: "copy_trading", direction: "out" })).toBe("movements.kinds.copyTrading");
+    expect(kindKey({ kind: "transfer", direction: "in" })).toBe("movements.kinds.transfer");
+  });
+
+  it("falls back to a generic label for a kind this build doesn't know", () => {
+    const future = { kind: "future_kind" as MovementKind, direction: "out" as const };
+    expect(kindKey(future)).toBe("movements.kinds.other");
   });
 });
 

@@ -34,6 +34,15 @@ export function dashboardQueries(now: Date, timeZone: string) {
       tz: timeZone,
     } satisfies TotalsQuery,
     recent: { limit: RECENT_ROWS } satisfies MovementsQuery,
+    /** Every detected movement still to review, all time. */
+    reviewCount: { review: "suspected" } satisfies TotalsQuery,
+    /** This month's suspected card spends, which the spending total includes but the user hasn't confirmed. */
+    unconfirmedSpending: {
+      ...SPENDING_FILTER,
+      kind: "card_spend",
+      review: "suspected",
+      ...month,
+    } satisfies TotalsQuery,
     change: {
       from: hoursBefore(now, 48),
       to: hoursBefore(now, 24),

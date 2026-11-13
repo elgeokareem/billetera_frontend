@@ -141,6 +141,39 @@ export function MovementsPage() {
     [saveMovement, t],
   );
 
+  // Undo after Dismiss puts the row back under review, as the detector suggested it.
+  const restore = useCallback(
+    async (movement: Movement) => {
+      try {
+        await saveMovement({ id: movement.id, body: { review: "suspected" } });
+        toast.success(t("movements.detection.restored"));
+      } catch (error) {
+        toast.error(t(getApiErrorKey(error)));
+      }
+    },
+    [saveMovement, t],
+  );
+
+  const onUpdated = useCallback((movement: Movement) => setOpened(movement), []);
+
+  const onDismissed = useCallback(
+    (movement: Movement) => {
+      setOpened(null);
+      const toastId = toast(
+        <UndoToast
+          message={t("movements.detection.dismissed")}
+          actionLabel={t("dashboard.card.undo")}
+          onUndo={() => {
+            toast.dismiss(toastId);
+            void restore(movement);
+          }}
+        />,
+        { autoClose: 8000 },
+      );
+    },
+    [restore, t],
+  );
+
   return (
     <Stack gap="lg">
       <div>
@@ -243,6 +276,8 @@ export function MovementsPage() {
         categories={categories.data}
         knownTags={knownTags}
         onClose={() => setOpened(null)}
+        onUpdated={onUpdated}
+        onDismissed={onDismissed}
       />
     </Stack>
   );
@@ -267,5 +302,24 @@ function EmptyMovements({ filtered, onClear }: { filtered: boolean; onClear: () 
         )}
       </Stack>
     </Paper>
+  );
+}
+
+function UndoToast({
+  message,
+  actionLabel,
+  onUndo,
+}: {
+  message: string;
+  actionLabel: string;
+  onUndo: () => void;
+}) {
+  return (
+    <Group justify="space-between" wrap="nowrap" gap="md">
+      <Text size="sm">{message}</Text>
+      <Button variant="subtle" size="compact-sm" mih={44} onClick={onUndo}>
+        {actionLabel}
+      </Button>
+    </Group>
   );
 }

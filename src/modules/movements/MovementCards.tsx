@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { movementTitle } from "../dashboard/movementText";
 import { formatDate } from "../shared/format";
 import { TagPills } from "../tags/TagPills";
-import { CoinAmount, StatusBadge, UsdValue } from "./MovementParts";
+import { CoinAmount, ReviewBadge, StatusBadge, UsdValue } from "./MovementParts";
 import { ACCENT } from "./labels";
 import { needsLabel } from "./spending";
 import type { Movement } from "./types";
@@ -60,6 +60,7 @@ function MovementCardsView({ rows, categoryNames, onOpen }: MovementCardsProps) 
                     {movementTitle(movement, t)}
                   </Text>
                   <StatusBadge movement={movement} />
+                  <ReviewBadge movement={movement} />
                 </Group>
                 <Text size="sm" c={labelNeeded ? ACCENT : "dimmed"}>
                   {formatDate(movement.occurred_at)} · {filing}

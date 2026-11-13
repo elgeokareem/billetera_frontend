@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
 import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { useMovementsList } from "../movements/hooks";
+import { ReviewBadge } from "../movements/MovementParts";
 import type { Movement } from "../movements/types";
 import { Sensitive } from "../shared/components/Sensitive";
 import {
@@ -104,9 +105,12 @@ function MovementRow({ movement, categoryName }: { movement: Movement; categoryN
       style={{ borderTop: "1px solid var(--mantine-color-dark-5)" }}
     >
       <Stack gap={2} miw={0}>
-        <Text size="sm" fw={500} className="truncate">
-          {title}
-        </Text>
+        <Group gap="xs" wrap="wrap">
+          <Text size="sm" fw={500} className="truncate">
+            {title}
+          </Text>
+          <ReviewBadge movement={movement} />
+        </Group>
         <Text size="sm" c={filing.needsLabel ? ACCENT : "dimmed"}>
           {detail.join(" · ")}
         </Text>

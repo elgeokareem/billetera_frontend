@@ -10,6 +10,7 @@ import {
   NEEDS_LABEL_SEARCH,
   parseMovementsSearch,
   presetRange,
+  REVIEW_SEARCH,
   tagNames,
   toMovementsQuery,
   withFilter,
@@ -51,6 +52,19 @@ describe("parseMovementsSearch", () => {
       kind: "p2p,pay",
       category_id: "7",
     });
+  });
+
+  it("keeps the new kinds", () => {
+    expect(parse({ kind: "card_spend,copy_trading,transfer,deposit" })).toEqual({
+      kind: "card_spend,copy_trading,transfer,deposit",
+    });
+  });
+
+  it("keeps the four review values, drops others and removes repeats", () => {
+    expect(parse({ review: "suspected,dismissed,suspected,bogus,none,confirmed" })).toEqual({
+      review: "suspected,dismissed,none,confirmed",
+    });
+    expect(parse({ review: "" })).toEqual({});
   });
 
   it("removes a repeated item, and caps a list at 20 items", () => {
@@ -118,7 +132,7 @@ describe("parseMovementsSearch", () => {
 
   it("reads the Dashboard's Needs a label link exactly", () => {
     const link = stringifySearch(NEEDS_LABEL_SEARCH);
-    expect(link).toBe("?kind=withdrawal,p2p,pay&direction=out&status=completed&category_id=none");
+    expect(link).toBe("?kind=withdrawal,p2p,pay,card_spend&direction=out&status=completed&category_id=none");
     expect(parse(parseSearch(link))).toEqual(NEEDS_LABEL_SEARCH);
   });
 
@@ -164,6 +178,16 @@ describe("toMovementsQuery", () => {
     const search = parse({ tag: "trip-2026,shared", tag_match: "all" });
     expect(queryString(toMovementsQuery(search))).toBe("?tag=trip-2026,shared&tag_match=all");
     expect(queryString(toMovementsQuery(parse({ tag: "trip 2026" })))).toBe("?tag=trip+2026");
+  });
+
+  it("carries the review filter to the list, the totals and the export", () => {
+    expect(queryString(toMovementsQuery(parse({ review: "suspected,dismissed" })))).toBe(
+      "?review=suspected,dismissed",
+    );
+  });
+
+  it("sends the Review link's search", () => {
+    expect(queryString(toMovementsQuery(REVIEW_SEARCH))).toBe("?review=suspected");
   });
 
   it("never carries paging, which the list adds itself", () => {

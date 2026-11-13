@@ -19,6 +19,7 @@ export interface MovementsSearch {
   category_id?: string;
   tag?: string;
   tag_match?: "all";
+  review?: string;
   from?: string;
   to?: string;
   has_reason?: "true" | "false";
@@ -26,8 +27,20 @@ export interface MovementsSearch {
 
 export type MovementsSearchKey = keyof MovementsSearch;
 
-export const MOVEMENT_KINDS: readonly MovementKind[] = ["deposit", "withdrawal", "pay", "p2p", "convert"];
+export const MOVEMENT_KINDS: readonly MovementKind[] = [
+  "deposit",
+  "withdrawal",
+  "pay",
+  "p2p",
+  "convert",
+  "card_spend",
+  "copy_trading",
+  "transfer",
+];
 export const MOVEMENT_STATUSES: readonly MovementStatus[] = ["pending", "completed", "failed"];
+/** The values of the review filter, as the API names them. "none" is a movement from Binance. */
+export const REVIEW_ITEMS = ["suspected", "confirmed", "dismissed", "none"] as const;
+export type ReviewItem = (typeof REVIEW_ITEMS)[number];
 export const DATE_PRESETS = ["thisMonth", "lastMonth", "last90Days"] as const;
 export type DatePreset = (typeof DATE_PRESETS)[number];
 
@@ -44,6 +57,11 @@ const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})
 export const NEEDS_LABEL_SEARCH = {
   ...SPENDING_FILTER,
   category_id: "none",
+} satisfies MovementsSearch;
+
+/** The link to every detected movement still to review: suspected rows, all time. */
+export const REVIEW_SEARCH = {
+  review: "suspected",
 } satisfies MovementsSearch;
 
 function unique(items: string[]) {
@@ -91,6 +109,7 @@ export function parseMovementsSearch(raw: Record<string, unknown>): MovementsSea
   put("kind", readList(raw.kind, (item) => MOVEMENT_KINDS.includes(item as MovementKind)));
   put("direction", raw.direction === "in" || raw.direction === "out" ? raw.direction : undefined);
   put("status", readList(raw.status, (item) => MOVEMENT_STATUSES.includes(item as MovementStatus)));
+  put("review", readList(raw.review, (item) => REVIEW_ITEMS.includes(item as ReviewItem)));
   put("asset", readList(raw.asset, (item) => ASSET_SYMBOL.test(item), (item) => item.toUpperCase()));
   put("asset_match", search.asset !== undefined && raw.asset_match === "any" ? "any" : undefined);
   put("category_id", readList(raw.category_id, readCategory));
@@ -126,6 +145,7 @@ export function toMovementsQuery(search: MovementsSearch): Omit<MovementsQuery, 
     category_id: search.category_id,
     tag: search.tag,
     tag_match: search.tag_match,
+    review: search.review,
     from: search.from ? apiInstant(new Date(search.from)) : undefined,
     to: search.to ? apiInstant(new Date(search.to)) : undefined,
     has_reason: search.has_reason,
@@ -188,7 +208,7 @@ export function tagNames(items: readonly string[]) {
  */
 export function withList(
   search: MovementsSearch,
-  key: "kind" | "status" | "asset" | "category_id" | "tag",
+  key: "kind" | "status" | "asset" | "category_id" | "tag" | "review",
   items: string[],
 ) {
   const value = unique(key === "tag" ? tagNames(items) : items).join(",") || undefined;
@@ -248,6 +268,7 @@ const FILTER_KEYS = [
   "category_id",
   "tag",
   "tag_match",
+  "review",
   "from",
   "to",
   "has_reason",

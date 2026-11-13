@@ -52,6 +52,14 @@ export function filterChips(search: MovementsSearch, { now, t, categoryName }: C
       without: withFilter(search, "direction", undefined),
     });
   }
+  const reviews = listItems(search.review);
+  for (const review of reviews) {
+    chips.push({
+      key: `review:${review}`,
+      label: labelled(t("movements.filters.review"), t(`movements.review.${review}`)),
+      without: withList(search, "review", reviews.filter((item) => item !== review)),
+    });
+  }
   const statuses = listItems(search.status);
   for (const status of statuses) {
     chips.push({

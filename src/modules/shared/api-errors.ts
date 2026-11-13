@@ -17,6 +17,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   "category not found": "errors.categoryNotFound",
   "invalid name": "errors.invalidCategoryName",
   "movement not found": "errors.movementNotFound",
+  "movement is not detected": "errors.movementNotDetected",
   "snapshot not found": "errors.snapshotNotFound",
   "too many rows, narrow the filters": "errors.tooManyRows",
   "invalid tag": "errors.invalidTag",

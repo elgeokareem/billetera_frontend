@@ -7,6 +7,7 @@ import { abs } from "../shared/money";
 import { PrimaryButton } from "../shared/components/Buttons";
 import { Sensitive } from "../shared/components/Sensitive";
 import { TagsField } from "../tags/TagsField";
+import { ReviewBadge } from "../movements/MovementParts";
 import { kindKey, priceNote } from "./movementText";
 
 /** The new-category form of one card, kept by the queue so it survives a failed save. */
@@ -39,6 +40,10 @@ interface LabelCardProps {
   /** The open new-category form, or undefined when it's closed. */
   form?: NewCategoryForm;
   onPick: (category: Category) => void;
+  /** A suspected card spend is copy trading. */
+  onCopyTrading: () => void;
+  /** A suspected card spend isn't spending at all. */
+  onNotSpend: () => void;
   onOpenForm: () => void;
   onFormNameChange: (name: string) => void;
   onFormSubmit: () => void;
@@ -61,6 +66,8 @@ export function LabelCard({
   failure,
   form,
   onPick,
+  onCopyTrading,
+  onNotSpend,
   onOpenForm,
   onFormNameChange,
   onFormSubmit,
@@ -68,15 +75,20 @@ export function LabelCard({
 }: LabelCardProps) {
   const { t } = useTranslation();
   const missingPrice = priceNote(movement, t);
+  const suspectedCardSpend =
+    movement.review_status === "suspected" && movement.kind === "card_spend";
 
   return (
     <Paper bg="dark.6" radius={12} p={{ base: 20, sm: 24 }}>
       {/* The head is a grid, not a wrapping row, so the amount's width (masked or not) never decides where the amount sits. */}
       <div className="dash__label-head">
         <Stack gap={2} miw={0}>
-          <Text fw={600} fz={18} lh={1.3}>
-            {t(kindKey(movement))}
-          </Text>
+          <Group gap="xs" wrap="wrap">
+            <Text fw={600} fz={18} lh={1.3}>
+              {t(kindKey(movement))}
+            </Text>
+            <ReviewBadge movement={movement} />
+          </Group>
           <Text size="sm" c="dimmed">
             {formatDate(movement.occurred_at)} · <Sensitive>{formatQuantity(movement.amount)}</Sensitive> {movement.asset}
           </Text>
@@ -138,6 +150,17 @@ export function LabelCard({
           {t("dashboard.card.newCategory")}
         </PrimaryButton>
       </Group>
+
+      {suspectedCardSpend && (
+        <Group gap="sm" mt="sm" wrap="wrap">
+          <Button variant="subtle" radius="xl" mih={44} onClick={onCopyTrading}>
+            {t("dashboard.card.copyTrading")}
+          </Button>
+          <Button variant="subtle" radius="xl" mih={44} onClick={onNotSpend}>
+            {t("dashboard.card.notSpend")}
+          </Button>
+        </Group>
+      )}
 
       {form && (
         <form

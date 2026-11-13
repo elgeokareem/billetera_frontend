@@ -10,14 +10,16 @@ import { PrimaryButton } from "../shared/components/Buttons";
 import { Sensitive } from "../shared/components/Sensitive";
 import { getApiErrorKey } from "../shared/api-errors";
 import { formatDateTime, formatQuantity, formatUsd } from "../shared/format";
-import { abs } from "../shared/money";
+import { abs, compare, isNegative } from "../shared/money";
 import { TagsField } from "../tags/TagsField";
 import { withPendingTag } from "../tags/names";
 import { signOf } from "./labels";
 import { CoinAmount, UsdValue } from "./MovementParts";
+import { DetectionSection } from "./DetectionSection";
 import { draftOf, type MovementDraft, patchFor } from "./patch";
 import { drawerCategoryOptions } from "./drawerCategories";
 import { NewCategoryField } from "./NewCategoryField";
+import { reviewStatusKey } from "./review";
 import { useUpdateMovement } from "./hooks";
 import type { Movement } from "./types";
 
@@ -31,13 +33,17 @@ interface MovementDrawerProps {
   /** The tags the autocomplete offers. */
   knownTags: readonly string[];
   onClose: () => void;
+  /** A review action's PATCH response, so the drawer shows the new state. */
+  onUpdated: (movement: Movement) => void;
+  /** A dismissed movement: the page closes the drawer and shows the Undo toast. */
+  onDismissed: (movement: Movement) => void;
 }
 
 /**
  * The detail of one movement: every field the API has, and the reason, category and tags, which can be changed here. Saving
  * sends only the keys that changed. The drawer is a full width sheet on a narrow screen.
  */
-export function MovementDrawer({ movement, categories, knownTags, onClose }: MovementDrawerProps) {
+export function MovementDrawer({ movement, categories, knownTags, onClose, onUpdated, onDismissed }: MovementDrawerProps) {
   const { t } = useTranslation();
   const narrow = useMediaQuery("(max-width: 47.99em)", false, { getInitialValueInEffect: false });
   // The last movement shown is kept while the drawer closes, so its content doesn't vanish during the animation.
@@ -67,6 +73,8 @@ export function MovementDrawer({ movement, categories, knownTags, onClose }: Mov
           categories={categories}
           knownTags={knownTags}
           onClose={onClose}
+          onUpdated={onUpdated}
+          onDismissed={onDismissed}
         />
       )}
     </Drawer>
@@ -78,11 +86,15 @@ function DrawerForm({
   categories,
   knownTags,
   onClose,
+  onUpdated,
+  onDismissed,
 }: {
   movement: Movement;
   categories: readonly Category[] | undefined;
   knownTags: readonly string[];
   onClose: () => void;
+  onUpdated: (movement: Movement) => void;
+  onDismissed: (movement: Movement) => void;
 }) {
   const { t } = useTranslation();
   const update = useUpdateMovement();
@@ -130,6 +142,13 @@ function DrawerForm({
   return (
     <form onSubmit={save}>
       <Stack gap="lg">
+        {movement.detection !== null && (
+          <DetectionSection
+            movement={movement}
+            onUpdated={onUpdated}
+            onDismissed={onDismissed}
+          />
+        )}
         <Stack gap="sm">
           <Text fw={600}>{t("movements.drawer.label")}</Text>
           <Textarea
@@ -209,6 +228,28 @@ function DrawerForm({
           <Text fw={600}>{t("movements.drawer.details")}</Text>
           <Fact label={t("movements.drawer.kind")}>{t(kindKey(movement))}</Fact>
           <Fact label={t("movements.drawer.status")}>{statusNote(movement, t) ?? t(`movements.status.${movement.status}`)}</Fact>
+          {movement.detection !== null && (
+            <>
+              {movement.review_status !== null && (
+                <Fact label={t("movements.drawer.review")}>{t(reviewStatusKey(movement.review_status) ?? "")}</Fact>
+              )}
+              <Fact label={t("movements.drawer.window")}>
+                {formatDateTime(movement.detection.window_start)} – {formatDateTime(movement.detection.window_end)}
+              </Fact>
+              <Fact label={t("movements.drawer.wallet")}>
+                {t(`movements.detection.wallet.${movement.detection.wallet}`)}
+              </Fact>
+              <Fact label={t("movements.drawer.spotChange")}>
+                <Sensitive>{signedQuantity(movement.detection.spot_change)}</Sensitive>
+              </Fact>
+              <Fact label={t("movements.drawer.fundingChange")}>
+                <Sensitive>{signedQuantity(movement.detection.funding_change)}</Sensitive>
+              </Fact>
+              <Fact label={t("movements.drawer.explained")}>
+                <Sensitive>{signedQuantity(movement.detection.explained_change)}</Sensitive>
+              </Fact>
+            </>
+          )}
           {movement.source_status && <Fact label={t("movements.drawer.sourceStatus")}>{movement.source_status}</Fact>}
           <Fact label={t("movements.drawer.direction")}>{t(`movements.direction.${movement.direction}`)}</Fact>
           <Fact label={t("movements.drawer.date")}>{formatDateTime(movement.occurred_at)}</Fact>
@@ -275,4 +316,12 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
       </Text>
     </Group>
   );
+}
+
+/** A signed decimal with every digit, such as +50 or -5.06605855. */
+function signedQuantity(value: string) {
+  if (isNegative(value)) {
+    return formatQuantity(value);
+  }
+  return compare(value, "0") === 0 ? formatQuantity(value) : `+${formatQuantity(value)}`;
 }

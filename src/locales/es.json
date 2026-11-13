@@ -111,6 +111,8 @@
       "nothingLeft": "No queda nada más por etiquetar este mes.",
       "seeOlder": "Ver anteriores",
       "reviewAll": "Revisar todos",
+      "toReview_one": "{{count}} cambio de saldo detectado por revisar",
+      "toReview_other": "{{count}} cambios de saldo detectados por revisar",
       "categories": "Categorías"
     },
     "card": {
@@ -126,7 +128,10 @@
       "saveFailed": "No se guardó la etiqueta. Tu motivo y tus tags siguen aquí.",
       "labelled": "Etiquetado como {{category}}.",
       "undo": "Deshacer",
-      "undone": "Etiqueta quitada."
+      "undone": "Etiqueta quitada.",
+      "copyTrading": "Es copy trading",
+      "notSpend": "No es un gasto",
+      "movedToCopy": "Movido a copy trading."
     },
     "balance": {
       "title": "Saldo total",
@@ -167,7 +172,9 @@
       "empty": "No hay gastos este mes",
       "noCategory": "Sin categoría",
       "notPriced_one": "{{count}} movimiento sin precio. El total está incompleto.",
-      "notPriced_other": "{{count}} movimientos sin precio. El total está incompleto."
+      "notPriced_other": "{{count}} movimientos sin precio. El total está incompleto.",
+      "unconfirmed_one": "Incluye {{count}} gasto con tarjeta sin confirmar.",
+      "unconfirmed_other": "Incluye {{count}} gastos con tarjeta sin confirmar."
     },
     "holdings": {
       "title": "Tenencias",
@@ -189,7 +196,11 @@
       "convert": "Conversión",
       "p2p": "P2P",
       "p2pSale": "Venta P2P",
-      "p2pPurchase": "Compra P2P"
+      "p2pPurchase": "Compra P2P",
+      "cardSpend": "Gasto con tarjeta",
+      "copyTrading": "Copy trading",
+      "transfer": "Otra transferencia",
+      "other": "Otro"
     },
     "status": {
       "pending": "Pendiente",
@@ -231,7 +242,53 @@
       "reason": "Motivo",
       "active": "Filtros activos",
       "clearAll": "Quitar todos los filtros",
-      "needsLabel": "Sin etiqueta"
+      "needsLabel": "Sin etiqueta",
+      "review": "Revisión"
+    },
+    "review": {
+      "suspected": "Por revisar",
+      "confirmed": "Confirmado",
+      "dismissed": "Descartado",
+      "none": "De Binance",
+      "badge": {
+        "card": "Posible gasto con tarjeta",
+        "copy": "Posible copy trading",
+        "transfer": "Cambio sin explicar",
+        "dismissed": "Descartado",
+        "conflict": "Revisar"
+      }
+    },
+    "detection": {
+      "title": "Detectado en tu saldo",
+      "down": "Tu saldo de {{asset}} en {{wallet}} bajó <amount/> entre {{from}} y {{to}}, y ningún registro de Binance lo explica.",
+      "up": "Tu saldo de {{asset}} en {{wallet}} subió <amount/> entre {{from}} y {{to}}, y ningún registro de Binance lo explica.",
+      "wallet": {
+        "spot": "Spot",
+        "funding": "Fondos",
+        "both": "Spot y Fondos"
+      },
+      "hint": {
+        "unexplainedDrop": "Las compras con Binance Card aparecen así.",
+        "roundAmount": "Un monto redondo así suele ser una inversión de copy trading.",
+        "copyPairOut": "Un monto parecido volvió después; parece copy trading.",
+        "copyPairIn": "Coincide con una inversión de copy trading anterior.",
+        "unexplainedGain": "Entró dinero sin registro de Binance: un cierre de copy trading, un reembolso o una recompensa."
+      },
+      "confidence": {
+        "low": "Confianza baja",
+        "medium": "Confianza media",
+        "high": "Confianza alta"
+      },
+      "question": "¿Qué es?",
+      "dismiss": "Descartar",
+      "restore": "Restaurar",
+      "keep": "Mantener",
+      "conflictTitle": "Esto podría contarse dos veces",
+      "conflictBody": "Ahora un registro de Binance explica este cambio, o se compensó después.",
+      "savedAs": "Guardado como {{kind}}.",
+      "dismissed": "Descartado.",
+      "restored": "Restaurado.",
+      "failed": "No se guardó el cambio."
     },
     "chips": {
       "labelled": "{{label}}: {{value}}",
@@ -307,6 +364,12 @@
       "source": "Origen",
       "externalId": "ID en Binance",
       "id": "ID",
+      "review": "Revisión",
+      "window": "Entre",
+      "wallet": "Billetera",
+      "spotChange": "Cambio en Spot",
+      "fundingChange": "Cambio en Fondos",
+      "explained": "Explicado por registros de Binance",
       "save": "Guardar cambios",
       "saveFailed": "No se guardó el cambio.",
       "createdHint": "Categoría creada. Guarda los cambios para asignarla a este movimiento."
@@ -332,6 +395,7 @@
     "categoryNotFound": "Esa categoría ya no existe.",
     "invalidCategoryName": "El nombre de una categoría debe tener de 1 a 64 caracteres.",
     "movementNotFound": "Ese movimiento ya no existe.",
+    "movementNotDetected": "Este movimiento no se detectó en tu saldo, así que no se puede revisar.",
     "snapshotNotFound": "Aún no hay datos de saldo.",
     "tooManyRows": "Demasiados movimientos para exportar. Ajusta los filtros.",
     "invalidTag": "Ese tag no es válido. Los tags tienen de 1 a 32 caracteres, sin comas.",

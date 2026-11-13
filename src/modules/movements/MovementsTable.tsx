@@ -5,7 +5,7 @@ import type { Category } from "../categories/types";
 import { kindKey } from "../dashboard/movementText";
 import { formatDate } from "../shared/format";
 import { TagPills } from "../tags/TagPills";
-import { CoinAmount, StatusBadge, UsdValue } from "./MovementParts";
+import { CoinAmount, ReviewBadge, StatusBadge, UsdValue } from "./MovementParts";
 import { NO_CATEGORY } from "./patch";
 import { needsLabel } from "./spending";
 import type { Movement } from "./types";
@@ -87,6 +87,7 @@ function MovementsTableView({
                       {t(kindKey(movement))}
                     </UnstyledButton>
                     <StatusBadge movement={movement} />
+                    <ReviewBadge movement={movement} />
                   </Stack>
                 </Table.Td>
                 <Table.Td miw={190}>

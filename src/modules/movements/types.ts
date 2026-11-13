@@ -10,6 +10,15 @@ export type MovementDirection = MovementResponse["direction"];
 export type MovementStatus = MovementResponse["status"];
 export type UsdPriceStatus = MovementResponse["usd_price_status"];
 
+/** The user's decision on a detected movement, or null for a row that came from Binance. */
+export type ReviewStatus = MovementResponse["review_status"];
+/** The detector's evidence for a movement, or null for a row that came from Binance. */
+export type Detection = NonNullable<MovementResponse["detection"]>;
+export type DetectionRule = Detection["rule"];
+export type DetectionWallet = Detection["wallet"];
+/** The kinds a detected movement can be. */
+export type DetectionKind = Detection["suggested_kind"];
+
 export type Movement = MovementResponse;
 
 /** GET /movements. next_cursor is null on the last page. */

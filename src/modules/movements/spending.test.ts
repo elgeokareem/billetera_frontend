@@ -95,26 +95,44 @@ describe("spendingBreakdown", () => {
 });
 
 describe("spending definition", () => {
-  const base: Pick<Movement, "kind" | "direction" | "status" | "category_id"> = {
+  const base: Pick<
+    Movement,
+    "kind" | "direction" | "status" | "category_id" | "review_status"
+  > = {
     kind: "p2p",
     direction: "out",
     status: "completed",
     category_id: null,
+    review_status: null,
   };
 
-  it("filters on completed movements leaving Binance, as kinds withdrawal, p2p and pay", () => {
-    expect(SPENDING_FILTER).toEqual({ kind: "withdrawal,p2p,pay", direction: "out", status: "completed" });
+  it("filters on completed movements leaving Binance, as kinds withdrawal, p2p, pay and card_spend", () => {
+    expect(SPENDING_FILTER).toEqual({
+      kind: "withdrawal,p2p,pay,card_spend",
+      direction: "out",
+      status: "completed",
+    });
   });
 
-  it("counts a withdrawal, a P2P sale and a Pay transfer as spending", () => {
+  it("counts a withdrawal, a P2P sale, a Pay transfer and a card spend as spending", () => {
     expect(isSpending({ ...base, kind: "withdrawal" })).toBe(true);
     expect(isSpending({ ...base, kind: "pay" })).toBe(true);
+    expect(isSpending({ ...base, kind: "card_spend" })).toBe(true);
     expect(isSpending(base)).toBe(true);
   });
 
-  it("doesn't count a Convert, a deposit, money coming in, or a pending or failed movement", () => {
+  it("counts a suspected card spend, and leaves a dismissed one out", () => {
+    expect(isSpending({ ...base, kind: "card_spend", review_status: "suspected" })).toBe(true);
+    expect(isSpending({ ...base, kind: "card_spend", review_status: "confirmed" })).toBe(true);
+    expect(isSpending({ ...base, kind: "card_spend", review_status: "dismissed" })).toBe(false);
+    expect(isSpending({ ...base, review_status: "dismissed" })).toBe(false);
+  });
+
+  it("doesn't count a Convert, a deposit, copy trading, another transfer, money coming in, or a pending or failed movement", () => {
     expect(isSpending({ ...base, kind: "convert" })).toBe(false);
     expect(isSpending({ ...base, kind: "deposit", direction: "in" })).toBe(false);
+    expect(isSpending({ ...base, kind: "copy_trading" })).toBe(false);
+    expect(isSpending({ ...base, kind: "transfer" })).toBe(false);
     expect(isSpending({ ...base, direction: "in" })).toBe(false);
     expect(isSpending({ ...base, status: "pending" })).toBe(false);
     expect(isSpending({ ...base, status: "failed" })).toBe(false);
@@ -125,6 +143,7 @@ describe("spending definition", () => {
     expect(needsLabel({ ...base, category_id: 3 })).toBe(false);
     expect(needsLabel({ ...base, kind: "convert" })).toBe(false);
     expect(needsLabel({ ...base, kind: "deposit", direction: "in" })).toBe(false);
+    expect(needsLabel({ ...base, kind: "card_spend", review_status: "dismissed" })).toBe(false);
   });
 });
 

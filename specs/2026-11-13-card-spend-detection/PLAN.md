@@ -135,4 +135,29 @@ Review: no `Number(` on an amount, every new amount in `Sensitive`, no hard-code
 
 ## Implementation State
 
-Not started.
+Built. All phases done; the manual browser check (Phase 6) was skipped as instructed, and the review points were checked in code.
+
+### Decisions (user accepted the SPEC defaults)
+
+- **Q1:** suspected card spends count as spending until dismissed. `SPENDING_FILTER` has no `review` key, so the backend default excludes dismissed rows and includes suspected and confirmed ones. The Spending card shows the "Includes N unconfirmed card spends" note.
+- **$0.50 threshold:** kept as the backend SPEC defines it; the frontend adds no threshold of its own.
+- **Copy-trading hint:** implemented as specified (`round_amount`, `copy_pair` out and in, and the confidence line).
+- **Same-window USDC/USDT swap:** skipped, as the backend does; no frontend handling.
+- **Q2:** saving a category in the drawer does not confirm a suspected row. Only the drawer's quick actions confirm. Picking a category on the dashboard label card does confirm, as B6 says.
+
+### Phases
+
+- **Phase 1:** types, kinds, spending, review filter and pure review helpers. Files: `src/modules/movements/types.ts`, `labels.ts`, `search.ts` + test, `spending.ts` + test, `review.ts` + `review.test.ts`, `src/modules/dashboard/movementText.ts` + test, `src/modules/shared/api-errors.ts`, `helpers.test.ts`, `src/locales/en.json`, `es.json`, plus the `review` chip in `chips.ts` and its test. Result: lint, test (398) and build passed.
+- **Phase 2:** fake API. `scripts/fake-api.mjs`: 8 kinds, `review` on list, totals and export, the default dismissed exclusion, `review_status` and `detection` on every row, PATCH `kind`/`review` with 400/422 errors, the CSV's four new columns, the sync `detection` object, and the `card-spends` account. Checked with `curl`: dismissed excluded, `?review=dismissed` returns it, `?review=bad` is 400, PATCH on a P2P row is 422 `movement is not detected`, `{"kind":"copy_trading"}` confirms, `{"review":"suspected"}` restores the suggestion. Result: lint, test and build passed.
+- **Phase 3:** Movements badges and review chip group. Files: `MovementParts.tsx`, `MovementsTable.tsx`, `MovementCards.tsx`, `MovementFilters.tsx`, `chips.ts`, `FilterChips.test.ts`, `dashboard/RecentMovements.tsx`. Result: lint, test (398) and build passed.
+- **Phase 4:** drawer detection section. Files: new `movements/DetectionSection.tsx`, `MovementDrawer.tsx`, `MovementsPage.tsx`. Result: lint, test (398) and build passed.
+- **Phase 5:** dashboard. Files: `dashboard/labelPatch.ts` + test, `LabelCard.tsx`, `LabelQueue.tsx`, `queries.ts`, `SpendingCard.tsx`. Result: lint, test (402) and build passed.
+- **Phase 6:** manual browser check skipped as instructed. Code review: no `Number(...)` on an amount, every new amount is inside `Sensitive`, no new hard-coded text, and new buttons use `mih={44}`.
+
+### Drift from the PLAN
+
+- `src/modules/movements/api.ts` extends `TotalsQuery` with `review?: string`. The backend README and SPEC say `/movements/totals` accepts `review`, but the generated OpenAPI route for totals still omits it; the type adds it until the schema catches up. `api-schema.d.ts` was not edited by hand.
+- `movements.kinds.other` ("Other" / "Otro") was added for a kind this build doesn't know, and `kindKey` has a `default` case for it. This follows the orchestrator's requirement that an unknown future kind never renders blank; it is not in the SPEC's translation table.
+- `specs/INDEX.md` was set to `built` for this change, as the orchestrator asked. `specs/ROADMAP.md` and the movement-splits spec were left alone.
+- The review chip group sits after the Kind group in `MovementFilters`, and `ReviewBadge` is in the title row of Recent movements.
+- `undoPatch(restore)` returns `{review: "dismissed"}` (undoing a restore dismisses again); every other action's undo returns `{review: "suspected"}`.

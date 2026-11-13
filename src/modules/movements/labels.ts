@@ -8,6 +8,9 @@ export const KIND_KEYS: Record<MovementKind, string> = {
   pay: "movements.kinds.pay",
   p2p: "movements.kinds.p2p",
   convert: "movements.kinds.convert",
+  card_spend: "movements.kinds.cardSpend",
+  copy_trading: "movements.kinds.copyTrading",
+  transfer: "movements.kinds.transfer",
 };
 
 /** The accent colour the Dashboard uses for the "Needs a label" text. */

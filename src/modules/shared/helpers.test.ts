@@ -208,6 +208,12 @@ describe("getApiErrorKey", () => {
     );
   });
 
+  it("reads the detected movement error", () => {
+    expect(
+      getApiErrorKey(apiError(422, { error: "movement is not detected" })),
+    ).toBe("errors.movementNotDetected");
+  });
+
   it("falls back for unknown text", () => {
     expect(getApiErrorKey(apiError(500, { error: "boom" }))).toBe(
       "errors.generic",

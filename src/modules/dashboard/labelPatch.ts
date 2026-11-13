@@ -6,7 +6,7 @@ import type { Movement, MovementPatch } from "../movements/types";
  * differs from the movement's, ignoring order.
  */
 export function labelPatch(
-  movement: Pick<Movement, "reason" | "tags">,
+  movement: Pick<Movement, "reason" | "tags" | "review_status">,
   categoryId: number,
   typedReason: string,
   typedTags: readonly string[],
@@ -22,5 +22,21 @@ export function labelPatch(
   if (!sameTags) {
     body.tags = [...typedTags];
   }
+  // Picking a category on the dashboard is a decision on a suspected row. The drawer stays explicit.
+  if (movement.review_status === "suspected") {
+    body.review = "confirmed";
+  }
   return body;
+}
+
+/**
+ * The body that undoes a label card. A suspected row also goes back to review; any other row only loses its category,
+ * since a reason that was saved stays.
+ */
+export function labelUndoPatch(
+  movement: Pick<Movement, "review_status">,
+): MovementPatch {
+  return movement.review_status === "suspected"
+    ? { category_id: null, review: "suspected" }
+    : { category_id: null };
 }

@@ -86,6 +86,17 @@ describe("filterChips", () => {
     expect(custom.without).toEqual({});
   });
 
+  it("gives each review value its own chip, and removing one keeps the others", () => {
+    const search = parseMovementsSearch({ review: "suspected,dismissed" });
+    const chips = filterChips(search, { now, t, categoryName });
+    expect(chips.map((chip) => chip.key)).toEqual(["review:suspected", "review:dismissed"]);
+    expect(chips[0].label).toBe(
+      'movements.chips.labelled {"label":"movements.filters.review","value":"movements.review.suspected"}',
+    );
+    expect(chips[0].without).toEqual({ review: "dismissed" });
+    expect(chips[1].without).toEqual({ review: "suspected" });
+  });
+
   it("gives every kind of filter a chip, and removing each leaves the rest", () => {
     const raw = {
       q: "rent",

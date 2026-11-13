@@ -8,14 +8,15 @@ import { useCategories, useCreateCategory } from "../categories/hooks";
 import { splitCategories } from "../categories/ranking";
 import type { Category } from "../categories/types";
 import { useMovementTotals, useMovementsList, useUpdateMovement } from "../movements/hooks";
-import { NEEDS_LABEL_SEARCH } from "../movements/search";
+import { undoPatch } from "../movements/review";
+import { NEEDS_LABEL_SEARCH, REVIEW_SEARCH } from "../movements/search";
 import { movementCount } from "../movements/spending";
 import type { Movement, MovementPatch } from "../movements/types";
 import { getApiErrorKey } from "../shared/api-errors";
 import { useTags } from "../tags/hooks";
 import { withPendingTag } from "../tags/names";
 import { LabelCard, type NewCategoryForm } from "./LabelCard";
-import { labelPatch } from "./labelPatch";
+import { labelPatch, labelUndoPatch } from "./labelPatch";
 import { dashboardQueries, LABEL_CARDS } from "./queries";
 import { SectionError } from "./SectionStates";
 
@@ -42,6 +43,7 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
   const count = useMovementTotals(queries.labelCount);
   const cards = useMovementsList(queries.labelCards);
   const spending = useMovementTotals(queries.spending);
+  const review = useMovementTotals(queries.reviewCount);
   const categories = useCategories();
   const knownTags = useTags();
   const update = useUpdateMovement();
@@ -60,6 +62,7 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
 
   // A movement in flight is still counted by the server until its save is refetched, so it's taken out here.
   const headline = count.data ? Math.max(0, movementCount(count.data) - saving.size) : null;
+  const reviewTotal = review.data ? movementCount(review.data) : null;
   const shown = (cards.data?.movements ?? []).filter((movement) => !saving.has(movement.id));
 
   const uses = useMemo(() => {
@@ -122,31 +125,63 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
       pending.tags,
     );
     if (await save(movement, body)) {
-      showUndo(movement, category.name);
+      showUndo(
+        movement,
+        t("dashboard.card.labelled", { category: category.name }),
+        labelUndoPatch(movement),
+      );
     }
   }
 
-  function showUndo(movement: Movement, categoryName: string) {
+  function showUndo(
+    movement: Movement,
+    message: string,
+    body: MovementPatch,
+    success = "dashboard.card.undone",
+  ) {
     const toastId = toast(
       <UndoToast
-        message={t("dashboard.card.labelled", { category: categoryName })}
+        message={message}
         actionLabel={t("dashboard.card.undo")}
         onUndo={() => {
           toast.dismiss(toastId);
-          void undo(movement);
+          void undo(movement, body, success);
         }}
       />,
       { autoClose: 8000 },
     );
   }
 
-  // Undo clears the category only. A reason that was saved stays, as the backend keeps it.
-  async function undo(movement: Movement) {
+  // Undo sends the body the decision calls for: a suspected row returns to review, any other row loses its category.
+  async function undo(movement: Movement, body: MovementPatch, success: string) {
     try {
-      await update.mutateAsync({ id: movement.id, body: { category_id: null } });
-      toast.success(t("dashboard.card.undone"));
+      await update.mutateAsync({ id: movement.id, body });
+      toast.success(t(success));
     } catch (error) {
       toast.error(t(getApiErrorKey(error)));
+    }
+  }
+
+  // A suspected card spend may be a copy-trading investment instead. Both decisions leave the queue at once.
+  async function copyTrading(movement: Movement) {
+    if (await save(movement, { kind: "copy_trading" })) {
+      showUndo(
+        movement,
+        t("dashboard.card.movedToCopy"),
+        undoPatch({ type: "kind", kind: "copy_trading" }),
+        "movements.detection.restored",
+      );
+    }
+  }
+
+  async function notSpend(movement: Movement) {
+    if (await save(movement, { review: "dismissed" })) {
+      showUndo(
+        movement,
+        t("movements.detection.dismissed"),
+        undoPatch({ type: "dismiss" }),
+        "movements.detection.restored",
+      );
     }
   }
 
@@ -238,6 +273,8 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
             failure={failures[movement.id]}
             form={forms[movement.id]}
             onPick={(category) => void categorize(movement, category)}
+            onCopyTrading={() => void copyTrading(movement)}
+            onNotSpend={() => void notSpend(movement)}
             onOpenForm={() => openForm(movement.id)}
             onFormNameChange={(name) => changeFormName(movement.id, name)}
             onFormSubmit={() => void submitForm(movement)}
@@ -278,9 +315,16 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
 
       <Group justify="space-between" align="center" wrap="wrap" gap="sm">
         {/* "See older" is in every state, including All labelled. It has no count. */}
-        <Link to="/movements" search={NEEDS_LABEL_SEARCH} className="quiet-link">
-          {t("dashboard.queue.seeOlder")}
-        </Link>
+        <Group gap="md" wrap="wrap">
+          <Link to="/movements" search={NEEDS_LABEL_SEARCH} className="quiet-link">
+            {t("dashboard.queue.seeOlder")}
+          </Link>
+          {reviewTotal !== null && reviewTotal > 0 && (
+            <Link to="/movements" search={REVIEW_SEARCH} className="quiet-link">
+              {t("dashboard.queue.toReview", { count: reviewTotal })}
+            </Link>
+          )}
+        </Group>
         {headline !== null && headline > LABEL_CARDS && (
           <Link
             to="/movements"

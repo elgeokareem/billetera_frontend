@@ -29,6 +29,8 @@ function movement(id: number): Movement {
     usd_price_status: "pending",
     usd_value: null,
     fee_usd_value: null,
+    review_status: null,
+    detection: null,
   };
 }
 

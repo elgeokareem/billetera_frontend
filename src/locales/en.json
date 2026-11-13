@@ -111,6 +111,8 @@
       "nothingLeft": "Nothing else needs a label this month.",
       "seeOlder": "See older",
       "reviewAll": "Review all",
+      "toReview_one": "{{count}} detected balance change to review",
+      "toReview_other": "{{count}} detected balance changes to review",
       "categories": "Categories"
     },
     "card": {
@@ -126,7 +128,10 @@
       "saveFailed": "The label wasn't saved. Your reason and tags are still here.",
       "labelled": "Labelled as {{category}}.",
       "undo": "Undo",
-      "undone": "Label removed."
+      "undone": "Label removed.",
+      "copyTrading": "It's copy trading",
+      "notSpend": "Not a spend",
+      "movedToCopy": "Moved to copy trading."
     },
     "balance": {
       "title": "Total balance",
@@ -167,7 +172,9 @@
       "empty": "No spending this month",
       "noCategory": "No category",
       "notPriced_one": "{{count}} movement not priced. The total is incomplete.",
-      "notPriced_other": "{{count}} movements not priced. The total is incomplete."
+      "notPriced_other": "{{count}} movements not priced. The total is incomplete.",
+      "unconfirmed_one": "Includes {{count}} unconfirmed card spend.",
+      "unconfirmed_other": "Includes {{count}} unconfirmed card spends."
     },
     "holdings": {
       "title": "Holdings",
@@ -189,7 +196,11 @@
       "convert": "Convert",
       "p2p": "P2P",
       "p2pSale": "P2P sale",
-      "p2pPurchase": "P2P purchase"
+      "p2pPurchase": "P2P purchase",
+      "cardSpend": "Card spend",
+      "copyTrading": "Copy trading",
+      "transfer": "Other transfer",
+      "other": "Other"
     },
     "status": {
       "pending": "Pending",
@@ -231,7 +242,53 @@
       "reason": "Reason",
       "active": "Active filters",
       "clearAll": "Clear all",
-      "needsLabel": "Needs a label"
+      "needsLabel": "Needs a label",
+      "review": "Review"
+    },
+    "review": {
+      "suspected": "To review",
+      "confirmed": "Confirmed",
+      "dismissed": "Dismissed",
+      "none": "From Binance",
+      "badge": {
+        "card": "Possible card spend",
+        "copy": "Possible copy trading",
+        "transfer": "Unexplained change",
+        "dismissed": "Dismissed",
+        "conflict": "Check this"
+      }
+    },
+    "detection": {
+      "title": "Detected from your balance",
+      "down": "Your {{wallet}} {{asset}} balance went down by <amount/> between {{from}} and {{to}}, and no Binance record explains it.",
+      "up": "Your {{wallet}} {{asset}} balance went up by <amount/> between {{from}} and {{to}}, and no Binance record explains it.",
+      "wallet": {
+        "spot": "Spot",
+        "funding": "Funding",
+        "both": "Spot and Funding"
+      },
+      "hint": {
+        "unexplainedDrop": "Binance Card purchases show up like this.",
+        "roundAmount": "A round amount like this is often a copy-trading investment.",
+        "copyPairOut": "A similar amount came back later, which looks like copy trading.",
+        "copyPairIn": "It matches an earlier copy-trading investment.",
+        "unexplainedGain": "Money came in with no Binance record: a copy-trading close, a refund or a reward."
+      },
+      "confidence": {
+        "low": "Low confidence",
+        "medium": "Medium confidence",
+        "high": "High confidence"
+      },
+      "question": "What is it?",
+      "dismiss": "Dismiss",
+      "restore": "Restore",
+      "keep": "Keep it",
+      "conflictTitle": "This may be counted twice",
+      "conflictBody": "A Binance record now explains this change, or it was offset later.",
+      "savedAs": "Saved as {{kind}}.",
+      "dismissed": "Dismissed.",
+      "restored": "Restored.",
+      "failed": "The change wasn't saved."
     },
     "chips": {
       "labelled": "{{label}}: {{value}}",
@@ -307,6 +364,12 @@
       "source": "Source",
       "externalId": "Binance ID",
       "id": "ID",
+      "review": "Review",
+      "window": "Between",
+      "wallet": "Wallet",
+      "spotChange": "Spot change",
+      "fundingChange": "Funding change",
+      "explained": "Explained by Binance records",
       "save": "Save changes",
       "saveFailed": "The change wasn't saved.",
       "createdHint": "Category created. Save changes to file this movement under it."
@@ -332,6 +395,7 @@
     "categoryNotFound": "That category no longer exists.",
     "invalidCategoryName": "Category names must be 1 to 64 characters.",
     "movementNotFound": "That movement no longer exists.",
+    "movementNotDetected": "This movement wasn't detected from your balance, so it can't be reviewed.",
     "snapshotNotFound": "No balance data yet.",
     "tooManyRows": "Too many movements to export. Narrow the filters.",
     "invalidTag": "That tag isn't valid. Tags are 1 to 32 characters, without commas.",

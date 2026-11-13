@@ -123,7 +123,7 @@ export interface paths {
         put?: never;
         /**
          * Sync movements
-         * @description Syncs the user's deposits, withdrawals, Pay transactions, P2P orders and Convert trades from Binance, then prices the movements that have no price yet. The pricing step's outcome is in valuation, and a step that stops early doesn't fail the sync. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Syncs the user's deposits, withdrawals, Pay transactions, P2P orders and Convert trades from Binance, then detects the balance changes that no movement explains and prices the movements that have no price yet. The detection step's outcome is in detection and the pricing step's in valuation; a detection failure or a pricing step that stops early doesn't fail the sync. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         post: operations["binance.movementsSync"];
         delete?: never;
@@ -299,7 +299,7 @@ export interface paths {
         head?: never;
         /**
          * Update a movement
-         * @description Changes the reason, the category, the tags, or any of them, of the user's movement. At least one of reason, category_id and tags is needed. A null or blank reason clears it, a null category_id clears the category, and tags replaces every tag of the movement ([] removes them). Tag names are trimmed and stored in lower case. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Changes the reason, the category, the tags, the kind, the review, or any of them, of the user's movement. At least one of reason, category_id, tags, kind and review is needed. A null or blank reason clears it, a null category_id clears the category, and tags replaces every tag of the movement ([] removes them). Tag names are trimmed and stored in lower case. kind is card_spend, copy_trading or transfer and confirms the movement; review is confirmed, dismissed or suspected, and suspected restores the detector's suggestion. Either one on a movement that isn't from the detector is 422 movement is not detected. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         patch: operations["movements.update"];
         trace?: never;
@@ -487,6 +487,15 @@ export interface components {
         "binance.CredentialsResponse": {
             credentials: components["schemas"]["binance.CredentialsConfigured"] | components["schemas"]["binance.CredentialsNotConfigured"];
         };
+        "binance.DetectionResponse": {
+            conflicts: number;
+            created: number;
+            retracted: number;
+            /** @enum {string} */
+            status: "ok" | "not_ready" | "failed";
+            updated: number;
+            windows: number;
+        };
         "binance.KeyCheckErrorResponse": {
             binance_code?: number;
             error: string;
@@ -501,6 +510,7 @@ export interface components {
             updated: number;
         };
         "binance.MovementSyncResponse": {
+            detection: components["schemas"]["binance.DetectionResponse"];
             kinds: components["schemas"]["binance.MovementKindResponse"][];
             valuation: components["schemas"]["binance.ValuationResponse"];
         };
@@ -613,6 +623,28 @@ export interface components {
             /** Format: date-time */
             period_start?: string;
         };
+        "movements.DetectionResponse": {
+            /** @enum {string} */
+            confidence: "low" | "medium" | "high";
+            conflict: boolean;
+            /** Format: decimal */
+            explained_change: string;
+            /** Format: decimal */
+            funding_change: string;
+            paired_movement_id: number | null;
+            /** @enum {string} */
+            rule: "unexplained_drop" | "round_amount" | "copy_pair" | "unexplained_gain";
+            /** Format: decimal */
+            spot_change: string;
+            /** @enum {string} */
+            suggested_kind: "card_spend" | "copy_trading" | "transfer";
+            /** @enum {string} */
+            wallet: "spot" | "funding" | "both";
+            /** Format: date-time */
+            window_end: string;
+            /** Format: date-time */
+            window_start: string;
+        };
         "movements.FeeTotalRow": {
             /** Format: decimal */
             amount: string;
@@ -641,6 +673,7 @@ export interface components {
             counter_amount: string | null;
             counter_asset: string | null;
             counterparty: string | null;
+            detection: components["schemas"]["movements.DetectionResponse"] | null;
             /** @enum {string} */
             direction: "in" | "out";
             external_id: string;
@@ -651,12 +684,18 @@ export interface components {
             fee_usd_value: string | null;
             id: number;
             /** @enum {string} */
-            kind: "deposit" | "withdrawal" | "pay" | "p2p" | "convert";
+            kind: "deposit" | "withdrawal" | "pay" | "p2p" | "convert" | "card_spend" | "copy_trading" | "transfer";
             /** Format: date-time */
             occurred_at: string;
             reason: string | null;
             /** Format: date-time */
             reason_updated_at: string | null;
+            /**
+             * @description ReviewStatus is the user's decision on a detected movement, and null for a Binance row. Detection is its evidence,
+             *     and null too for a Binance row.
+             * @enum {string|null}
+             */
+            review_status: "suspected" | "confirmed" | "dismissed" | null;
             source: string;
             source_status: string | null;
             /** @enum {string} */
@@ -686,7 +725,11 @@ export interface components {
         };
         "movements.UpdateMovementRequest": {
             category_id?: number | null;
+            /** @enum {string} */
+            kind?: "card_spend" | "copy_trading" | "transfer";
             reason?: string | null;
+            /** @enum {string} */
+            review?: "confirmed" | "dismissed" | "suspected";
             tags?: string[];
         };
         "shared.ErrorResponse": {
@@ -1657,7 +1700,7 @@ export interface operations {
                 limit?: number;
                 /** @description The next_cursor of the previous page, which is opaque. Without it, the first page */
                 cursor?: string;
-                /** @description Comma list of up to 20 kinds: deposit, withdrawal, pay, p2p, convert */
+                /** @description Comma list of up to 20 kinds: deposit, withdrawal, pay, p2p, convert, card_spend, copy_trading, transfer */
                 kind?: string;
                 /** @description in or out */
                 direction?: "in" | "out";
@@ -1673,6 +1716,8 @@ export interface operations {
                 tag?: string;
                 /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
                 tag_match?: "any" | "all";
+                /** @description Comma list of up to 20 values: none for the movement rows from Binance, suspected, confirmed, dismissed. Without it, dismissed rows are left out */
+                review?: string;
                 /** @description Start of the range, inclusive. An RFC 3339 time with an offset, such as 2026-10-01T00:00:00Z */
                 from?: string;
                 /** @description End of the range, exclusive. An RFC 3339 time with an offset */
@@ -1738,7 +1783,7 @@ export interface operations {
     "movements.export": {
         parameters: {
             query?: {
-                /** @description Comma list of up to 20 kinds: deposit, withdrawal, pay, p2p, convert */
+                /** @description Comma list of up to 20 kinds: deposit, withdrawal, pay, p2p, convert, card_spend, copy_trading, transfer */
                 kind?: string;
                 /** @description in or out */
                 direction?: "in" | "out";
@@ -1754,6 +1799,8 @@ export interface operations {
                 tag?: string;
                 /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
                 tag_match?: "any" | "all";
+                /** @description Comma list of up to 20 values: none for the movement rows from Binance, suspected, confirmed, dismissed. Without it, dismissed rows are left out */
+                review?: string;
                 /** @description Start of the range, inclusive. An RFC 3339 time with an offset, such as 2026-10-01T00:00:00Z */
                 from?: string;
                 /** @description End of the range, exclusive. An RFC 3339 time with an offset */
@@ -1836,7 +1883,7 @@ export interface operations {
     "movements.totals": {
         parameters: {
             query?: {
-                /** @description Comma list of up to 20 kinds: deposit, withdrawal, pay, p2p, convert */
+                /** @description Comma list of up to 20 kinds: deposit, withdrawal, pay, p2p, convert, card_spend, copy_trading, transfer */
                 kind?: string;
                 /** @description in or out */
                 direction?: "in" | "out";
@@ -1860,6 +1907,8 @@ export interface operations {
                 has_reason?: "true" | "false";
                 /** @description Text to find in the reason or the counterparty, 1 to 100 characters. Case is ignored */
                 q?: string;
+                /** @description Comma list of up to 20 values: none for the movement rows from Binance, suspected, confirmed, dismissed. Without it, dismissed rows are left out */
+                review?: string;
                 /** @description Start each row at a day, week or month, in tz. Without it, the rows have no period_start */
                 period?: "day" | "week" | "month";
                 /** @description category also groups the rows by category_id. Without it, the rows have no category_id */
@@ -1989,7 +2038,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description reason is the text of up to 500 characters once trimmed, or null. category_id is one of the user's category IDs, or null. tags is the whole list of up to 10 tag names, each 1 to 32 characters once trimmed, without commas or control characters, stored in lower case. At least one of the three is needed */
+        /** @description reason is the text of up to 500 characters once trimmed, or null. category_id is one of the user's category IDs, or null. tags is the whole list of up to 10 tag names, each 1 to 32 characters once trimmed, without commas or control characters, stored in lower case. kind is card_spend, copy_trading or transfer. review is confirmed, dismissed or suspected. At least one of the five is needed */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["movements.UpdateMovementRequest"];
@@ -2034,6 +2083,15 @@ export interface operations {
             };
             /** @description The movement isn't found, or the category isn't the user's or doesn't exist */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description The movement isn't from the detector, and the body changes its kind or review */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

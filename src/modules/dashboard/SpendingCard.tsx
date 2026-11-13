@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
 import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { useMovementTotals } from "../movements/hooks";
-import { spendingBreakdown, type CategorySpending } from "../movements/spending";
+import { spendingBreakdown, movementCount, type CategorySpending } from "../movements/spending";
 import { Sensitive } from "../shared/components/Sensitive";
 import { formatMonth, formatUsd } from "../shared/format";
 import { compare, percentOf } from "../shared/money";
@@ -28,7 +28,10 @@ export function SpendingCard({ now, timeZone }: SpendingCardProps) {
   const hidden = useBalancesHidden();
   const queries = dashboardQueries(now, timeZone);
   const spending = useMovementTotals(queries.spending);
+  const unconfirmed = useMovementTotals(queries.unconfirmedSpending);
   const categories = useCategories();
+
+  const unconfirmedCount = unconfirmed.data ? movementCount(unconfirmed.data) : null;
 
   const breakdown = useMemo(
     () => (spending.data ? spendingBreakdown(spending.data.assets) : null),
@@ -79,6 +82,11 @@ export function SpendingCard({ now, timeZone }: SpendingCardProps) {
               summary(formatUsd(total))
             )}
           </Text>
+          {unconfirmedCount !== null && unconfirmedCount > 0 && (
+            <Text size="sm" c="dimmed">
+              {t("dashboard.spending.unconfirmed", { count: unconfirmedCount })}
+            </Text>
+          )}
           <Box
             role="img"
             aria-label={summary(hidden ? t("privacy.hidden") : formatUsd(total))}

@@ -18,6 +18,15 @@ export function kindKey(movement: Pick<Movement, "kind" | "direction">) {
       return movement.direction === "out"
         ? "movements.kinds.p2pSale"
         : "movements.kinds.p2pPurchase";
+    case "card_spend":
+      return "movements.kinds.cardSpend";
+    case "copy_trading":
+      return "movements.kinds.copyTrading";
+    case "transfer":
+      return "movements.kinds.transfer";
+    default:
+      // A kind this build doesn't know yet still gets a label, never a blank line.
+      return "movements.kinds.other";
   }
 }
 

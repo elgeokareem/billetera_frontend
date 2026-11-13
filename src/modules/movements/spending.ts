@@ -6,11 +6,15 @@ import type {
   MovementTotals,
 } from "./types";
 
-/** The kinds that can be spending: money that leaves Binance as a withdrawal, a P2P sale or a Pay transfer. */
+/**
+ * The kinds that can be spending: money that leaves Binance as a withdrawal, a P2P sale, a Pay transfer or a card spend.
+ * Copy trading and other transfers move money around without spending it.
+ */
 export const SPENDING_KINDS: readonly MovementKind[] = [
   "withdrawal",
   "p2p",
   "pay",
+  "card_spend",
 ];
 
 /**
@@ -23,13 +27,17 @@ export const SPENDING_FILTER = {
   status: "completed",
 } as const;
 
-type SpendingFields = Pick<Movement, "kind" | "direction" | "status">;
+type SpendingFields = Pick<
+  Movement,
+  "kind" | "direction" | "status" | "review_status"
+>;
 
 export function isSpending(movement: SpendingFields) {
   return (
     SPENDING_KINDS.includes(movement.kind) &&
     movement.direction === "out" &&
-    movement.status === "completed"
+    movement.status === "completed" &&
+    movement.review_status !== "dismissed"
   );
 }
 

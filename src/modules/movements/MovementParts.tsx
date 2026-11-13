@@ -5,6 +5,7 @@ import { Sensitive } from "../shared/components/Sensitive";
 import { formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
 import { signOf } from "./labels";
+import { reviewBadge } from "./review";
 import type { Movement } from "./types";
 
 /** A pending or failed movement carries a badge. A completed one has none. */
@@ -17,6 +18,23 @@ export function StatusBadge({ movement }: { movement: Movement }) {
   return (
     <Badge variant="light" color={movement.status === "failed" ? "red" : "yellow"} radius="sm" size="sm">
       {note}
+    </Badge>
+  );
+}
+
+/**
+ * The one review badge of a detected movement: a conflict, a dismissal, or the suspected kind. A confirmed movement and
+ * a Binance row show none.
+ */
+export function ReviewBadge({ movement }: { movement: Movement }) {
+  const { t } = useTranslation();
+  const badge = reviewBadge(movement);
+  if (!badge) {
+    return null;
+  }
+  return (
+    <Badge variant="light" color={badge.color} radius="sm" size="sm" tt="none">
+      {t(badge.key)}
     </Badge>
   );
 }

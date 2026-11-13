@@ -30,6 +30,14 @@
 // /movements/export take tag, a comma list of up to 20 names, and tag_match=any|all. The seed tags the Travel movements
 // trip-2026, some Food ones shared, and one movement with five tags so the table shows "+2".
 //
+// Detection. A movement from the detector has source "detector", review_status suspected, confirmed or dismissed, and a
+// detection object; a Binance row has both null. The kinds are deposit, withdrawal, pay, p2p, convert, card_spend,
+// copy_trading and transfer. GET /movements, /movements/totals and /movements/export take review, a comma list of none
+// (Binance rows), suspected, confirmed and dismissed. Without it, dismissed rows are left out. PATCH /movements/:id
+// takes kind (card_spend, copy_trading or transfer, which confirms) and review (confirmed, dismissed or suspected, which
+// restores the suggestion), and either one on a Binance row is 422 movement is not detected. The CSV ends with
+// review_status, window_start, window_end and wallet, empty for a Binance row.
+//
 // A tag has an id and a color, one of 12 palette names. GET /tags lists every tag of the user, used or not, with its
 // movement count (0 included), sorted by name. POST /tags creates one, with a random palette color unless the body gives
 // one; PATCH /tags/:id renames and/or recolors it; DELETE /tags/:id removes it from every movement. The seed registers
@@ -47,6 +55,8 @@
 //                                     single-snapshot  populated, with one balance snapshot only
 //                                     long-history     populated, with 110 older movements from four to seven months back,
 //                                                      so the list pages (50 a page)
+//                                     card-spends      populated, plus this month's detected balance changes: card spends,
+//                                                      a copy pair, an unexplained gain, a dismissed one and a conflict
 //                                     empty            no movements, categories or snapshots
 //   {"unpriced": false}             prices every movement and coin. true (the default) leaves a few unpriced
 //   {"moreCategories": true}        adds Health, Shopping, Transfer and Utilities, so the label card shows a select, and a
@@ -84,7 +94,7 @@ const MASK_MIN_LENGTH = 16;
 const KEY_TEXT = /^[A-Za-z0-9]{16,128}$/;
 const MAX_DELAY_MS = 60_000;
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const ACCOUNT_KINDS = ["populated", "all-labelled", "many-unlabelled", "quiet-month", "single-snapshot", "long-history", "empty"];
+const ACCOUNT_KINDS = ["populated", "all-labelled", "many-unlabelled", "quiet-month", "single-snapshot", "long-history", "card-spends", "empty"];
 const FLAG_BOOLEANS = ["failSync", "ipRestricted", "rejectKey", "reset", "syncInProgress", "unpriced", "moreCategories", "gapWindow"];
 const FLAG_FIELDS = [...FLAG_BOOLEANS, "delayMs", "account", "failRoute", "failStatus"];
 const FAIL_ROUTES = [
@@ -108,11 +118,14 @@ const FAIL_ROUTES = [
   "POST /binance/sync",
   "POST /binance/movements/sync",
 ];
-const LIST_PARAMS = ["limit", "cursor", "kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "from", "to", "has_reason", "q"];
-const TOTALS_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "from", "to", "has_reason", "q", "period", "group_by", "tz"];
-const EXPORT_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "from", "to", "has_reason", "q"];
+const LIST_PARAMS = ["limit", "cursor", "kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "review", "from", "to", "has_reason", "q"];
+const TOTALS_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "review", "from", "to", "has_reason", "q", "period", "group_by", "tz"];
+const EXPORT_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "review", "from", "to", "has_reason", "q"];
 const HISTORY_PARAMS = ["from", "to", "bucket", "tz"];
-const MOVEMENT_KINDS = ["deposit", "withdrawal", "pay", "p2p", "convert"];
+const MOVEMENT_KINDS = ["deposit", "withdrawal", "pay", "p2p", "convert", "card_spend", "copy_trading", "transfer"];
+const DETECTION_KINDS = ["card_spend", "copy_trading", "transfer"];
+const REVIEW_ITEMS = ["none", "suspected", "confirmed", "dismissed"];
+const REVIEW_DECISIONS = ["confirmed", "dismissed", "suspected"];
 const MOVEMENT_STATUSES = ["pending", "completed", "failed"];
 const MAX_FILTER_ITEMS = 20;
 const MAX_SEARCH_RUNES = 100;
@@ -131,7 +144,7 @@ const HISTORY_DEFAULT_SPAN = 30 * DAY;
 
 const CATEGORY_NAMES = ["Food", "Income", "Rent", "Travel"];
 const EXTRA_CATEGORY_NAMES = ["Health", "Shopping", "Transfer", "Utilities"];
-const SPENDING_KINDS = ["withdrawal", "p2p", "pay"];
+const SPENDING_KINDS = ["withdrawal", "p2p", "pay", "card_spend"];
 const TAG_COLORS = ["red", "pink", "grape", "violet", "indigo", "blue", "cyan", "teal", "green", "lime", "yellow", "orange"];
 
 const randomTagColor = () => TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
@@ -597,7 +610,7 @@ function addMovement(account, options, spec) {
   const id = account.nextMovementId++;
   const movement = {
     id,
-    source: "binance",
+    source: spec.source ?? "binance",
     kind: spec.kind,
     externalId: spec.externalId ?? `${spec.kind}-${id}`,
     direction: spec.direction,
@@ -619,9 +632,36 @@ function addMovement(account, options, spec) {
     usdPrice: price.price,
     usdPriceSource: price.price ? "binance-1m" : null,
     usdPriceChecked: price.checked,
+    reviewStatus: spec.reviewStatus ?? null,
+    detection: spec.detection ?? null,
   };
   account.movements.push(movement);
   return movement;
+}
+
+// One movement the detector created. Its occurred_at is the end of its window, and the seed records its evidence as the
+// backend would. The pair link is filled in by the caller once both rows exist.
+function addDetectedMovement(account, options, spec) {
+  const windowEnd = spec.at;
+  const windowStart = spec.windowStart ?? new Date(windowEnd.getTime() - 2 * 60 * 1000);
+  return addMovement(account, options, {
+    ...spec,
+    source: "detector",
+    reviewStatus: spec.reviewStatus ?? "suspected",
+    detection: {
+      suggestedKind: spec.suggestedKind ?? spec.kind,
+      rule: spec.rule,
+      confidence: spec.confidence,
+      wallet: spec.wallet ?? "spot",
+      windowStart,
+      windowEnd,
+      spotChange: spec.spotChange ?? "0",
+      fundingChange: spec.fundingChange ?? "0",
+      explainedChange: spec.explainedChange ?? "0",
+      pairedMovementId: null,
+      conflict: spec.conflict ?? false,
+    },
+  });
 }
 
 const BTC_ADDRESS = "bc1qexampleforbtc0000000000000000000000";
@@ -734,6 +774,84 @@ function addSeedMovements(account, options, now) {
   }
 }
 
+// The card-spends account: the populated seed plus this month's detected balance changes, as the backend's detector
+// stores them. The three real card spends, a pending-price one, a copy pair, an unexplained gain, a dismissed card spend
+// and a confirmed one with a conflict. It exercises every review state, badge and action.
+function addCardSpends(account, options, now) {
+  const thisMonth = (hours) => thisMonthAgo(now, hours);
+  const cardSpend = (hours, amount, extra = {}) => {
+    const at = thisMonth(hours);
+    return addDetectedMovement(account, options, {
+      at,
+      kind: "card_spend",
+      suggestedKind: "card_spend",
+      direction: "out",
+      asset: "USDT",
+      amount,
+      rule: "unexplained_drop",
+      confidence: "medium",
+      wallet: "spot",
+      spotChange: `-${amount}`,
+      ...extra,
+    });
+  };
+
+  cardSpend(18, "4.0427944");
+  cardSpend(30, "5.06605855", { fundingChange: "50", explainedChange: "50" });
+  cardSpend(42, "20.25533879");
+  cardSpend(90, "6.5", { priceState: "pending" });
+
+  // A copy-trading investment and its close, two days apart. Both rows link to each other.
+  const copyDrop = addDetectedMovement(account, options, {
+    at: thisMonth(66),
+    kind: "copy_trading",
+    suggestedKind: "copy_trading",
+    direction: "out",
+    asset: "USDT",
+    amount: "200",
+    rule: "copy_pair",
+    confidence: "high",
+    wallet: "spot",
+    spotChange: "-200",
+  });
+  const copyGain = addDetectedMovement(account, options, {
+    at: thisMonth(18),
+    kind: "copy_trading",
+    suggestedKind: "copy_trading",
+    direction: "in",
+    asset: "USDT",
+    amount: "186.47",
+    rule: "copy_pair",
+    confidence: "high",
+    wallet: "spot",
+    spotChange: "186.47",
+  });
+  copyDrop.detection.pairedMovementId = copyGain.id;
+  copyGain.detection.pairedMovementId = copyDrop.id;
+
+  addDetectedMovement(account, options, {
+    at: thisMonth(54),
+    kind: "transfer",
+    suggestedKind: "transfer",
+    direction: "in",
+    asset: "USDT",
+    amount: "12.5",
+    rule: "unexplained_gain",
+    confidence: "low",
+    wallet: "spot",
+    spotChange: "12.5",
+  });
+
+  cardSpend(72, "3", { reviewStatus: "dismissed" });
+
+  cardSpend(96, "7.77", {
+    reviewStatus: "confirmed",
+    category: "Food",
+    conflict: true,
+  });
+}
+
+
 // Snapshots: hourly for the last 72 hours, then every 6 hours for 30 days. Totals are in cents, so they stay exact.
 const SNAPSHOT_HOURS = [
   ...Array.from({ length: 73 }, (_, hours) => hours),
@@ -845,6 +963,9 @@ function buildAccount(kind, flags, now) {
     addCategory(account, name, now);
   }
   addSeedMovements(account, options, now);
+  if (kind === "card-spends") {
+    addCardSpends(account, options, now);
+  }
 
   const monthFloor = monthStartNoon(now).getTime();
   const isThisMonthSpending = (movement) =>
@@ -946,6 +1067,24 @@ function movementJson(movement) {
       priced && movement.feeAmount !== null && movement.feeAsset === movement.asset
         ? mulDec(movement.feeAmount, movement.usdPrice)
         : null,
+    review_status: movement.reviewStatus,
+    detection: movement.detection ? detectionJson(movement.detection) : null,
+  };
+}
+
+function detectionJson(detection) {
+  return {
+    suggested_kind: detection.suggestedKind,
+    rule: detection.rule,
+    confidence: detection.confidence,
+    wallet: detection.wallet,
+    window_start: rfc3339(detection.windowStart),
+    window_end: rfc3339(detection.windowEnd),
+    spot_change: detection.spotChange,
+    funding_change: detection.fundingChange,
+    explained_change: detection.explainedChange,
+    paired_movement_id: detection.pairedMovementId,
+    conflict: detection.conflict,
   };
 }
 
@@ -1296,6 +1435,7 @@ function syncMovements(req, reply) {
       { kind: "convert", status: "ok", fetched: 0, inserted: 0, updated: 0 },
     ],
     valuation: { status: "ok", priced, unavailable, pending },
+    detection: { status: "ok", windows: 0, created: 0, updated: 0, retracted: 0, conflicts: 0 },
   });
 }
 
@@ -1397,6 +1537,8 @@ function parseMovementFilter(params) {
   if (kinds.items === null) return { error: "invalid kind" };
   const statuses = list(params, "status", (item) => MOVEMENT_STATUSES.includes(item));
   if (statuses.items === null) return { error: "invalid status" };
+  const reviews = list(params, "review", (item) => REVIEW_ITEMS.includes(item));
+  if (reviews.items === null) return { error: "invalid review" };
   const assets = list(params, "asset", isAssetSymbol);
   if (assets.items === null) return { error: "invalid asset" };
   const assetMatch = single(params, "asset_match");
@@ -1434,6 +1576,9 @@ function parseMovementFilter(params) {
     filter: {
       kinds: kinds.items,
       statuses: statuses.items,
+      reviewed: reviews.items.length > 0,
+      reviewStatuses: reviews.items.filter((item) => item !== "none"),
+      reviewFromBinance: reviews.items.includes("none"),
       assets: assets.items.map((asset) => asset.toUpperCase()),
       assetMatchAny: assetMatch.present && assetMatch.value === "any",
       search: text,
@@ -1453,6 +1598,12 @@ function matchesFilter(movement, filter) {
   if (filter.kinds.length && !filter.kinds.includes(movement.kind)) return false;
   if (filter.direction && movement.direction !== filter.direction) return false;
   if (filter.statuses.length && !filter.statuses.includes(movement.status)) return false;
+  if (filter.reviewed) {
+    const fromBinance = movement.reviewStatus === null;
+    if (fromBinance ? !filter.reviewFromBinance : !filter.reviewStatuses.includes(movement.reviewStatus)) return false;
+  } else if (movement.reviewStatus === "dismissed") {
+    return false;
+  }
   if (filter.assets.length) {
     const assetHit = filter.assets.includes(movement.asset);
     const counterHit = filter.assetMatchAny && movement.counterAsset !== null && filter.assets.includes(movement.counterAsset);
@@ -1699,10 +1850,32 @@ function findMovement(account, text) {
 function parsePatch(raw) {
   if (raw === null || Buffer.byteLength(raw) > MAX_UPDATE_BODY) return { error: "invalid body" };
   const body = parseObject(raw);
-  if (!body || (body.reason === undefined && body.category_id === undefined && body.tags === undefined)) {
+  if (
+    !body ||
+    (body.reason === undefined &&
+      body.category_id === undefined &&
+      body.tags === undefined &&
+      body.kind === undefined &&
+      body.review === undefined)
+  ) {
     return { error: "invalid body" };
   }
   const patch = {};
+  if (body.kind !== undefined) {
+    if (typeof body.kind !== "string" || !DETECTION_KINDS.includes(body.kind)) {
+      return { error: "invalid kind" };
+    }
+    patch.kind = body.kind;
+  }
+  if (body.review !== undefined) {
+    if (typeof body.review !== "string" || !REVIEW_DECISIONS.includes(body.review)) {
+      return { error: "invalid review" };
+    }
+    patch.review = body.review;
+  }
+  if (patch.kind !== undefined && patch.review === "suspected") {
+    return { error: "invalid review" };
+  }
   if (body.reason !== undefined) {
     if (body.reason === null) {
       patch.reason = { set: true, value: null };
@@ -1748,6 +1921,10 @@ function patchMovement(account, text, raw, reply) {
     const exists = account.categories.some((category) => category.id === parsed.patch.categoryId.value);
     if (!exists) return reply(404, { error: "category not found" });
   }
+  // The review keys only mean something for a row the detector made. A Binance row refuses the whole call.
+  if ((parsed.patch.kind !== undefined || parsed.patch.review !== undefined) && movement.source !== "detector") {
+    return reply(422, { error: "movement is not detected" });
+  }
   const now = new Date();
   if (parsed.patch.reason?.set) {
     movement.reason = parsed.patch.reason.value;
@@ -1759,6 +1936,19 @@ function patchMovement(account, text, raw, reply) {
   if (parsed.patch.tags?.set) {
     registerMovementTags(account, parsed.patch.tags.value);
     movement.tags = parsed.patch.tags.value;
+  }
+  if (parsed.patch.kind !== undefined) {
+    movement.kind = parsed.patch.kind;
+    movement.reviewStatus = "confirmed";
+    movement.detection.conflict = false;
+  }
+  if (parsed.patch.review !== undefined) {
+    movement.reviewStatus = parsed.patch.review;
+    if (parsed.patch.review === "suspected") {
+      movement.kind = movement.detection.suggestedKind;
+    } else {
+      movement.detection.conflict = false;
+    }
   }
   return reply(200, { movement: movementJson(movement) });
 }
@@ -1944,7 +2134,7 @@ const CSV_HEADER = [
   "id", "occurred_at", "source", "kind", "external_id", "direction", "status", "source_status", "asset", "amount",
   "fee_asset", "fee_amount", "counter_asset", "counter_amount", "unit_price", "counterparty", "reason", "reason_updated_at",
   "category_id", "category_name", "usd_price", "usd_price_source", "usd_price_status", "usd_value", "fee_usd_value",
-  "tags",
+  "tags", "review_status", "window_start", "window_end", "wallet",
 ];
 
 // A cell that a spreadsheet could run as a formula gets a quote in front, and a line break becomes LF.
@@ -1980,7 +2170,8 @@ function exportCsv(account, parsed, reply, sendRaw) {
       json.reason ?? "", json.reason_updated_at ?? "", json.category_id === null ? "" : String(json.category_id),
       json.category_id === null ? "" : (names.get(json.category_id) ?? ""), json.usd_price ?? "",
       json.usd_price_source ?? "", json.usd_price_status, json.usd_value ?? "", json.fee_usd_value ?? "",
-      json.tags.join(", "),
+      json.tags.join(", "), json.review_status ?? "", json.detection?.window_start ?? "",
+      json.detection?.window_end ?? "", json.detection?.wallet ?? "",
     ];
     lines.push(cells.map((cell) => csvField(csvCell(cell))).join(","));
   }

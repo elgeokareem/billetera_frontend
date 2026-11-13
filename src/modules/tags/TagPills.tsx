@@ -1,6 +1,8 @@
-import { Group, Pill, UnstyledButton } from "@mantine/core";
+import { Badge, Group, UnstyledButton } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { useTagColors } from "./hooks";
 import { visibleTags } from "./names";
+import { TagBadge } from "./TagBadge";
 
 interface TagPillsProps {
   tags: readonly string[];
@@ -10,10 +12,12 @@ interface TagPillsProps {
 
 /**
  * The tags of a movement as pills: the first 3, then a +N pill whose title names the rest. Renders nothing when the
- * movement has no tags. With onPick, each shown pill is a button, for the desktop table.
+ * movement has no tags. With onPick, each shown pill is a button, for the desktop table. A tag missing from the cached
+ * list draws gray.
  */
 export function TagPills({ tags, onPick }: TagPillsProps) {
   const { t } = useTranslation();
+  const colorOf = useTagColors();
   const { shown, hidden } = visibleTags(tags);
   if (tags.length === 0) {
     return null;
@@ -32,20 +36,16 @@ export function TagPills({ tags, onPick }: TagPillsProps) {
               onPick(tag);
             }}
           >
-            <Pill size="sm" bg="dark.4">
-              {tag}
-            </Pill>
+            <TagBadge name={tag} color={colorOf(tag)} />
           </UnstyledButton>
         ) : (
-          <Pill key={tag} size="sm" bg="dark.4">
-            {tag}
-          </Pill>
+          <TagBadge key={tag} name={tag} color={colorOf(tag)} />
         ),
       )}
       {hidden.length > 0 && (
-        <Pill size="sm" bg="dark.4" title={hidden.join(", ")}>
+        <Badge color="gray" variant="light" radius="xl" size="sm" title={hidden.join(", ")}>
           {t("movements.tags.more", { count: hidden.length })}
-        </Pill>
+        </Badge>
       )}
     </Group>
   );

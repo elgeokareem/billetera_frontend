@@ -200,6 +200,12 @@ describe("getApiErrorKey", () => {
     expect(getApiErrorKey(apiError(400, { error: "too many tags" }))).toBe(
       "errors.tooManyTags",
     );
+    expect(getApiErrorKey(apiError(409, { error: "tag already exists" }))).toBe(
+      "errors.tagExists",
+    );
+    expect(getApiErrorKey(apiError(404, { error: "tag not found" }))).toBe(
+      "errors.tagNotFound",
+    );
   });
 
   it("falls back for unknown text", () => {

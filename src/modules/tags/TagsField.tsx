@@ -1,6 +1,8 @@
-import { TagsInput } from "@mantine/core";
+import { Pill, TagsInput } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { tagColorStyle } from "./colors";
+import { useTagColors } from "./hooks";
 import { applyTagInput, normaliseTagName, type TagInputResult } from "./names";
 
 interface TagsFieldProps {
@@ -35,6 +37,7 @@ export function TagsField({
   error,
 }: TagsFieldProps) {
   const { t } = useTranslation();
+  const colorOf = useTagColors();
   const [localError, setLocalError] = useState<"invalid" | "limit">();
   const message =
     error ??
@@ -94,6 +97,16 @@ export function TagsField({
       }}
       onChange={change}
       isDuplicate={(item, current) => current.includes(normaliseTagName(item) ?? item)}
+      renderPill={({ option, onRemove, disabled: pillDisabled }) => (
+        <Pill
+          withRemoveButton={!pillDisabled}
+          onRemove={onRemove}
+          disabled={pillDisabled}
+          style={tagColorStyle(colorOf(String(option.value)))}
+        >
+          {option.label}
+        </Pill>
+      )}
       disabled={disabled}
       error={message}
       styles={{ input: { minHeight: 44 } }}

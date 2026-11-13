@@ -393,15 +393,43 @@ export interface paths {
         };
         /**
          * List tags
-         * @description The tags that at least one of the user's movements has, in lower case and sorted by name, with the number of movements that have each, in any status. A tag that no movement has any more isn't listed.
+         * @description Every tag of the user, in lower case and sorted by name, with its color and the number of movements that have it, in any status. A tag no movement has is listed with a count of 0.
          */
         get: operations["tags.list"];
         put?: never;
-        post?: never;
+        /**
+         * Create a tag
+         * @description Saves a tag with the name, trimmed and lower-cased. A name the user already has is refused. Without a color the tag gets a random one from the palette. A request that authenticates with the access_token cookie must come from an allowed origin.
+         */
+        post: operations["tags.create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a tag
+         * @description Deletes the user's tag. It's removed from every movement that had it, and those movements keep everything else. A request that authenticates with the access_token cookie must come from an allowed origin.
+         */
+        delete: operations["tags.delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename or recolor a tag
+         * @description Changes the name and/or the color of the user's tag. The new name is trimmed and lower-cased, and another of the user's tags with that name is refused. A request that authenticates with the access_token cookie must come from an allowed origin.
+         */
+        patch: operations["tags.update"];
         trace?: never;
     };
 }
@@ -721,12 +749,28 @@ export interface components {
         "snapshots.SnapshotEnvelope": {
             snapshot: components["schemas"]["binance.SnapshotResponse"];
         };
+        "tags.CreateRequest": {
+            /** @enum {string} */
+            color?: "red" | "pink" | "grape" | "violet" | "indigo" | "blue" | "cyan" | "teal" | "green" | "lime" | "yellow" | "orange";
+            name: string;
+        };
         "tags.ListResponse": {
             tags: components["schemas"]["tags.TagResponse"][];
         };
+        "tags.TagEnvelope": {
+            tag: components["schemas"]["tags.TagResponse"];
+        };
         "tags.TagResponse": {
+            /** @enum {string} */
+            color: "red" | "pink" | "grape" | "violet" | "indigo" | "blue" | "cyan" | "teal" | "green" | "lime" | "yellow" | "orange";
+            id: number;
             movement_count: number;
             name: string;
+        };
+        "tags.UpdateRequest": {
+            /** @enum {string} */
+            color?: "red" | "pink" | "grape" | "violet" | "indigo" | "blue" | "cyan" | "teal" | "green" | "lime" | "yellow" | "orange";
+            name?: string;
         };
     };
     responses: never;
@@ -2285,6 +2329,215 @@ export interface operations {
             };
             /** @description Origin not allowed */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+        };
+    };
+    "tags.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The name, 1 to 32 characters with no comma or control character, and an optional palette color */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["tags.CreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["tags.TagEnvelope"];
+                };
+            };
+            /** @description The body isn't a JSON object, the name is missing or invalid, or the color isn't in the palette */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description No valid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Origin not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description The user already has a tag with that name */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+        };
+    };
+    "tags.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tag ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tag is deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No valid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Origin not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description The user has no tag with that ID */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+        };
+    };
+    "tags.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tag ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The new name and/or palette color; at least one */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["tags.UpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["tags.TagEnvelope"];
+                };
+            };
+            /** @description The body isn't a JSON object with a name or a color, the name is invalid, or the color isn't in the palette */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description No valid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Origin not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description The user has no tag with that ID */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description The user already has another tag with that name */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

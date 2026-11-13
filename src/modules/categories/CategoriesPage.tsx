@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Modal, Paper, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Paper, SimpleGrid, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
 import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
@@ -13,6 +13,7 @@ import { browserTimeZone } from "../shared/dateRange";
 import { PrimaryButton } from "../shared/components/Buttons";
 import { Sensitive } from "../shared/components/Sensitive";
 import { formatUsd } from "../shared/format";
+import { TagsColumn } from "../tags/TagsColumn";
 import { isValidCategoryName } from "./api";
 import { useCategories, useCreateCategory, useDeleteCategory, useRenameCategory } from "./hooks";
 import type { Category } from "./types";
@@ -171,30 +172,43 @@ export function CategoriesPage() {
         </Text>
       </div>
 
-      <Paper bg="dark.6" radius={12} p={{ base: 16, sm: 20 }}>
-        <form onSubmit={submitForm}>
-          <Group align="flex-start" gap="sm" wrap="nowrap">
-            <TextInput
-              flex={1}
-              label={t("categories.newLabel")}
-              placeholder={t("categories.newPlaceholder")}
-              value={name}
-              disabled={create.isPending}
-              error={createError ? t(createError) : undefined}
-              onChange={(event) => {
-                setName(event.currentTarget.value);
-                setCreateError(null);
-              }}
-              styles={{ input: { minHeight: 44 } }}
-            />
-            <PrimaryButton type="submit" loading={create.isPending} mt={26}>
-              {t("categories.create")}
-            </PrimaryButton>
-          </Group>
-        </form>
-      </Paper>
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" style={{ alignItems: "start" }}>
+        <Stack gap="lg">
+          <div>
+            <Title order={2}>{t("categories.columnTitle")}</Title>
+            <Text c="dimmed" mt="xs">
+              {t("categories.columnSubtitle")}
+            </Text>
+          </div>
 
-      {body}
+          <Paper bg="dark.6" radius={12} p={{ base: 16, sm: 20 }}>
+            <form onSubmit={submitForm}>
+              <Group align="flex-start" gap="sm" wrap="nowrap">
+                <TextInput
+                  flex={1}
+                  label={t("categories.newLabel")}
+                  placeholder={t("categories.newPlaceholder")}
+                  value={name}
+                  disabled={create.isPending}
+                  error={createError ? t(createError) : undefined}
+                  onChange={(event) => {
+                    setName(event.currentTarget.value);
+                    setCreateError(null);
+                  }}
+                  styles={{ input: { minHeight: 44 } }}
+                />
+                <PrimaryButton type="submit" loading={create.isPending} mt={26}>
+                  {t("categories.create")}
+                </PrimaryButton>
+              </Group>
+            </form>
+          </Paper>
+
+          {body}
+        </Stack>
+
+        <TagsColumn />
+      </SimpleGrid>
 
       <Modal
         opened={deleting !== null}

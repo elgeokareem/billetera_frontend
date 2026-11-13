@@ -26,10 +26,14 @@
 // days ago and isn't now, so its history has a value, then zeros; with unpriced on, a stretch of it has no price.
 //
 // Tags. A movement carries 0 to 10 lower-case names, and a name is 1 to 32 code points with no control character and no
-// comma. PATCH /movements/:id takes the whole list under "tags"; GET /tags lists the names at least one movement uses,
-// sorted, with their movement counts. GET /movements, /movements/totals and /movements/export take tag, a comma list of
-// up to 20 names, and tag_match=any|all. The seed tags the Travel movements trip-2026, some Food ones shared, and one
-// movement with five tags so the table shows "+2".
+// comma. PATCH /movements/:id takes the whole list under "tags"; GET /movements, /movements/totals and
+// /movements/export take tag, a comma list of up to 20 names, and tag_match=any|all. The seed tags the Travel movements
+// trip-2026, some Food ones shared, and one movement with five tags so the table shows "+2".
+//
+// A tag has an id and a color, one of 12 palette names. GET /tags lists every tag of the user, used or not, with its
+// movement count (0 included), sorted by name. POST /tags creates one, with a random palette color unless the body gives
+// one; PATCH /tags/:id renames and/or recolors it; DELETE /tags/:id removes it from every movement. The seed registers
+// every name its movements use with a deterministic color, plus one unused tag so the 0-count case shows.
 //
 // Scenarios and problems, with POST /__fake/state (JSON body, any mix of these fields):
 //   {"reset": true}                 back to the start: no key, no sessions, the populated account, flags off
@@ -90,6 +94,9 @@ const FAIL_ROUTES = [
   "GET /movements/:id",
   "PATCH /movements/:id",
   "GET /tags",
+  "POST /tags",
+  "PATCH /tags/:id",
+  "DELETE /tags/:id",
   "GET /categories",
   "POST /categories",
   "PATCH /categories/:id",
@@ -112,6 +119,7 @@ const MAX_SEARCH_RUNES = 100;
 const MAX_PAGE_LIMIT = 200;
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_CATEGORY_RUNES = 64;
+const MAX_TAG_BODY = 4 << 10;
 const MAX_REASON_RUNES = 500;
 const MAX_TAG_LENGTH = 32;
 const MAX_TAGS = 10;
@@ -124,6 +132,9 @@ const HISTORY_DEFAULT_SPAN = 30 * DAY;
 const CATEGORY_NAMES = ["Food", "Income", "Rent", "Travel"];
 const EXTRA_CATEGORY_NAMES = ["Health", "Shopping", "Transfer", "Utilities"];
 const SPENDING_KINDS = ["withdrawal", "p2p", "pay"];
+const TAG_COLORS = ["red", "pink", "grape", "violet", "indigo", "blue", "cyan", "teal", "green", "lime", "yellow", "orange"];
+
+const randomTagColor = () => TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
 
 function freshState() {
   const users = [{ id: 1, email: "test@example.com", password: "password" }];
@@ -503,9 +514,11 @@ function emptyAccount() {
     categories: [],
     movements: [],
     snapshots: [],
+    tags: [],
     nextCategoryId: 1,
     nextMovementId: 1,
     nextSnapshotId: 1,
+    nextTagId: 1001,
   };
 }
 
@@ -545,6 +558,37 @@ function normalizeTags(items) {
     }
   }
   return tags.sort();
+}
+
+// A tag row. The seed starts its IDs at 1001, like the backend seed's sequence.
+function addTag(account, name, color) {
+  const tag = { id: account.nextTagId++, name, color, createdAt: new Date() };
+  account.tags.push(tag);
+  return tag;
+}
+
+// The seed registers every name its movements use, in name order, with a deterministic color (as the backend backfill
+// does), then one tag no movement has, so GET /tags shows the 0-count case.
+function registerSeedTags(account) {
+  const names = new Set();
+  for (const movement of account.movements) {
+    for (const name of movement.tags) {
+      names.add(name);
+    }
+  }
+  for (const name of [...names].sort()) {
+    addTag(account, name, TAG_COLORS[account.nextTagId % 12]);
+  }
+  addTag(account, "old-trip", TAG_COLORS[account.nextTagId % 12]);
+}
+
+// New names a movement PATCH names are created here, keeping the color of every tag that already exists.
+function registerMovementTags(account, names) {
+  for (const name of names) {
+    if (!account.tags.some((tag) => tag.name === name)) {
+      addTag(account, name, randomTagColor());
+    }
+  }
 }
 
 // One movement of the seed. Its price comes from priceOf, and its category is named, so the seed reads like the design.
@@ -863,6 +907,7 @@ function buildAccount(kind, flags, now) {
   } else {
     addSeedSnapshots(account, options, now, "latest");
   }
+  registerSeedTags(account);
   return account;
 }
 
@@ -1712,6 +1757,7 @@ function patchMovement(account, text, raw, reply) {
     movement.categoryId = parsed.patch.categoryId.value;
   }
   if (parsed.patch.tags?.set) {
+    registerMovementTags(account, parsed.patch.tags.value);
     movement.tags = parsed.patch.tags.value;
   }
   return reply(200, { movement: movementJson(movement) });
@@ -1721,18 +1767,108 @@ function patchMovement(account, text, raw, reply) {
 // Tags
 // ---------------------------------------------------------------------------------------------------------------------
 
-// GET /tags. The names at least one movement of any status uses, sorted, with how many movements have each one.
-function listTags(account, reply) {
-  const counts = new Map();
+// One tag, with how many of the account's movements, in any status, have it.
+function tagJson(account, tag) {
+  let movement_count = 0;
   for (const movement of account.movements) {
-    for (const tag of movement.tags) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    if (movement.tags.includes(tag.name)) {
+      movement_count++;
     }
   }
-  const tags = [...counts.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([name, movement_count]) => ({ name, movement_count }));
+  return { id: tag.id, name: tag.name, color: tag.color, movement_count };
+}
+
+// GET /tags. Every tag of the user, used or not, sorted by name then ID, with its movement count.
+function listTags(account, reply) {
+  const tags = [...account.tags]
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.id - b.id))
+    .map((tag) => tagJson(account, tag));
   return reply(200, { tags });
+}
+
+// The body of POST /tags: an object, a valid name and an optional palette color, checked in the backend's order.
+function parseTagCreate(raw) {
+  if (raw === null || Buffer.byteLength(raw) > MAX_TAG_BODY) return { error: "invalid body" };
+  const body = parseObject(raw);
+  if (!body) return { error: "invalid body" };
+  if (typeof body.name !== "string") return { error: "invalid tag" };
+  const name = normalizeTagName(body.name);
+  if (name === null) return { error: "invalid tag" };
+  let color;
+  if (body.color !== undefined) {
+    if (typeof body.color !== "string" || !TAG_COLORS.includes(body.color)) return { error: "invalid color" };
+    color = body.color;
+  }
+  return { name, color };
+}
+
+// The body of PATCH /tags/:id: at least one of name and color, each checked as in create.
+function parseTagUpdate(raw) {
+  if (raw === null || Buffer.byteLength(raw) > MAX_TAG_BODY) return { error: "invalid body" };
+  const body = parseObject(raw);
+  if (!body || (body.name === undefined && body.color === undefined)) return { error: "invalid body" };
+  let name;
+  if (body.name !== undefined) {
+    if (typeof body.name !== "string") return { error: "invalid tag" };
+    name = normalizeTagName(body.name);
+    if (name === null) return { error: "invalid tag" };
+  }
+  let color;
+  if (body.color !== undefined) {
+    if (typeof body.color !== "string" || !TAG_COLORS.includes(body.color)) return { error: "invalid color" };
+    color = body.color;
+  }
+  return { name, color };
+}
+
+function createTag(account, raw, reply) {
+  const parsed = parseTagCreate(raw);
+  if (parsed.error) return reply(400, { error: parsed.error });
+  if (account.tags.some((tag) => tag.name === parsed.name)) {
+    return reply(409, { error: "tag already exists" });
+  }
+  const tag = addTag(account, parsed.name, parsed.color ?? randomTagColor());
+  return reply(201, { tag: tagJson(account, tag) });
+}
+
+// PATCH /tags/:id. A bad ID is a 404 before the body is read. A rename rewrites the name in every movement; a color
+// change touches no movement.
+function updateTagRoute(account, text, raw, reply) {
+  if (!isPositiveId(text)) return reply(404, { error: "tag not found" });
+  const parsed = parseTagUpdate(raw);
+  if (parsed.error) return reply(400, { error: parsed.error });
+  const tag = account.tags.find((candidate) => candidate.id === Number(text));
+  if (!tag) return reply(404, { error: "tag not found" });
+  if (parsed.name !== undefined && account.tags.some((other) => other.id !== tag.id && other.name === parsed.name)) {
+    return reply(409, { error: "tag already exists" });
+  }
+  if (parsed.name !== undefined && parsed.name !== tag.name) {
+    const previous = tag.name;
+    tag.name = parsed.name;
+    for (const movement of account.movements) {
+      if (movement.tags.includes(previous)) {
+        movement.tags = movement.tags.map((name) => (name === previous ? parsed.name : name)).sort();
+      }
+    }
+  }
+  if (parsed.color !== undefined) {
+    tag.color = parsed.color;
+  }
+  return reply(200, { tag: tagJson(account, tag) });
+}
+
+// DELETE /tags/:id. The links go with it; every movement keeps its reason, category and other tags.
+function deleteTag(account, text, reply) {
+  if (!isPositiveId(text)) return reply(404, { error: "tag not found" });
+  const index = account.tags.findIndex((tag) => tag.id === Number(text));
+  if (index === -1) return reply(404, { error: "tag not found" });
+  const [tag] = account.tags.splice(index, 1);
+  for (const movement of account.movements) {
+    if (movement.tags.includes(tag.name)) {
+      movement.tags = movement.tags.filter((name) => name !== tag.name);
+    }
+  }
+  return reply(204);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -2020,6 +2156,9 @@ function patternOf(pathname) {
   if (parts[1] === "categories" && parts.length === 3) {
     return "/categories/:id";
   }
+  if (parts[1] === "tags" && parts.length === 3) {
+    return "/tags/:id";
+  }
   if (parts[1] === "snapshots" && parts[2] === "assets" && parts.length === 4) {
     return "/snapshots/assets/:asset";
   }
@@ -2130,7 +2269,7 @@ async function handle(req, res) {
   }
 
   const isMovements = pathname === "/movements" || pathname.startsWith("/movements/");
-  const isTags = pathname === "/tags";
+  const isTags = pathname === "/tags" || pathname.startsWith("/tags/");
   const isCategories = pathname === "/categories" || pathname.startsWith("/categories/");
   const isSnapshots = pathname === "/snapshots" || pathname.startsWith("/snapshots/");
   if (isMovements || isTags || isCategories || isSnapshots) {
@@ -2155,6 +2294,9 @@ async function handle(req, res) {
     }
     if (isTags) {
       if (route === "GET /tags") return listTags(account, reply);
+      if (route === "POST /tags") return createTag(account, raw, reply);
+      if (pattern === "PATCH /tags/:id") return updateTagRoute(account, id, raw, reply);
+      if (pattern === "DELETE /tags/:id") return deleteTag(account, id, reply);
     }
     if (isCategories) {
       if (route === "GET /categories") return listCategories(account, reply);

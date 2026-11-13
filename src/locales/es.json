@@ -19,7 +19,7 @@
     "dashboard": "Inicio",
     "movements": "Movimientos",
     "assets": "Activos",
-    "categories": "Categorías",
+    "categories": "Categorías y tags",
     "settings": "Ajustes"
   },
   "auth": {
@@ -335,11 +335,15 @@
     "snapshotNotFound": "Aún no hay datos de saldo.",
     "tooManyRows": "Demasiados movimientos para exportar. Ajusta los filtros.",
     "invalidTag": "Ese tag no es válido. Los tags tienen de 1 a 32 caracteres, sin comas.",
-    "tooManyTags": "Un movimiento puede tener hasta 10 tags."
+    "tooManyTags": "Un movimiento puede tener hasta 10 tags.",
+    "tagExists": "Ya existe un tag con ese nombre.",
+    "tagNotFound": "Ese tag ya no existe."
   },
   "categories": {
-    "title": "Categorías",
-    "subtitle": "Cada categoría dice para qué fue un movimiento. Aquí ves cuánto costó cada una este mes.",
+    "title": "Categorías y tags",
+    "subtitle": "Las categorías dicen para qué fue un movimiento y suman tus gastos. Los tags son etiquetas extra para encontrar movimientos después.",
+    "columnTitle": "Categorías",
+    "columnSubtitle": "Cada categoría dice para qué fue un movimiento. Aquí ves cuánto costó cada una este mes.",
     "unavailable": "No se pudieron cargar los nombres de las categorías.",
     "newLabel": "Nombre de la nueva categoría",
     "newPlaceholder": "Por ejemplo, Supermercado",
@@ -368,6 +372,53 @@
       "body": "Sus movimientos conservan el motivo, pero pierden esta categoría. Los gastos que estaban en ella volverán a necesitar una etiqueta.",
       "confirm": "Eliminar categoría",
       "cancel": "Cancelar"
+    }
+  },
+  "tags": {
+    "title": "Tags",
+    "subtitle": "Pon varios en cualquier movimiento, hasta 10. Nunca cambian tus totales.",
+    "newLabel": "Nombre del nuevo tag",
+    "newPlaceholder": "Por ejemplo, viaje-2026",
+    "create": "Crear",
+    "renameLabel": "Nombre del tag",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "rename": "Renombrar {{name}}",
+    "movementCount_one": "{{count}} movimiento",
+    "movementCount_other": "{{count}} movimientos",
+    "showMovements": "Ver movimientos con el tag {{name}}",
+    "deleted": "Tag eliminado.",
+    "empty": {
+      "title": "Aún no hay tags",
+      "body": "Crea un tag aquí, o añade tags a un movimiento desde su detalle."
+    },
+    "delete": {
+      "action": "Eliminar {{name}}",
+      "title": "¿Eliminar {{name}}?",
+      "bodyNone": "Ningún movimiento tiene este tag.",
+      "body_one": "{{count}} movimiento perderá este tag.",
+      "body_other": "{{count}} movimientos perderán este tag.",
+      "keep": "Sus categorías, motivos y demás tags se conservan.",
+      "confirm": "Eliminar tag",
+      "cancel": "Cancelar"
+    },
+    "color": {
+      "change": "Cambiar el color de {{name}}",
+      "failed": "No se guardó el color.",
+      "names": {
+        "red": "Rojo",
+        "pink": "Rosa",
+        "grape": "Uva",
+        "violet": "Violeta",
+        "indigo": "Índigo",
+        "blue": "Azul",
+        "cyan": "Cian",
+        "teal": "Verde azulado",
+        "green": "Verde",
+        "lime": "Lima",
+        "yellow": "Amarillo",
+        "orange": "Naranja"
+      }
     }
   },
   "assets": {

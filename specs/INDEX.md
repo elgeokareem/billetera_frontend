@@ -22,3 +22,5 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 | [Review Fixes](2026-11-09-review-fixes/SPEC.md) ([plan](2026-11-09-review-fixes/PLAN.md)) | bugfix | built | Platform, Identity, Portfolio | 2026-11-09 |
 | [Register Password Match](2026-11-09-register-password-match/SPEC.md) ([plan](2026-11-09-register-password-match/PLAN.md)) | bugfix | built | Identity | 2026-11-09 |
 | [Drawer Create Category](2026-11-09-drawer-create-category/SPEC.md) ([plan](2026-11-09-drawer-create-category/PLAN.md)) | feature | built | Portfolio | 2026-11-09 |
+| [Categories and Tags Page](2026-11-13-categories-tags-page/SPEC.md) ([plan](2026-11-13-categories-tags-page/PLAN.md)) | feature | built | Portfolio | 2026-11-13 |
+| [Card Spend Detection](2026-11-13-card-spend-detection/SPEC.md) ([plan](2026-11-13-card-spend-detection/PLAN.md)) | feature | draft, needs backend card-spend-detection | Portfolio | 2026-11-13 |

@@ -19,7 +19,7 @@
     "dashboard": "Dashboard",
     "movements": "Movements",
     "assets": "Assets",
-    "categories": "Categories",
+    "categories": "Categories and tags",
     "settings": "Settings"
   },
   "auth": {
@@ -335,11 +335,15 @@
     "snapshotNotFound": "No balance data yet.",
     "tooManyRows": "Too many movements to export. Narrow the filters.",
     "invalidTag": "That tag isn't valid. Tags are 1 to 32 characters, without commas.",
-    "tooManyTags": "A movement can have up to 10 tags."
+    "tooManyTags": "A movement can have up to 10 tags.",
+    "tagExists": "A tag with that name already exists.",
+    "tagNotFound": "That tag no longer exists."
   },
   "categories": {
-    "title": "Categories",
-    "subtitle": "Each category says what a movement was for. Here is what each one cost this month.",
+    "title": "Categories and tags",
+    "subtitle": "Categories say what a movement was for and add up your spending. Tags are extra labels to find movements later.",
+    "columnTitle": "Categories",
+    "columnSubtitle": "Each category says what a movement was for. Here is what each one cost this month.",
     "unavailable": "Category names couldn't load.",
     "newLabel": "New category name",
     "newPlaceholder": "For example, Groceries",
@@ -368,6 +372,53 @@
       "body": "Its movements keep their reason but lose this category. Spending that was filed under it will need a label again.",
       "confirm": "Delete category",
       "cancel": "Cancel"
+    }
+  },
+  "tags": {
+    "title": "Tags",
+    "subtitle": "Put several on any movement, up to 10. They never change your totals.",
+    "newLabel": "New tag name",
+    "newPlaceholder": "For example, trip-2026",
+    "create": "Create",
+    "renameLabel": "Tag name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "rename": "Rename {{name}}",
+    "movementCount_one": "{{count}} movement",
+    "movementCount_other": "{{count}} movements",
+    "showMovements": "Show movements tagged {{name}}",
+    "deleted": "Tag deleted.",
+    "empty": {
+      "title": "No tags yet",
+      "body": "Create a tag here, or add tags to a movement from its details."
+    },
+    "delete": {
+      "action": "Delete {{name}}",
+      "title": "Delete {{name}}?",
+      "bodyNone": "No movement has this tag.",
+      "body_one": "{{count}} movement will lose this tag.",
+      "body_other": "{{count}} movements will lose this tag.",
+      "keep": "Their categories, reasons and other tags stay.",
+      "confirm": "Delete tag",
+      "cancel": "Cancel"
+    },
+    "color": {
+      "change": "Change the color of {{name}}",
+      "failed": "The color wasn't saved.",
+      "names": {
+        "red": "Red",
+        "pink": "Pink",
+        "grape": "Grape",
+        "violet": "Violet",
+        "indigo": "Indigo",
+        "blue": "Blue",
+        "cyan": "Cyan",
+        "teal": "Teal",
+        "green": "Green",
+        "lime": "Lime",
+        "yellow": "Yellow",
+        "orange": "Orange"
+      }
     }
   },
   "assets": {

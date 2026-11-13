@@ -21,6 +21,8 @@ const KNOWN_ERRORS: Record<string, string> = {
   "too many rows, narrow the filters": "errors.tooManyRows",
   "invalid tag": "errors.invalidTag",
   "too many tags": "errors.tooManyTags",
+  "tag already exists": "errors.tagExists",
+  "tag not found": "errors.tagNotFound",
 };
 
 /** Returns the translation key for a failed API call. Raw backend text is never shown. */

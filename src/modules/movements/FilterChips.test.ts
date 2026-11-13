@@ -44,6 +44,29 @@ describe("filterChips", () => {
     expect(only?.without).toEqual({});
   });
 
+  it("gives each tag its own chip, and removing one keeps the others", () => {
+    const search = parseMovementsSearch({ tag: "trip-2026,shared" });
+    const chips = filterChips(search, { now, t, categoryName });
+    expect(chips.map((chip) => chip.key)).toEqual(["tag:trip-2026", "tag:shared"]);
+    expect(chips[0].label).toContain('"label":"movements.filters.tag"');
+    expect(chips[0].without).toEqual({ tag: "shared" });
+  });
+
+  it("removing the last tag chip drops tag_match too", () => {
+    const search = parseMovementsSearch({ tag: "trip-2026", tag_match: "all" });
+    const only = filterChips(search, { now, t, categoryName }).find((chip) => chip.key === "tag:trip-2026");
+    expect(only?.without).toEqual({});
+  });
+
+  it("shows an All tags chip, and removing it keeps the tags", () => {
+    const search = parseMovementsSearch({ tag: "trip-2026,shared", tag_match: "all" });
+    const chips = filterChips(search, { now, t, categoryName });
+    expect(chips.map((chip) => chip.key)).toEqual(["tag:trip-2026", "tag:shared", "tag_match"]);
+    const match = chips.find((chip) => chip.key === "tag_match");
+    expect(match?.label).toBe("movements.chips.tagMatch");
+    expect(match?.without).toEqual({ tag: "trip-2026,shared" });
+  });
+
   it("names a category by its name, and no category as such", () => {
     const labels = chipsOf({ category_id: "3,none,99" }).map((chip) => chip.label);
     expect(labels).toEqual([
@@ -72,6 +95,8 @@ describe("filterChips", () => {
       asset: "BTC",
       asset_match: "any",
       category_id: "7",
+      tag: "trip-2026",
+      tag_match: "all",
       has_reason: "true",
     };
     const chips = chipsOf(raw);
@@ -83,6 +108,8 @@ describe("filterChips", () => {
       "asset:BTC",
       "asset_match",
       "category:7",
+      "tag:trip-2026",
+      "tag_match",
       "has_reason",
     ]);
     const full = parseMovementsSearch(raw);

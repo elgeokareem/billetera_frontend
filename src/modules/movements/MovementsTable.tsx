@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { Category } from "../categories/types";
 import { kindKey } from "../dashboard/movementText";
 import { formatDate } from "../shared/format";
+import { TagPills } from "../tags/TagPills";
 import { CoinAmount, StatusBadge, UsdValue } from "./MovementParts";
 import { NO_CATEGORY } from "./patch";
 import { needsLabel } from "./spending";
@@ -17,6 +18,8 @@ interface MovementsTableProps {
   onOpen: (movement: Movement) => void;
   /** Files a movement under a category, or under none (null). */
   onCategoryChange: (movement: Movement, categoryId: number | null) => void;
+  /** Adds a tag of a row to the tag filter. */
+  onTagPick: (name: string) => void;
   /** The movement whose category is being saved, if any. Its select is disabled meanwhile. */
   savingId: number | null;
 }
@@ -30,6 +33,7 @@ function MovementsTableView({
   categories,
   onOpen,
   onCategoryChange,
+  onTagPick,
   savingId,
 }: MovementsTableProps) {
   const { t } = useTranslation();
@@ -118,9 +122,21 @@ function MovementsTableView({
                   </Box>
                 </Table.Td>
                 <Table.Td maw={260}>
-                  <Text fz="sm" className="truncate" c={movement.reason ? undefined : "dimmed"}>
-                    {movement.reason ?? "—"}
-                  </Text>
+                  <Stack gap={4}>
+                    {movement.reason && (
+                      <Text fz="sm" className="truncate">
+                        {movement.reason}
+                      </Text>
+                    )}
+                    {movement.tags.length > 0 && (
+                      <TagPills tags={movement.tags} onPick={onTagPick} />
+                    )}
+                    {!movement.reason && movement.tags.length === 0 && (
+                      <Text fz="sm" c="dimmed">
+                        —
+                      </Text>
+                    )}
+                  </Stack>
                 </Table.Td>
                 <Table.Td ta="right">
                   <CoinAmount movement={movement} />

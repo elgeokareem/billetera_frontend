@@ -19,6 +19,8 @@ const KNOWN_ERRORS: Record<string, string> = {
   "movement not found": "errors.movementNotFound",
   "snapshot not found": "errors.snapshotNotFound",
   "too many rows, narrow the filters": "errors.tooManyRows",
+  "invalid tag": "errors.invalidTag",
+  "too many tags": "errors.tooManyTags",
 };
 
 /** Returns the translation key for a failed API call. Raw backend text is never shown. */

@@ -33,6 +33,7 @@ function movement(overrides: Partial<Movement>): Movement {
     reason: null,
     reason_updated_at: null,
     category_id: null,
+    tags: [],
     usd_price: "1",
     usd_price_source: "binance-1m",
     usd_price_status: "priced",

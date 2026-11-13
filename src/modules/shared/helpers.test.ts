@@ -193,6 +193,15 @@ describe("getApiErrorKey", () => {
     ).toBe("errors.invalidKey");
   });
 
+  it("reads the tag errors", () => {
+    expect(getApiErrorKey(apiError(400, { error: "invalid tag" }))).toBe(
+      "errors.invalidTag",
+    );
+    expect(getApiErrorKey(apiError(400, { error: "too many tags" }))).toBe(
+      "errors.tooManyTags",
+    );
+  });
+
   it("falls back for unknown text", () => {
     expect(getApiErrorKey(apiError(500, { error: "boom" }))).toBe(
       "errors.generic",

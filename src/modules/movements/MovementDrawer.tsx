@@ -11,6 +11,8 @@ import { Sensitive } from "../shared/components/Sensitive";
 import { getApiErrorKey } from "../shared/api-errors";
 import { formatDateTime, formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
+import { TagsField } from "../tags/TagsField";
+import { withPendingTag } from "../tags/names";
 import { signOf } from "./labels";
 import { CoinAmount, UsdValue } from "./MovementParts";
 import { draftOf, type MovementDraft, patchFor } from "./patch";
@@ -26,14 +28,16 @@ interface MovementDrawerProps {
   /** The movement to show, or null when the drawer is closed. */
   movement: Movement | null;
   categories: readonly Category[] | undefined;
+  /** The tags the autocomplete offers. */
+  knownTags: readonly string[];
   onClose: () => void;
 }
 
 /**
- * The detail of one movement: every field the API has, and the reason and category, which can be changed here. Saving sends
- * only the keys that changed. The drawer is a full width sheet on a narrow screen.
+ * The detail of one movement: every field the API has, and the reason, category and tags, which can be changed here. Saving
+ * sends only the keys that changed. The drawer is a full width sheet on a narrow screen.
  */
-export function MovementDrawer({ movement, categories, onClose }: MovementDrawerProps) {
+export function MovementDrawer({ movement, categories, knownTags, onClose }: MovementDrawerProps) {
   const { t } = useTranslation();
   const narrow = useMediaQuery("(max-width: 47.99em)", false, { getInitialValueInEffect: false });
   // The last movement shown is kept while the drawer closes, so its content doesn't vanish during the animation.
@@ -57,7 +61,13 @@ export function MovementDrawer({ movement, categories, onClose }: MovementDrawer
     >
       {shown && (
         // Keyed by the movement, so each one opens with its own values in the form.
-        <DrawerForm key={shown.id} movement={shown} categories={categories} onClose={onClose} />
+        <DrawerForm
+          key={shown.id}
+          movement={shown}
+          categories={categories}
+          knownTags={knownTags}
+          onClose={onClose}
+        />
       )}
     </Drawer>
   );
@@ -66,10 +76,12 @@ export function MovementDrawer({ movement, categories, onClose }: MovementDrawer
 function DrawerForm({
   movement,
   categories,
+  knownTags,
   onClose,
 }: {
   movement: Movement;
   categories: readonly Category[] | undefined;
+  knownTags: readonly string[];
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -77,6 +89,8 @@ function DrawerForm({
   const create = useCreateCategory();
   const [draft, setDraft] = useState<MovementDraft>(() => draftOf(movement));
   const [created, setCreated] = useState<Category[]>([]);
+  const [tagText, setTagText] = useState("");
+  const [tagError, setTagError] = useState<string>();
   const body = patchFor(movement, draft);
   const changed = Object.keys(body).length > 0;
   const categoryData = drawerCategoryOptions(categories ?? [], created, t("movements.noCategory"));
@@ -89,16 +103,27 @@ function DrawerForm({
     if (create.isPending) {
       return;
     }
-    if (!changed) {
+    // A name typed without Enter still counts, so it's folded in before the body is built.
+    const pending = withPendingTag(draft.tags, tagText);
+    if (pending.error) {
+      setTagError(
+        pending.error === "invalid" ? "movements.drawer.tagInvalid" : "movements.drawer.tagsLimit",
+      );
+      return;
+    }
+    const nextBody = patchFor(movement, { ...draft, tags: pending.tags });
+    if (Object.keys(nextBody).length === 0) {
       onClose();
       return;
     }
+    setTagError(undefined);
     try {
-      await update.mutateAsync({ id: movement.id, body });
+      await update.mutateAsync({ id: movement.id, body: nextBody });
+      setTagText("");
       toast.success(t("movements.drawer.saved"));
       onClose();
     } catch {
-      // The error shows in the drawer, and the typed reason stays.
+      // The error shows in the drawer, and the typed reason and tags stay.
     }
   }
 
@@ -144,6 +169,24 @@ function DrawerForm({
               setDraft((current) => ({ ...current, category: String(category.id) }));
             }}
           />
+          <TagsField
+            label={t("movements.drawer.tags")}
+            description={t("movements.drawer.tagsHelp")}
+            placeholder={t("movements.drawer.tagsPlaceholder")}
+            suggestions={knownTags}
+            value={draft.tags}
+            searchValue={tagText}
+            onSearchChange={(value) => {
+              setTagText(value);
+              setTagError(undefined);
+            }}
+            onChange={(tags) => {
+              setDraft((current) => ({ ...current, tags }));
+              setTagError(undefined);
+            }}
+            disabled={busy}
+            error={tagError}
+          />
         </Stack>
 
         {update.isError && (
@@ -153,7 +196,11 @@ function DrawerForm({
         )}
 
         <Group justify="flex-end" gap="sm">
-          <PrimaryButton type="submit" disabled={!changed || create.isPending} loading={update.isPending}>
+          <PrimaryButton
+            type="submit"
+            disabled={(!changed && tagText.trim() === "") || create.isPending}
+            loading={update.isPending}
+          >
             {t("movements.drawer.save")}
           </PrimaryButton>
         </Group>

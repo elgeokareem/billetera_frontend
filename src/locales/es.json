@@ -122,7 +122,8 @@
       "cancel": "Cancelar",
       "reasonLabel": "Motivo (opcional)",
       "reasonPlaceholder": "¿Para qué fue?",
-      "saveFailed": "No se guardó la etiqueta. Tu motivo sigue aquí.",
+      "tagsLabel": "Tags (opcional)",
+      "saveFailed": "No se guardó la etiqueta. Tu motivo y tus tags siguen aquí.",
       "labelled": "Etiquetado como {{category}}.",
       "undo": "Deshacer",
       "undone": "Etiqueta quitada."
@@ -223,6 +224,9 @@
       "assetMatch": "Incluir la otra moneda de las conversiones",
       "category": "Categoría",
       "categoryPlaceholder": "Cualquier categoría",
+      "tag": "Tag",
+      "tagPlaceholder": "Por ejemplo, viaje-2026",
+      "tagMatch": "Con todos los tags",
       "dates": "Fechas",
       "reason": "Motivo",
       "active": "Filtros activos",
@@ -232,6 +236,7 @@
     "chips": {
       "labelled": "{{label}}: {{value}}",
       "assetMatch": "Incluye conversiones",
+      "tagMatch": "Todos los tags",
       "withReason": "Con motivo",
       "withoutReason": "Sin motivo",
       "remove": "Quitar {{label}}"
@@ -243,6 +248,10 @@
       "reason": "Motivo",
       "amount": "Cantidad",
       "usd": "USD"
+    },
+    "tags": {
+      "filterBy": "Filtrar por el tag {{name}}",
+      "more": "+{{count}}"
     },
     "needsLabel": "Sin etiqueta",
     "noCategory": "Sin categoría",
@@ -273,6 +282,11 @@
       "reasonPlaceholder": "¿Para qué fue?",
       "reasonHelp": "{{count}} de {{limit}} caracteres",
       "category": "Categoría",
+      "tags": "Tags",
+      "tagsHelp": "Hasta 10 tags",
+      "tagsPlaceholder": "Añade un tag, como viaje-2026",
+      "tagInvalid": "Los tags tienen de 1 a 32 caracteres, sin comas",
+      "tagsLimit": "Un movimiento puede tener hasta 10 tags",
       "details": "Detalles",
       "kind": "Tipo",
       "status": "Estado",
@@ -319,7 +333,9 @@
     "invalidCategoryName": "El nombre de una categoría debe tener de 1 a 64 caracteres.",
     "movementNotFound": "Ese movimiento ya no existe.",
     "snapshotNotFound": "Aún no hay datos de saldo.",
-    "tooManyRows": "Demasiados movimientos para exportar. Ajusta los filtros."
+    "tooManyRows": "Demasiados movimientos para exportar. Ajusta los filtros.",
+    "invalidTag": "Ese tag no es válido. Los tags tienen de 1 a 32 caracteres, sin comas.",
+    "tooManyTags": "Un movimiento puede tener hasta 10 tags."
   },
   "categories": {
     "title": "Categorías",

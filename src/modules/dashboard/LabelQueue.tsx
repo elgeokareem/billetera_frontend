@@ -12,7 +12,10 @@ import { NEEDS_LABEL_SEARCH } from "../movements/search";
 import { movementCount } from "../movements/spending";
 import type { Movement, MovementPatch } from "../movements/types";
 import { getApiErrorKey } from "../shared/api-errors";
+import { useTags } from "../tags/hooks";
+import { withPendingTag } from "../tags/names";
 import { LabelCard, type NewCategoryForm } from "./LabelCard";
+import { labelPatch } from "./labelPatch";
 import { dashboardQueries, LABEL_CARDS } from "./queries";
 import { SectionError } from "./SectionStates";
 
@@ -40,14 +43,20 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
   const cards = useMovementsList(queries.labelCards);
   const spending = useMovementTotals(queries.spending);
   const categories = useCategories();
+  const knownTags = useTags();
   const update = useUpdateMovement();
   const createCategory = useCreateCategory();
 
-  // The cards whose save is in flight, the reasons typed on each card, the last failure of each, and the new-category forms.
+  // The cards whose save is in flight, the reasons and tags typed on each card, the last failure of each, and the
+  // new-category forms. A tags load failure leaves the inputs working, with no suggestions.
   const [saving, setSaving] = useState<ReadonlySet<number>>(() => new Set());
   const [reasons, setReasons] = useState<Record<number, string>>({});
+  const [tags, setTags] = useState<Record<number, string[]>>({});
+  const [tagText, setTagText] = useState<Record<number, string>>({});
+  const [tagErrors, setTagErrors] = useState<Record<number, string>>({});
   const [failures, setFailures] = useState<Record<number, string>>({});
   const [forms, setForms] = useState<Record<number, NewCategoryForm>>({});
+  const tagSuggestions = useMemo(() => knownTags.data?.map((tag) => tag.name) ?? [], [knownTags.data]);
 
   // A movement in flight is still counted by the server until its save is refetched, so it's taken out here.
   const headline = count.data ? Math.max(0, movementCount(count.data) - saving.size) : null;
@@ -74,6 +83,9 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
     try {
       await update.mutateAsync({ id: movement.id, body });
       setReasons((current) => without(current, movement.id));
+      setTags((current) => without(current, movement.id));
+      setTagText((current) => without(current, movement.id));
+      setTagErrors((current) => without(current, movement.id));
       return true;
     } catch (error) {
       setFailures((current) => ({ ...current, [movement.id]: getApiErrorKey(error) }));
@@ -88,12 +100,27 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
   }
 
   async function categorize(movement: Movement, category: Category) {
-    const typed = (reasons[movement.id] ?? "").trim();
-    const body: MovementPatch = { category_id: category.id };
-    // The reason goes along only when it was typed, and not when it's the one already saved.
-    if (typed !== "" && typed !== (movement.reason ?? "")) {
-      body.reason = typed;
+    // A name typed without Enter still counts, so it's folded in before the body is built.
+    const pending = withPendingTag(
+      tags[movement.id] ?? movement.tags,
+      tagText[movement.id] ?? "",
+    );
+    if (pending.error) {
+      setTagErrors((current) => ({
+        ...current,
+        [movement.id]:
+          pending.error === "invalid"
+            ? "movements.drawer.tagInvalid"
+            : "movements.drawer.tagsLimit",
+      }));
+      return;
     }
+    const body = labelPatch(
+      movement,
+      category.id,
+      reasons[movement.id] ?? "",
+      pending.tags,
+    );
     if (await save(movement, body)) {
       showUndo(movement, category.name);
     }
@@ -196,6 +223,18 @@ export function LabelQueue({ now, timeZone }: LabelQueueProps) {
             onReasonChange={(value) =>
               setReasons((current) => ({ ...current, [movement.id]: value }))
             }
+            tags={tags[movement.id] ?? movement.tags}
+            onTagsChange={(value) => {
+              setTags((current) => ({ ...current, [movement.id]: value }));
+              setTagErrors((current) => without(current, movement.id));
+            }}
+            tagText={tagText[movement.id] ?? ""}
+            onTagTextChange={(value) => {
+              setTagText((current) => ({ ...current, [movement.id]: value }));
+              setTagErrors((current) => without(current, movement.id));
+            }}
+            tagError={tagErrors[movement.id]}
+            knownTags={tagSuggestions}
             failure={failures[movement.id]}
             form={forms[movement.id]}
             onPick={(category) => void categorize(movement, category)}

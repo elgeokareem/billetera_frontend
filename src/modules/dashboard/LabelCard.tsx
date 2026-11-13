@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
+import { Alert, Box, Button, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import type { Category } from "../categories/types";
 import type { Movement } from "../movements/types";
@@ -6,6 +6,7 @@ import { formatDate, formatQuantity, formatUsd } from "../shared/format";
 import { abs } from "../shared/money";
 import { PrimaryButton } from "../shared/components/Buttons";
 import { Sensitive } from "../shared/components/Sensitive";
+import { TagsField } from "../tags/TagsField";
 import { kindKey, priceNote } from "./movementText";
 
 /** The new-category form of one card, kept by the queue so it survives a failed save. */
@@ -24,6 +25,15 @@ interface LabelCardProps {
   more: Category[];
   reason: string;
   onReasonChange: (reason: string) => void;
+  tags: string[];
+  onTagsChange: (tags: string[]) => void;
+  /** The text typed in the tags input and not yet a tag. */
+  tagText: string;
+  onTagTextChange: (text: string) => void;
+  /** A translation key for a tags error found before sending, or undefined. */
+  tagError?: string;
+  /** The tags the autocomplete offers. */
+  knownTags: readonly string[];
   /** A translation key for the error of the last failed save, or undefined. */
   failure?: string;
   /** The open new-category form, or undefined when it's closed. */
@@ -42,6 +52,12 @@ export function LabelCard({
   more,
   reason,
   onReasonChange,
+  tags,
+  onTagsChange,
+  tagText,
+  onTagTextChange,
+  tagError,
+  knownTags,
   failure,
   form,
   onPick,
@@ -167,6 +183,20 @@ export function LabelCard({
           input: { minHeight: 44 },
         }}
       />
+
+      <Box mt="md">
+        <TagsField
+          label={t("dashboard.card.tagsLabel")}
+          description={t("movements.drawer.tagsHelp")}
+          placeholder={t("movements.drawer.tagsPlaceholder")}
+          suggestions={knownTags}
+          value={tags}
+          searchValue={tagText}
+          onSearchChange={onTagTextChange}
+          onChange={onTagsChange}
+          error={tagError}
+        />
+      </Box>
 
       {failure && (
         <Alert color="red" variant="light" mt="md" role="alert">

@@ -299,7 +299,7 @@ export interface paths {
         head?: never;
         /**
          * Update a movement
-         * @description Changes the reason, the category or both of the user's movement. At least one of reason and category_id is needed. A null or blank reason clears it, and a null category_id clears the category. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Changes the reason, the category, the tags, or any of them, of the user's movement. At least one of reason, category_id and tags is needed. A null or blank reason clears it, a null category_id clears the category, and tags replaces every tag of the movement ([] removes them). Tag names are trimmed and stored in lower case. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         patch: operations["movements.update"];
         trace?: never;
@@ -376,6 +376,26 @@ export interface paths {
          * @description One of the user's snapshots, with its assets. A bad ID, another user's snapshot and a missing one all get the same 404.
          */
         get: operations["snapshots.get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tags
+         * @description The tags that at least one of the user's movements has, in lower case and sorted by name, with the number of movements that have each, in any status. A tag that no movement has any more isn't listed.
+         */
+        get: operations["tags.list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -613,6 +633,8 @@ export interface components {
             source_status: string | null;
             /** @enum {string} */
             status: "pending" | "completed" | "failed";
+            /** @description Tags is the movement's tag names, in lower case and sorted, and [] when it has none, never null. */
+            tags: string[];
             /** Format: decimal */
             unit_price: string | null;
             /** Format: decimal */
@@ -637,6 +659,7 @@ export interface components {
         "movements.UpdateMovementRequest": {
             category_id?: number | null;
             reason?: string | null;
+            tags?: string[];
         };
         "shared.ErrorResponse": {
             error: string;
@@ -697,6 +720,13 @@ export interface components {
         };
         "snapshots.SnapshotEnvelope": {
             snapshot: components["schemas"]["binance.SnapshotResponse"];
+        };
+        "tags.ListResponse": {
+            tags: components["schemas"]["tags.TagResponse"][];
+        };
+        "tags.TagResponse": {
+            movement_count: number;
+            name: string;
         };
     };
     responses: never;
@@ -1595,6 +1625,10 @@ export interface operations {
                 asset_match?: "asset" | "any";
                 /** @description Comma list of up to 20 category IDs, such as 3,4. none selects the movements with no category */
                 category_id?: string;
+                /** @description Comma list of up to 20 tag names, such as trip-2026,shared. Case is ignored */
+                tag?: string;
+                /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
+                tag_match?: "any" | "all";
                 /** @description Start of the range, inclusive. An RFC 3339 time with an offset, such as 2026-10-01T00:00:00Z */
                 from?: string;
                 /** @description End of the range, exclusive. An RFC 3339 time with an offset */
@@ -1672,6 +1706,10 @@ export interface operations {
                 asset_match?: "asset" | "any";
                 /** @description Comma list of up to 20 category IDs, such as 3,4. none selects the movements with no category */
                 category_id?: string;
+                /** @description Comma list of up to 20 tag names, such as trip-2026,shared. Case is ignored */
+                tag?: string;
+                /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
+                tag_match?: "any" | "all";
                 /** @description Start of the range, inclusive. An RFC 3339 time with an offset, such as 2026-10-01T00:00:00Z */
                 from?: string;
                 /** @description End of the range, exclusive. An RFC 3339 time with an offset */
@@ -1766,6 +1804,10 @@ export interface operations {
                 asset_match?: "asset" | "any";
                 /** @description Comma list of up to 20 category IDs, such as 3,4. none selects the movements with no category */
                 category_id?: string;
+                /** @description Comma list of up to 20 tag names, such as trip-2026,shared. Case is ignored */
+                tag?: string;
+                /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
+                tag_match?: "any" | "all";
                 /** @description Start of the range, inclusive. An RFC 3339 time with an offset, such as 2026-10-01T00:00:00Z */
                 from?: string;
                 /** @description End of the range, exclusive. An RFC 3339 time with an offset */
@@ -1903,7 +1945,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description reason is the text of up to 500 characters once trimmed, or null. category_id is one of the user's category IDs, or null. At least one of the two is needed */
+        /** @description reason is the text of up to 500 characters once trimmed, or null. category_id is one of the user's category IDs, or null. tags is the whole list of up to 10 tag names, each 1 to 32 characters once trimmed, without commas or control characters, stored in lower case. At least one of the three is needed */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["movements.UpdateMovementRequest"];
@@ -1919,7 +1961,7 @@ export interface operations {
                     "application/json": components["schemas"]["movements.MovementEnvelope"];
                 };
             };
-            /** @description The body isn't a JSON object with reason or category_id, or a value is invalid */
+            /** @description The body isn't a JSON object with reason, category_id or tags, or a value is invalid */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2196,6 +2238,53 @@ export interface operations {
             };
             /** @description The snapshot isn't found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+        };
+    };
+    "tags.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["tags.ListResponse"];
+                };
+            };
+            /** @description No valid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description Origin not allowed */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

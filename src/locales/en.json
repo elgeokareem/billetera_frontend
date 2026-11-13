@@ -122,7 +122,8 @@
       "cancel": "Cancel",
       "reasonLabel": "Reason (optional)",
       "reasonPlaceholder": "What was this for?",
-      "saveFailed": "The label wasn't saved. Your reason is still here.",
+      "tagsLabel": "Tags (optional)",
+      "saveFailed": "The label wasn't saved. Your reason and tags are still here.",
       "labelled": "Labelled as {{category}}.",
       "undo": "Undo",
       "undone": "Label removed."
@@ -223,6 +224,9 @@
       "assetMatch": "Include the other side of a Convert",
       "category": "Category",
       "categoryPlaceholder": "Any category",
+      "tag": "Tag",
+      "tagPlaceholder": "For example, trip-2026",
+      "tagMatch": "Match all tags",
       "dates": "Dates",
       "reason": "Reason",
       "active": "Active filters",
@@ -232,6 +236,7 @@
     "chips": {
       "labelled": "{{label}}: {{value}}",
       "assetMatch": "Includes Convert",
+      "tagMatch": "All tags",
       "withReason": "With reason",
       "withoutReason": "Without reason",
       "remove": "Remove {{label}}"
@@ -243,6 +248,10 @@
       "reason": "Reason",
       "amount": "Amount",
       "usd": "USD"
+    },
+    "tags": {
+      "filterBy": "Filter by tag {{name}}",
+      "more": "+{{count}}"
     },
     "needsLabel": "Needs a label",
     "noCategory": "No category",
@@ -273,6 +282,11 @@
       "reasonPlaceholder": "What was this for?",
       "reasonHelp": "{{count}} of {{limit}} characters",
       "category": "Category",
+      "tags": "Tags",
+      "tagsHelp": "Up to 10 tags",
+      "tagsPlaceholder": "Add a tag, such as trip-2026",
+      "tagInvalid": "Tags are 1 to 32 characters, without commas",
+      "tagsLimit": "A movement can have up to 10 tags",
       "details": "Details",
       "kind": "Kind",
       "status": "Status",
@@ -319,7 +333,9 @@
     "invalidCategoryName": "Category names must be 1 to 64 characters.",
     "movementNotFound": "That movement no longer exists.",
     "snapshotNotFound": "No balance data yet.",
-    "tooManyRows": "Too many movements to export. Narrow the filters."
+    "tooManyRows": "Too many movements to export. Narrow the filters.",
+    "invalidTag": "That tag isn't valid. Tags are 1 to 32 characters, without commas.",
+    "tooManyTags": "A movement can have up to 10 tags."
   },
   "categories": {
     "title": "Categories",

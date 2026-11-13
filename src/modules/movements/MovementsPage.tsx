@@ -10,6 +10,7 @@ import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
 import { SyncNow } from "../dashboard/SyncNow";
 import { getApiErrorKey } from "../shared/api-errors";
+import { useTags } from "../tags/hooks";
 import { ExportButton } from "./ExportButton";
 import { FilterChips } from "./FilterChips";
 import { MovementCards } from "./MovementCards";
@@ -17,7 +18,14 @@ import { MovementDrawer } from "./MovementDrawer";
 import { MovementFilters } from "./MovementFilters";
 import { MovementsTable } from "./MovementsTable";
 import { feedRows, useMovementsFeed, useUpdateMovement } from "./hooks";
-import { hasFilters, type MovementsSearch, toMovementsQuery, withText } from "./search";
+import {
+  hasFilters,
+  listItems,
+  type MovementsSearch,
+  toMovementsQuery,
+  withList,
+  withText,
+} from "./search";
 import type { Movement } from "./types";
 
 /** The search text is applied this long after the last keystroke. */
@@ -49,6 +57,8 @@ export function MovementsPage() {
   const query = useMemo(() => toMovementsQuery(search), [search]);
   const feed = useMovementsFeed(query);
   const categories = useCategories();
+  const tags = useTags();
+  const knownTags = useMemo(() => tags.data?.map((tag) => tag.name) ?? [], [tags.data]);
   const categoryNames = useMemo(
     () => new Map((categories.data ?? []).map((category) => [category.id, category.name])),
     [categories.data],
@@ -100,6 +110,19 @@ export function MovementsPage() {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => commitText(value), SEARCH_DEBOUNCE_MS);
   }
+
+  // Adds a tag of a table row to the filter, keeping the other filters and tag_match. A tag already there, or a 21st
+  // tag, changes nothing.
+  const pickTag = useCallback(
+    (name: string) => {
+      const current = listItems(search.tag);
+      if (current.includes(name) || current.length >= 20) {
+        return;
+      }
+      go(withList(search, "tag", [...current, name]));
+    },
+    [go, search],
+  );
 
   // Files a movement under a category, or under none, from the table. The list refetches once the save settles.
   // mutateAsync is a stable function, unlike the mutation's result, so the callback keeps its identity between renders.
@@ -162,7 +185,13 @@ export function MovementsPage() {
 
       <Collapse expanded={wide || panelOpen}>
         <Paper bg="dark.6" radius={12} p={{ base: 16, sm: 20 }}>
-          <MovementFilters search={search} onChange={go} categories={categories.data} now={now} />
+          <MovementFilters
+            search={search}
+            onChange={go}
+            categories={categories.data}
+            knownTags={knownTags}
+            now={now}
+          />
         </Paper>
       </Collapse>
 
@@ -186,6 +215,7 @@ export function MovementsPage() {
             categories={categories.data}
             onOpen={setOpened}
             onCategoryChange={setCategory}
+            onTagPick={pickTag}
             savingId={savingId}
           />
           <MovementCards rows={rows} categoryNames={categoryNames} onOpen={setOpened} />
@@ -208,7 +238,12 @@ export function MovementsPage() {
         </Stack>
       )}
 
-      <MovementDrawer movement={opened} categories={categories.data} onClose={() => setOpened(null)} />
+      <MovementDrawer
+        movement={opened}
+        categories={categories.data}
+        knownTags={knownTags}
+        onClose={() => setOpened(null)}
+      />
     </Stack>
   );
 }

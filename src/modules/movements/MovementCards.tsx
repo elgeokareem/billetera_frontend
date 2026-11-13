@@ -3,6 +3,7 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { movementTitle } from "../dashboard/movementText";
 import { formatDate } from "../shared/format";
+import { TagPills } from "../tags/TagPills";
 import { CoinAmount, StatusBadge, UsdValue } from "./MovementParts";
 import { ACCENT } from "./labels";
 import { needsLabel } from "./spending";
@@ -68,6 +69,7 @@ function MovementCardsView({ rows, categoryNames, onOpen }: MovementCardsProps) 
                     {movement.reason}
                   </Text>
                 )}
+                {movement.tags.length > 0 && <TagPills tags={movement.tags} />}
               </Stack>
               <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
                 <UsdValue movement={movement} />

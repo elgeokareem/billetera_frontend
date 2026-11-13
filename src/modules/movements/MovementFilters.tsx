@@ -28,12 +28,14 @@ interface MovementFiltersProps {
   onChange: (next: MovementsSearch) => void;
   /** The categories to offer. Until they load, only "No category" is offered. */
   categories: readonly Category[] | undefined;
+  /** The tags the autocomplete offers. Empty until they load, or when they fail. */
+  knownTags: readonly string[];
   /** The day the date presets are measured from. */
   now: Date;
 }
 
 /** The filters of the Movements view. Each control writes its filter to the URL, so the list follows at once. */
-export function MovementFilters({ search, onChange, categories, now }: MovementFiltersProps) {
+export function MovementFilters({ search, onChange, categories, knownTags, now }: MovementFiltersProps) {
   const { t } = useTranslation();
   const preset = activePreset(search, now);
   const custom = !preset && search.from && search.to ? rangeLabel(search.from, search.to) : undefined;
@@ -128,6 +130,26 @@ export function MovementFilters({ search, onChange, categories, now }: MovementF
         <Button variant="default" radius="xl" mih={44} onClick={() => onChange(NEEDS_LABEL_SEARCH)}>
           {t("movements.filters.needsLabel")}
         </Button>
+      </FilterGroup>
+
+      <FilterGroup label={t("movements.filters.tag")}>
+        <TagsInput
+          aria-label={t("movements.filters.tag")}
+          placeholder={t("movements.filters.tagPlaceholder")}
+          data={knownTags}
+          value={listItems(search.tag)}
+          onChange={(items) => onChange(withList(search, "tag", items))}
+          clearable
+        />
+        <Checkbox
+          label={t("movements.filters.tagMatch")}
+          checked={search.tag_match === "all"}
+          disabled={!search.tag}
+          onChange={(event) =>
+            onChange(withFilter(search, "tag_match", event.currentTarget.checked ? "all" : undefined))
+          }
+          styles={{ labelWrapper: { minHeight: 44, display: "flex", alignItems: "center" } }}
+        />
       </FilterGroup>
 
       <FilterGroup label={t("movements.filters.dates")}>

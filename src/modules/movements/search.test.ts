@@ -10,6 +10,7 @@ import {
   NEEDS_LABEL_SEARCH,
   parseMovementsSearch,
   presetRange,
+  tagNames,
   toMovementsQuery,
   withFilter,
   withList,
@@ -66,6 +67,33 @@ describe("parseMovementsSearch", () => {
     expect(parse({ asset_match: "any" })).toEqual({});
     expect(parse({ asset: "!!", asset_match: "any" })).toEqual({});
     expect(parse({ asset: "btc", asset_match: "any" })).toEqual({ asset: "BTC", asset_match: "any" });
+  });
+
+  it("normalises the tag names, drops the invalid ones and dedupes them", () => {
+    expect(parse({ tag: "Trip-2026,TRIP-2026,shared" })).toEqual({ tag: "trip-2026,shared" });
+    expect(parse({ tag: "a,,a,b,c" })).toEqual({ tag: "a,b,c" });
+    expect(parse({ tag: `${"x".repeat(33)},ok` })).toEqual({ tag: "ok" });
+    expect(parse({ tag: "a,b" })).toEqual({ tag: "a,b" });
+  });
+
+  it("caps the tag list at 20 names", () => {
+    const many = Array.from({ length: 25 }, (_, index) => `tag-${index + 1}`).join(",");
+    expect(parse({ tag: many }).tag?.split(",")).toHaveLength(20);
+  });
+
+  it("reads a space in a tag from a + or %20", () => {
+    expect(parse(parseSearch("?tag=trip+2026"))).toEqual({ tag: "trip 2026" });
+    expect(parse(parseSearch("?tag=trip%202026"))).toEqual({ tag: "trip 2026" });
+  });
+
+  it("keeps tag_match only as all, and only with a tag", () => {
+    expect(parse({ tag_match: "all" })).toEqual({});
+    expect(parse({ tag: "trip-2026", tag_match: "any" })).toEqual({ tag: "trip-2026" });
+    expect(parse({ tag: "trip-2026", tag_match: "all" })).toEqual({
+      tag: "trip-2026",
+      tag_match: "all",
+    });
+    expect(parse({ tag: "x".repeat(33), tag_match: "all" })).toEqual({});
   });
 
   it("keeps the search text as typed, but trimmed and at most 100 characters", () => {
@@ -132,6 +160,12 @@ describe("toMovementsQuery", () => {
     expect(queryString(toMovementsQuery(parse({ q: "rent & food" })))).toBe("?q=rent+%26+food");
   });
 
+  it("carries the tag filter and tag_match to the list and the export", () => {
+    const search = parse({ tag: "trip-2026,shared", tag_match: "all" });
+    expect(queryString(toMovementsQuery(search))).toBe("?tag=trip-2026,shared&tag_match=all");
+    expect(queryString(toMovementsQuery(parse({ tag: "trip 2026" })))).toBe("?tag=trip+2026");
+  });
+
   it("never carries paging, which the list adds itself", () => {
     expect(queryString(toMovementsQuery(parse({})))).toBe("");
   });
@@ -189,6 +223,24 @@ describe("changing the search", () => {
     expect(withoutKey({ asset: "BTC", asset_match: "any" }, "asset")).toEqual({});
   });
 
+  it("normalises a tag list, and drops tag_match with the last tag", () => {
+    expect(withList({}, "tag", ["Trip", "a,b", "SHARED"])).toEqual({ tag: "trip,shared" });
+    expect(withList({ tag: "a,b", tag_match: "all" }, "tag", ["a"])).toEqual({
+      tag: "a",
+      tag_match: "all",
+    });
+    expect(withList({ tag: "a", tag_match: "all" }, "tag", [])).toEqual({});
+  });
+
+  it("removing the tag filter drops tag_match too", () => {
+    expect(withoutKey({ tag: "a", tag_match: "all" }, "tag")).toEqual({});
+  });
+
+  it("keeps the first 20 tag names after normalising", () => {
+    const many = Array.from({ length: 25 }, (_, index) => `Tag-${index + 1}`);
+    expect(withList({}, "tag", many).tag?.split(",")).toHaveLength(20);
+  });
+
   it("sets or removes one filter, with no undefined key left behind", () => {
     const cleared = withFilter(search, "direction", undefined);
     expect(cleared).not.toHaveProperty("direction");
@@ -207,12 +259,30 @@ describe("changing the search", () => {
 
   it("tells whether a filter is set, and reads empty after the last one is removed", () => {
     expect(hasFilters(search)).toBe(true);
+    expect(hasFilters({ tag: "trip-2026" })).toBe(true);
+    expect(hasFilters({ tag: "trip-2026", tag_match: "all" })).toBe(true);
     const none = withList(withList(search, "kind", []), "category_id", []);
     expect(hasFilters(withFilter(none, "direction", undefined))).toBe(false);
   });
 
   it("keeps only symbols, in upper case", () => {
     expect(assetSymbols(["btc", " usdt ", "BT C", "", "1INCH"])).toEqual(["BTC", "USDT", "1INCH"]);
+  });
+
+  it("keeps only valid tag names, normalised", () => {
+    expect(tagNames(["Trip", "a,b", "", " shared "])).toEqual(["trip", "shared"]);
+  });
+});
+
+describe("the tag search round trip", () => {
+  it("survives stringifySearch and parseSearch", () => {
+    const search = { tag: "trip 2026,shared", tag_match: "all" } as const;
+    expect(parse(parseSearch(stringifySearch(search)))).toEqual(search);
+  });
+
+  it("leaves Needs a label with neither tag nor tag_match", () => {
+    expect(NEEDS_LABEL_SEARCH).not.toHaveProperty("tag");
+    expect(NEEDS_LABEL_SEARCH).not.toHaveProperty("tag_match");
   });
 });
 

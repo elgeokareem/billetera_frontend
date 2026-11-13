@@ -1,4 +1,5 @@
 import { apiInstant, monthRange } from "../shared/dateRange";
+import { normaliseTagName } from "../tags/names";
 import type { MovementsQuery } from "./api";
 import { SPENDING_FILTER } from "./spending";
 import type { MovementKind, MovementStatus } from "./types";
@@ -16,6 +17,8 @@ export interface MovementsSearch {
   asset?: string;
   asset_match?: "any";
   category_id?: string;
+  tag?: string;
+  tag_match?: "all";
   from?: string;
   to?: string;
   has_reason?: "true" | "false";
@@ -91,6 +94,11 @@ export function parseMovementsSearch(raw: Record<string, unknown>): MovementsSea
   put("asset", readList(raw.asset, (item) => ASSET_SYMBOL.test(item), (item) => item.toUpperCase()));
   put("asset_match", search.asset !== undefined && raw.asset_match === "any" ? "any" : undefined);
   put("category_id", readList(raw.category_id, readCategory));
+  put(
+    "tag",
+    readList(raw.tag, (item) => item !== "", (item) => normaliseTagName(item) ?? ""),
+  );
+  put("tag_match", search.tag !== undefined && raw.tag_match === "all" ? "all" : undefined);
   put("has_reason", raw.has_reason === "true" || raw.has_reason === "false" ? raw.has_reason : undefined);
 
   const from = readInstant(raw.from);
@@ -116,6 +124,8 @@ export function toMovementsQuery(search: MovementsSearch): Omit<MovementsQuery, 
     asset: search.asset,
     asset_match: search.asset_match,
     category_id: search.category_id,
+    tag: search.tag,
+    tag_match: search.tag_match,
     from: search.from ? apiInstant(new Date(search.from)) : undefined,
     to: search.to ? apiInstant(new Date(search.to)) : undefined,
     has_reason: search.has_reason,
@@ -167,12 +177,27 @@ export function assetSymbols(items: readonly string[]) {
   return items.map((item) => item.trim().toUpperCase()).filter((item) => ASSET_SYMBOL.test(item));
 }
 
-/** Sets a list filter to these items, or removes it when there are none. A coin filter with no coins also drops asset_match. */
-export function withList(search: MovementsSearch, key: "kind" | "status" | "asset" | "category_id", items: string[]) {
-  const value = unique(items).join(",") || undefined;
+/** Tag names as the API takes them: normalised, with the invalid ones dropped. */
+export function tagNames(items: readonly string[]) {
+  return items.map(normaliseTagName).filter((item): item is string => item !== undefined);
+}
+
+/**
+ * Sets a list filter to these items, or removes it when there are none. A coin filter with no coins also drops
+ * asset_match, and a tag filter with no tags drops tag_match.
+ */
+export function withList(
+  search: MovementsSearch,
+  key: "kind" | "status" | "asset" | "category_id" | "tag",
+  items: string[],
+) {
+  const value = unique(key === "tag" ? tagNames(items) : items).join(",") || undefined;
   const next = withFilter(search, key, value);
   if (key === "asset" && value === undefined) {
     delete next.asset_match;
+  }
+  if (key === "tag" && value === undefined) {
+    delete next.tag_match;
   }
   return next;
 }
@@ -192,7 +217,10 @@ export function withFilter<K extends MovementsSearchKey>(
   return next;
 }
 
-/** Removes one key of the search. A date range goes as a whole, since its two ends belong together, and a coin goes with asset_match. */
+/**
+ * Removes one key of the search. A date range goes as a whole, since its two ends belong together, and a coin goes with
+ * asset_match, as a tag goes with tag_match.
+ */
 export function withoutKey(search: MovementsSearch, key: MovementsSearchKey): MovementsSearch {
   const next = { ...search };
   delete next[key];
@@ -202,6 +230,9 @@ export function withoutKey(search: MovementsSearch, key: MovementsSearchKey): Mo
   }
   if (key === "asset") {
     delete next.asset_match;
+  }
+  if (key === "tag") {
+    delete next.tag_match;
   }
   return next;
 }
@@ -215,6 +246,8 @@ const FILTER_KEYS = [
   "asset",
   "asset_match",
   "category_id",
+  "tag",
+  "tag_match",
   "from",
   "to",
   "has_reason",

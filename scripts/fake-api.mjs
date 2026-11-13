@@ -25,6 +25,12 @@
 // Holdings: BTC has a locked and a frozen part, so free, locked and freeze differ in the snapshots. ADA was held from 5 to 14
 // days ago and isn't now, so its history has a value, then zeros; with unpriced on, a stretch of it has no price.
 //
+// Tags. A movement carries 0 to 10 lower-case names, and a name is 1 to 32 code points with no control character and no
+// comma. PATCH /movements/:id takes the whole list under "tags"; GET /tags lists the names at least one movement uses,
+// sorted, with their movement counts. GET /movements, /movements/totals and /movements/export take tag, a comma list of
+// up to 20 names, and tag_match=any|all. The seed tags the Travel movements trip-2026, some Food ones shared, and one
+// movement with five tags so the table shows "+2".
+//
 // Scenarios and problems, with POST /__fake/state (JSON body, any mix of these fields):
 //   {"reset": true}                 back to the start: no key, no sessions, the populated account, flags off
 //   {"account": "populated"}        rebuilds the account of test@example.com. One of:
@@ -83,6 +89,7 @@ const FAIL_ROUTES = [
   "GET /movements/export",
   "GET /movements/:id",
   "PATCH /movements/:id",
+  "GET /tags",
   "GET /categories",
   "POST /categories",
   "PATCH /categories/:id",
@@ -94,9 +101,9 @@ const FAIL_ROUTES = [
   "POST /binance/sync",
   "POST /binance/movements/sync",
 ];
-const LIST_PARAMS = ["limit", "cursor", "kind", "direction", "status", "asset", "asset_match", "category_id", "from", "to", "has_reason", "q"];
-const TOTALS_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "from", "to", "has_reason", "q", "period", "group_by", "tz"];
-const EXPORT_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "from", "to", "has_reason", "q"];
+const LIST_PARAMS = ["limit", "cursor", "kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "from", "to", "has_reason", "q"];
+const TOTALS_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "from", "to", "has_reason", "q", "period", "group_by", "tz"];
+const EXPORT_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "from", "to", "has_reason", "q"];
 const HISTORY_PARAMS = ["from", "to", "bucket", "tz"];
 const MOVEMENT_KINDS = ["deposit", "withdrawal", "pay", "p2p", "convert"];
 const MOVEMENT_STATUSES = ["pending", "completed", "failed"];
@@ -106,6 +113,8 @@ const MAX_PAGE_LIMIT = 200;
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_CATEGORY_RUNES = 64;
 const MAX_REASON_RUNES = 500;
+const MAX_TAG_LENGTH = 32;
+const MAX_TAGS = 10;
 const MAX_HISTORY_POINTS = 2000;
 const EXPORT_MAX_ROWS = 100_000;
 const HOUR = 3_600_000;
@@ -515,6 +524,29 @@ function categoryIdNamed(account, name) {
   return account.categories.find((category) => category.name === name)?.id ?? null;
 }
 
+// The backend's tags.NormalizeName: trim, the Unicode simple lowercase of each code point, 1 to 32 code points, no
+// control character and no comma. Null when a rule fails.
+function normalizeTagName(text) {
+  const name = Array.from(text.trim(), (char) => (char === "İ" ? "i" : char.toLowerCase())).join("");
+  const length = [...name].length;
+  if (length < 1 || length > MAX_TAG_LENGTH || /\p{Cc}/u.test(name) || name.includes(",")) {
+    return null;
+  }
+  return name;
+}
+
+// The names of a list, normalised, each once, sorted as the backend stores them.
+function normalizeTags(items) {
+  const tags = [];
+  for (const item of items) {
+    const name = normalizeTagName(item);
+    if (name !== null && !tags.includes(name)) {
+      tags.push(name);
+    }
+  }
+  return tags.sort();
+}
+
 // One movement of the seed. Its price comes from priceOf, and its category is named, so the seed reads like the design.
 function addMovement(account, options, spec) {
   const price = priceOf(spec.asset, options, spec.priceState);
@@ -539,6 +571,7 @@ function addMovement(account, options, spec) {
     reason: spec.reason ?? null,
     reasonUpdatedAt: spec.reason ? spec.at : null,
     categoryId: spec.category ? categoryIdNamed(account, spec.category) : null,
+    tags: normalizeTags(spec.tags ?? []),
     usdPrice: price.price,
     usdPriceSource: price.price ? "binance-1m" : null,
     usdPriceChecked: price.checked,
@@ -567,15 +600,19 @@ function addSeedMovements(account, options, now) {
     {
       at: thisMonth(72), kind: "withdrawal", direction: "out", asset: "USDT", amount: "275", feeAsset: "USDT", feeAmount: "1",
       counterparty: TRON_ADDRESS, sourceStatus: "6", category: "Food",
+      tags: ["shared", "food", "groceries", "weekly", "card"],
     },
-    { at: thisMonth(120), kind: "pay", direction: "out", asset: "USDT", amount: "185", counterparty: "Aerolíneas Demo", category: "Travel" },
+    {
+      at: thisMonth(120), kind: "pay", direction: "out", asset: "USDT", amount: "185", counterparty: "Aerolíneas Demo",
+      category: "Travel", tags: ["trip-2026"],
+    },
     {
       at: thisMonth(96), kind: "deposit", direction: "in", asset: "USDT", amount: "1800", reason: "Salary", category: "Income",
       sourceStatus: "1",
     },
     {
       at: thisMonth(144), kind: "withdrawal", direction: "out", asset: "BTC", amount: "0.0004", feeAsset: "BTC", feeAmount: "0.00001",
-      counterparty: BTC_ADDRESS, sourceStatus: "6", category: "Food",
+      counterparty: BTC_ADDRESS, sourceStatus: "6", category: "Food", tags: ["shared"],
     },
     {
       at: thisMonth(192), kind: "withdrawal", direction: "out", asset: "USDT", amount: "640", feeAsset: "USDT", feeAmount: "1",
@@ -583,7 +620,7 @@ function addSeedMovements(account, options, now) {
     },
     {
       at: thisMonth(170), kind: "withdrawal", direction: "out", asset: "SHIB", amount: "1200000", counterparty: TRON_ADDRESS,
-      sourceStatus: "6", category: "Travel",
+      sourceStatus: "6", category: "Travel", tags: ["trip-2026", "shared"],
     },
     {
       at: thisMonth(19), kind: "convert", direction: "out", asset: "BNB", amount: "0.5", counterAsset: "USDT", counterAmount: "305.2",
@@ -610,7 +647,7 @@ function addSeedMovements(account, options, now) {
     { at: lastMonthOn(now, 3), kind: "withdrawal", direction: "out", asset: "USDT", amount: "60", counterparty: TRON_ADDRESS, sourceStatus: "6" },
     {
       at: lastMonthOn(now, 18), kind: "withdrawal", direction: "out", asset: "USDT", amount: "100", counterparty: TRON_ADDRESS_2,
-      sourceStatus: "6", category: "Food",
+      sourceStatus: "6", category: "Food", tags: ["shared"],
     },
     { at: lastMonthOn(now, 1), kind: "deposit", direction: "in", asset: "USDT", amount: "2000", sourceStatus: "1" },
     {
@@ -855,6 +892,7 @@ function movementJson(movement) {
     reason: movement.reason,
     reason_updated_at: movement.reasonUpdatedAt ? rfc3339(movement.reasonUpdatedAt) : null,
     category_id: movement.categoryId,
+    tags: movement.tags,
     usd_price: movement.usdPrice,
     usd_price_source: priced ? movement.usdPriceSource : null,
     usd_price_status: priced ? "priced" : movement.usdPriceChecked ? "unavailable" : "pending",
@@ -1331,6 +1369,12 @@ function parseMovementFilter(params) {
   }
   const categories = list(params, "category_id", categoryItemAllowed);
   if (categories.items === null) return { error: "invalid category_id" };
+  const tags = list(params, "tag", (item) => normalizeTagName(item) !== null);
+  if (tags.items === null) return { error: "invalid tag" };
+  const tagMatch = single(params, "tag_match");
+  if (tagMatch.present && (!tagMatch.ok || (tagMatch.value !== "any" && tagMatch.value !== "all"))) {
+    return { error: "invalid tag_match" };
+  }
   const direction = single(params, "direction");
   if (direction.present && (!direction.ok || (direction.value !== "in" && direction.value !== "out"))) {
     return { error: "invalid direction" };
@@ -1350,6 +1394,8 @@ function parseMovementFilter(params) {
       search: text,
       categoryIDs: categories.items.filter((item) => item !== "none").map((item) => Number(item)),
       uncategorized: categories.items.includes("none"),
+      tags: [...new Set(tags.items.map((item) => normalizeTagName(item)))],
+      tagMatchAll: tagMatch.present && tagMatch.value === "all",
       direction: direction.present ? direction.value : "",
       hasReason: hasReason.present ? hasReason.value === "true" : null,
       from: range.from,
@@ -1377,6 +1423,12 @@ function matchesFilter(movement, filter) {
     const inList = movement.categoryId !== null && filter.categoryIDs.includes(movement.categoryId);
     const none = filter.uncategorized && movement.categoryId === null;
     if (!inList && !none) return false;
+  }
+  if (filter.tags.length) {
+    const hit = filter.tagMatchAll
+      ? filter.tags.every((tag) => movement.tags.includes(tag))
+      : filter.tags.some((tag) => movement.tags.includes(tag));
+    if (!hit) return false;
   }
   if (filter.from && movement.occurredAt.getTime() < filter.from.getTime()) return false;
   if (filter.to && movement.occurredAt.getTime() >= filter.to.getTime()) return false;
@@ -1602,7 +1654,9 @@ function findMovement(account, text) {
 function parsePatch(raw) {
   if (raw === null || Buffer.byteLength(raw) > MAX_UPDATE_BODY) return { error: "invalid body" };
   const body = parseObject(raw);
-  if (!body || (body.reason === undefined && body.category_id === undefined)) return { error: "invalid body" };
+  if (!body || (body.reason === undefined && body.category_id === undefined && body.tags === undefined)) {
+    return { error: "invalid body" };
+  }
   const patch = {};
   if (body.reason !== undefined) {
     if (body.reason === null) {
@@ -1623,6 +1677,18 @@ function parsePatch(raw) {
     } else {
       return { error: "invalid category_id" };
     }
+  }
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) return { error: "invalid tag" };
+    const names = [];
+    for (const item of body.tags) {
+      if (typeof item !== "string") return { error: "invalid tag" };
+      const name = normalizeTagName(item);
+      if (name === null) return { error: "invalid tag" };
+      if (!names.includes(name)) names.push(name);
+    }
+    if (names.length > MAX_TAGS) return { error: "too many tags" };
+    patch.tags = { set: true, value: names.sort() };
   }
   return { patch };
 }
@@ -1645,7 +1711,28 @@ function patchMovement(account, text, raw, reply) {
   if (parsed.patch.categoryId?.set) {
     movement.categoryId = parsed.patch.categoryId.value;
   }
+  if (parsed.patch.tags?.set) {
+    movement.tags = parsed.patch.tags.value;
+  }
   return reply(200, { movement: movementJson(movement) });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Tags
+// ---------------------------------------------------------------------------------------------------------------------
+
+// GET /tags. The names at least one movement of any status uses, sorted, with how many movements have each one.
+function listTags(account, reply) {
+  const counts = new Map();
+  for (const movement of account.movements) {
+    for (const tag of movement.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  const tags = [...counts.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([name, movement_count]) => ({ name, movement_count }));
+  return reply(200, { tags });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1721,6 +1808,7 @@ const CSV_HEADER = [
   "id", "occurred_at", "source", "kind", "external_id", "direction", "status", "source_status", "asset", "amount",
   "fee_asset", "fee_amount", "counter_asset", "counter_amount", "unit_price", "counterparty", "reason", "reason_updated_at",
   "category_id", "category_name", "usd_price", "usd_price_source", "usd_price_status", "usd_value", "fee_usd_value",
+  "tags",
 ];
 
 // A cell that a spreadsheet could run as a formula gets a quote in front, and a line break becomes LF.
@@ -1756,6 +1844,7 @@ function exportCsv(account, parsed, reply, sendRaw) {
       json.reason ?? "", json.reason_updated_at ?? "", json.category_id === null ? "" : String(json.category_id),
       json.category_id === null ? "" : (names.get(json.category_id) ?? ""), json.usd_price ?? "",
       json.usd_price_source ?? "", json.usd_price_status, json.usd_value ?? "", json.fee_usd_value ?? "",
+      json.tags.join(", "),
     ];
     lines.push(cells.map((cell) => csvField(csvCell(cell))).join(","));
   }
@@ -2041,9 +2130,10 @@ async function handle(req, res) {
   }
 
   const isMovements = pathname === "/movements" || pathname.startsWith("/movements/");
+  const isTags = pathname === "/tags";
   const isCategories = pathname === "/categories" || pathname.startsWith("/categories/");
   const isSnapshots = pathname === "/snapshots" || pathname.startsWith("/snapshots/");
-  if (isMovements || isCategories || isSnapshots) {
+  if (isMovements || isTags || isCategories || isSnapshots) {
     const userId = authenticate(req, reply);
     if (userId === null) {
       return;
@@ -2062,6 +2152,9 @@ async function handle(req, res) {
         return movement ? reply(200, { movement: movementJson(movement) }) : reply(404, { error: "movement not found" });
       }
       if (pattern === "PATCH /movements/:id") return patchMovement(account, id, raw, reply);
+    }
+    if (isTags) {
+      if (route === "GET /tags") return listTags(account, reply);
     }
     if (isCategories) {
       if (route === "GET /categories") return listCategories(account, reply);

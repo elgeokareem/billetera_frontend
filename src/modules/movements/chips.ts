@@ -84,6 +84,21 @@ export function filterChips(search: MovementsSearch, { now, t, categoryName }: C
       without: withList(search, "category_id", categories.filter((item) => item !== id)),
     });
   }
+  const tags = listItems(search.tag);
+  for (const tag of tags) {
+    chips.push({
+      key: `tag:${tag}`,
+      label: labelled(t("movements.filters.tag"), tag),
+      without: withList(search, "tag", tags.filter((item) => item !== tag)),
+    });
+  }
+  if (search.tag_match === "all") {
+    chips.push({
+      key: "tag_match",
+      label: t("movements.chips.tagMatch"),
+      without: withFilter(search, "tag_match", undefined),
+    });
+  }
   const preset = activePreset(search, now);
   if (preset) {
     chips.push({

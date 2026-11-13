@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { tagKeys } from "../tags/hooks";
 import {
   fetchMovementTotals,
   fetchMovements,
@@ -82,6 +83,10 @@ export function useUpdateMovement() {
     mutationFn: ({ id, body }: { id: number; body: MovementPatch }) =>
       updateMovement(id, body),
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: movementKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: movementKeys.all }),
+        // A save can add a tag, or leave one that no movement uses any more.
+        queryClient.invalidateQueries({ queryKey: tagKeys.all }),
+      ]),
   });
 }

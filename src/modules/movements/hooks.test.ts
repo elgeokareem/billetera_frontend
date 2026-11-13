@@ -23,6 +23,7 @@ function movement(id: number): Movement {
     reason: null,
     reason_updated_at: null,
     category_id: null,
+    tags: [],
     usd_price: null,
     usd_price_source: null,
     usd_price_status: "pending",

@@ -112,6 +112,11 @@ No code change in `spendingBreakdown`, `SpendingCard` or `CategoriesPage`: their
 
 Every amount shown here (summary, tooltips, over-the-limit text, segments, the label card rest, the read-only unpriced parts) is in `Sensitive`. The USD input itself isn't masked: masking an input being edited would make it unusable, and Hide Balances already leaves the reason and tags editable. Category names and counts aren't masked. `aria-label`s carry no amounts.
 
+### Decisions (user)
+
+- **Dismissing a detected movement keeps its parts.** A dismissed movement counts nowhere meanwhile, so deleting its parts would only lose work; restoring it (`review: "suspected"`) brings them back as they were. The drawer and the list need no special case.
+- **Hide Balances leaves the USD inputs usable.** The amount inputs aren't masked while editing parts; everything read-only stays masked (summary, tooltips, over-the-limit text, segments, the label card rest, the unpriced parts). Masking a field being edited would make it impossible to type the number the API expects.
+
 ## Design
 
 ### Data layer
@@ -120,8 +125,8 @@ Every amount shown here (summary, tooltips, over-the-limit text, segments, the l
 |------|--------|
 | `src/modules/shared/api-schema.d.ts` | `pnpm api:generate` |
 | `src/modules/movements/types.ts` | `Split = Schemas["movements.SplitResponse"]`, `SplitStatus`, `SplitRequest = Schemas["movements.SplitRequest"]` |
-| `src/modules/movements/splits.ts` (new) | Pure: `MAX_SPLITS = 20`, `SPLIT_COLORS`, `normaliseSplitAmount(text) → string \| undefined`, `splitLimit(usdValue) → string` (big.js `round(2, Big.roundHalfUp)`), `draftRest(usdValue, parts) → string` (sub-cent rule, floor 0), `splitDraftErrors(parts, limit) → {rows, total} ` with translation keys, `normalisedSplits(parts) → SplitRequest[]` (drops empty rows), `sameSplits(saved, normalised)`, `splitSegments(movement, nameOf) → {segments, more}` (B4), `canSplit(movement)` (B1) |
-| `src/modules/movements/patch.ts` | `MovementDraft.splits: SplitDraft[]` (`{key, category, amount, tags, tagText}`; `category` `""` when none). `draftOf` fills it. `patchFor` adds `splits` when `!sameSplits` |
+| `src/modules/movements/splits.ts` (new) | Pure: `MAX_SPLITS = 20`, `SPLIT_COLORS`, `SplitDraft`, `normaliseSplitAmount(text) → string \| undefined`, `splitLimit(usdValue) → string` (big.js `round(2, Big.roundHalfUp)`), `splitSum(parts)`, `draftRest(usdValue, parts) → string` (sub-cent rule, floor 0), `isSplitDraftEmpty`, `splitDraftErrors(parts, limit) → {rows, total} ` with translation keys, `normalisedSplits(parts) → SplitRequest[]` (drops empty rows), `sameSplits(saved, normalised)`, `splitDraftsOf`, `nextSplitKey`, `splitSegments(movement, nameOf) → {segments, more}` (B4), `canSplit(movement)` (B1) |
+| `src/modules/movements/patch.ts` | `MovementDraft.splits: SplitDraft[]` (`{key, category, amount, tags, tagText, missingCategory?}`; `category` `""` when none). `draftOf` fills it. `patchFor` adds `splits` when the draft's rows are all sendable and `!sameSplits`; an incomplete list is left out so a read-only part in an unpriced movement isn't dropped |
 | `src/modules/movements/spending.ts` | `needsLabel` (B5), comments (B6) |
 | `src/modules/dashboard/movementText.ts` | `movementFiling` segments (B5) |
 | `src/modules/shared/api-errors.ts` | `"movement is not priced": "errors.movementNotPriced"`, `"splits exceed movement value": "errors.splitsExceedValue"` |
@@ -225,7 +230,7 @@ All with the fake API, `account: "splits"`, unless stated.
 
 ## Open questions
 
-- **Q1 (user):** Hide Balances doesn't mask the USD inputs while editing parts (B8). Acceptable, or should the editor be disabled while balances are hidden?
+- **Q1 (user, resolved):** Hide Balances doesn't mask the USD inputs while editing parts (B8). Accepted: the inputs stay usable, so a part's amount can be typed and corrected; every read-only amount stays masked.
 
 ## References
 

@@ -116,4 +116,30 @@ Review: no `Number(` on an amount except the bar width, every new amount in `Sen
 
 ## Implementation State
 
-Not started.
+Built. All phases done; the manual browser check (Phase 5) was skipped as instructed, and the review points were checked in code.
+
+### Decisions recorded in the SPEC
+
+- **Dismissal:** dismissing a detected movement keeps its parts; restoring it brings them back. No frontend special case was needed, since a dismissed row's portions count nowhere meanwhile.
+- **Hide Balances:** the USD inputs stay usable while editing parts; every read-only amount is masked. Q1 is recorded as resolved.
+
+### Phases
+
+- **Phase 1: types and pure split logic.** Files: `src/modules/movements/types.ts`, new `splits.ts` + `splits.test.ts`, `patch.ts` + `patch.test.ts`, `spending.ts` + `spending.test.ts`, `src/modules/dashboard/movementText.ts` + `movementText.test.ts`, `src/modules/shared/api-errors.ts`, `helpers.test.ts`, `src/locales/en.json`, `es.json`, plus the new required fields in the `Movement` fixtures of `movements/hooks.test.ts` and `movements/review.test.ts`. `pnpm api:check` passed against the generated `api-schema.d.ts` (not edited by hand). Result: lint, test (447) and build passed.
+- **Phase 2: fake API.** `scripts/fake-api.mjs`: the three response keys on every movement, `splits` in PATCH with the backend's validation order and texts, portions for the list, export, totals and tag counts, the CSV's three new columns, part category/tag maintenance, and the `splits` account (plus Supermarket and Transport). Checked with `curl`: `splits` and `split_rest_usd` on the $100 sale, `usd_amount` as a number is 400 `invalid split`, 21 parts is 400 `too many splits`, parts on the unpriced row is 422 `movement is not priced`, over-value parts is 422 `splits exceed movement value`, an unknown category is 404, the Supermarket filter lists the three AC11 movements, `category_id=none` excludes the fully split row, `group_by=category` puts the parts and rests in their categories with distinct counts, `DELETE /categories/:id` nulls parts and `DELETE /tags/:id` clears part tags. Result: lint, test (447) and build passed.
+- **Phase 3: drawer editor.** New `movements/SplitSection.tsx` and `movements/SplitBar.tsx`; `MovementDrawer.tsx` holds `draft.splits`, the "Category of the rest" label, the save checks, part-tag folding and the first-error focus. Result: lint, test (447) and build passed.
+- **Phase 4: list, cards and dashboard.** New `movements/SplitSegments.tsx`; `MovementsTable.tsx` (segments, the exceeds icon and the waiting note), `MovementCards.tsx` (segments filing and the waiting note), `dashboard/LabelCard.tsx` (the split rest line) and `dashboard/RecentMovements.tsx` (one segment plus `+n`, amounts masked). No code change in `spendingBreakdown`, `SpendingCard` or `CategoriesPage`; the two `spending.ts` comments from B6 are in Phase 1. Result: lint, test (447) and build passed.
+- **Phase 5: manual check and review.** Skipped as instructed. Static review: no `Number(` on an amount except the bar's CSS width (`SplitBar.tsx`); every read-only amount is in `Sensitive`; no new hard-coded text (the amount placeholder is `0.00`); new buttons use `mih={44}` or `size={44}`; aria labels carry no amounts; the USD inputs are not masked (recorded decision). `specs/INDEX.md` was set to `built`; `specs/ROADMAP.md` was left alone.
+
+### Drift from the PLAN
+
+- `SplitDraft` gained an optional `missingCategory: true`, set by `splitDraftsOf` for a part whose category was deleted. Without it the part's Select would only show "Pick a category" after a save, while B2/AC12 require it as soon as the drawer opens. It's cleared when a category is picked and ignored by `normalisedSplits`/`sameSplits`.
+- `movementFiling` gained an optional `categoryNameOf` argument and returns optional `segments`/`more`, because Recent movements must resolve the part categories and mask the amounts. The function still returns `{text, needsLabel}` as before.
+- The first-error focus uses a `focusNonce` prop and a `SplitSection` effect rather than an imperative ref; the PLAN didn't name the mechanism.
+- In the fake API's `splits` account, the `exceeds` and `unpriced` parts use Transport rather than Supermarket, so the Supermarket filter lists exactly the three movements AC11 names. The $60 fully split movement still uses Supermarket and Transport.
+- The bar sections use `withAria={false}`, so the percentages (derived from masked amounts) aren't exposed as ARIA values; the visible summary and the tooltips carry the data.
+- The fake API computes statuses, rests and portions with exact decimal helpers, adding `subDec`, `roundDec` and `divRoundDec`; `Number` is never used for money.
+
+### Final checks
+
+`pnpm lint`, `pnpm test` (447 tests, 33 files) and `pnpm build` all passed after Phase 4 and after the final SPEC/PLAN/INDEX edits. `git status --short` shows only the files above plus the generated `src/modules/shared/api-schema.d.ts`; nothing is committed.

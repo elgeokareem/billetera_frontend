@@ -131,7 +131,8 @@
       "undone": "Etiqueta quitada.",
       "copyTrading": "Es copy trading",
       "notSpend": "No es un gasto",
-      "movedToCopy": "Movido a copy trading."
+      "movedToCopy": "Movido a copy trading.",
+      "splitRest": "Dividido. Elige una categoría para el resto: <amount/>"
     },
     "balance": {
       "title": "Saldo total",
@@ -373,6 +374,33 @@
       "save": "Guardar cambios",
       "saveFailed": "No se guardó el cambio.",
       "createdHint": "Categoría creada. Guarda los cambios para asignarla a este movimiento."
+    },
+    "split": {
+      "title": "Dividir este movimiento",
+      "intro": "Reparte este movimiento entre categorías. Lo que sobre queda en su categoría.",
+      "start": "Dividir este movimiento",
+      "restCategory": "Categoría del resto",
+      "category": "Categoría",
+      "amount": "USD",
+      "partTags": "Etiquetas de esta parte",
+      "add": "Agregar una parte",
+      "limit": "Hasta 20 partes",
+      "remove": "Quitar la parte {{n}}",
+      "rest": "Resto: {{name}} {{amount}}",
+      "restNone": "Resto: nada",
+      "over": "Las partes suman {{sum}}, {{over}} más que los {{value}} de este movimiento.",
+      "pickCategory": "Elige una categoría",
+      "badAmount": "Ingresa un monto mayor que $0 con hasta 2 decimales",
+      "unpriced": "Para dividirlo hace falta un valor en USD, y este movimiento aún no lo tiene.",
+      "zero": "Este movimiento no tiene valor para dividir.",
+      "unpricedParts": "Estas partes vuelven a contar cuando el movimiento tenga precio.",
+      "removeAll": "Quitar la división",
+      "exceedsTitle": "Las partes suman más de lo que vale ahora este movimiento",
+      "exceedsBody": "Su valor cambió después de dividirlo. Hasta que corrijas las partes, cuentan en orden hasta agotar el valor.",
+      "exceedsShort": "Las partes suman más que su valor",
+      "segmentsLabel": "Dividido en {{count}}: {{names}}",
+      "more": "+{{count}}",
+      "waiting": "Dividido, esperando precio"
     }
   },
   "settings": {
@@ -396,6 +424,8 @@
     "invalidCategoryName": "El nombre de una categoría debe tener de 1 a 64 caracteres.",
     "movementNotFound": "Ese movimiento ya no existe.",
     "movementNotDetected": "Este movimiento no se detectó en tu saldo, así que no se puede revisar.",
+    "movementNotPriced": "Este movimiento ya no tiene valor en USD, así que no se puede dividir. Ciérralo y ábrelo de nuevo.",
+    "splitsExceedValue": "El valor de este movimiento cambió y las partes ya no caben. Ciérralo y ábrelo de nuevo.",
     "snapshotNotFound": "Aún no hay datos de saldo.",
     "tooManyRows": "Demasiados movimientos para exportar. Ajusta los filtros.",
     "invalidTag": "Ese tag no es válido. Los tags tienen de 1 a 32 caracteres, sin comas.",

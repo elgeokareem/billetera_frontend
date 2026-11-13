@@ -31,6 +31,9 @@ function movement(id: number): Movement {
     fee_usd_value: null,
     review_status: null,
     detection: null,
+    splits: [],
+    split_status: "none",
+    split_rest_usd: null,
   };
 }
 

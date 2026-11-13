@@ -41,11 +41,22 @@ export function isSpending(movement: SpendingFields) {
   );
 }
 
-/** Spending with no category. A reason alone doesn't count as a label. */
+/**
+ * Spending with no category and an uncategorized share. split_rest_usd is null when the parts don't apply (no parts, or
+ * an unpriced movement), which leaves the whole movement in its own category, so it still needs a label. A fully split
+ * movement has a rest of "0" and never needs one. A reason alone doesn't count as a label.
+ */
 export function needsLabel(
-  movement: SpendingFields & Pick<Movement, "category_id">,
+  movement: SpendingFields &
+    Pick<Movement, "category_id" | "split_rest_usd">,
 ) {
-  return isSpending(movement) && movement.category_id === null;
+  if (!isSpending(movement) || movement.category_id !== null) {
+    return false;
+  }
+  return (
+    movement.split_rest_usd == null ||
+    compare(movement.split_rest_usd, "0") > 0
+  );
 }
 
 export interface CategorySpending {
@@ -62,6 +73,10 @@ export interface SpendingBreakdown {
   categories: CategorySpending[];
   /** The sum of every priced row. It's incomplete while unpricedCount is above zero. */
   total: string;
+  /**
+   * Counts across categories. With group_by=category a split movement counts once per category it reaches, so this can
+   * be more than the number of movements; it's only used as a "none at all" check.
+   */
   count: number;
   unpricedCount: number;
 }
@@ -123,7 +138,8 @@ export function spendingBreakdown(
 
 /**
  * The number of movements in a totals response, counted from its asset rows. Each movement is in one asset row, while a
- * movement can be in a fee row and a counter row too, so those aren't added.
+ * movement can be in a fee row and a counter row too, so those aren't added. It's correct on a query without
+ * group_by=category: there the portions of a split movement fall into one asset row and count once.
  */
 export function movementCount(totals: Pick<MovementTotals, "assets">) {
   return totals.assets.reduce((count, row) => count + row.count, 0);

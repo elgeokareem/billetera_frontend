@@ -21,6 +21,13 @@ export type DetectionKind = Detection["suggested_kind"];
 
 export type Movement = MovementResponse;
 
+/** One part of a movement, in position order. Its category is null only after the category was deleted. */
+export type Split = Schemas["movements.SplitResponse"];
+/** Whether the parts count in totals. none and unpriced leave the whole movement in its own category. */
+export type SplitStatus = MovementResponse["split_status"];
+/** One part of a PATCH's splits list. */
+export type SplitRequest = Schemas["movements.SplitRequest"];
+
 /** GET /movements. next_cursor is null on the last page. */
 export type MovementsPage = Schemas["movements.ListResponse"];
 

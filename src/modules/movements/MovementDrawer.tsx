@@ -16,11 +16,23 @@ import { withPendingTag } from "../tags/names";
 import { signOf } from "./labels";
 import { CoinAmount, UsdValue } from "./MovementParts";
 import { DetectionSection } from "./DetectionSection";
-import { draftOf, type MovementDraft, patchFor } from "./patch";
+import { draftOf, NO_CATEGORY, type MovementDraft, patchFor } from "./patch";
 import { drawerCategoryOptions } from "./drawerCategories";
 import { NewCategoryField } from "./NewCategoryField";
 import { reviewStatusKey } from "./review";
 import { useUpdateMovement } from "./hooks";
+import {
+  canSplit,
+  isSplitDraftEmpty,
+  normalisedSplits,
+  normaliseSplitAmount,
+  sameSplits,
+  splitDraftErrors,
+  splitLimit,
+  type SplitDraft,
+  type SplitDraftErrors,
+} from "./splits";
+import { SplitSection } from "./SplitSection";
 import type { Movement } from "./types";
 
 /** The reason's limit, the same as the API's. */
@@ -103,12 +115,36 @@ function DrawerForm({
   const [created, setCreated] = useState<Category[]>([]);
   const [tagText, setTagText] = useState("");
   const [tagError, setTagError] = useState<string>();
+  const [splitErrors, setSplitErrors] = useState<SplitDraftErrors>({ rows: [] });
+  const [partTagErrors, setPartTagErrors] = useState<Record<number, string>>({});
+  const [focusNonce, setFocusNonce] = useState(0);
   const body = patchFor(movement, draft);
   const changed = Object.keys(body).length > 0;
   const categoryData = drawerCategoryOptions(categories ?? [], created, t("movements.noCategory"));
+  const partCategoryData = categoryData.filter((option) => option.value !== NO_CATEGORY);
+  const currentCategory = categoryData.find((option) => option.value === draft.category);
+  const restCategoryName =
+    draft.category === NO_CATEGORY
+      ? t("movements.noCategory")
+      : (currentCategory?.label ?? t("movements.categoryUnknown"));
   const reasonLength = [...draft.reason.trim()].length;
   const busy = update.isPending || create.isPending;
   const createdSelected = created.some((category) => String(category.id) === draft.category);
+  // The save is enabled when the draft's parts differ from the saved ones, or when a row needs a fix the user can see.
+  const splitPending =
+    !sameSplits(movement.splits, normalisedSplits(draft.splits)) ||
+    draft.splits.some(
+      (part) =>
+        part.tagText.trim() !== "" ||
+        (!isSplitDraftEmpty(part) &&
+          (part.category === "" || normaliseSplitAmount(part.amount) === undefined)),
+    );
+
+  function changeParts(parts: SplitDraft[]) {
+    setDraft((current) => ({ ...current, splits: parts }));
+    setSplitErrors({ rows: [] });
+    setPartTagErrors({});
+  }
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -123,7 +159,43 @@ function DrawerForm({
       );
       return;
     }
-    const nextBody = patchFor(movement, { ...draft, tags: pending.tags });
+    // The parts' pending tags are folded in the same way, each with its own error.
+    let foldedParts = draft.splits;
+    if (canSplit(movement)) {
+      const nextPartTagErrors: Record<number, string> = {};
+      foldedParts = draft.splits.map((part) => {
+        const partPending = withPendingTag(part.tags, part.tagText);
+        if (partPending.error) {
+          nextPartTagErrors[part.key] =
+            partPending.error === "invalid"
+              ? "movements.drawer.tagInvalid"
+              : "movements.drawer.tagsLimit";
+        }
+        return { ...part, tags: partPending.tags, tagText: "" };
+      });
+      setPartTagErrors(nextPartTagErrors);
+      if (Object.keys(nextPartTagErrors).length > 0) {
+        setFocusNonce((nonce) => nonce + 1);
+        return;
+      }
+      const nextErrors = splitDraftErrors(
+        foldedParts,
+        movement.usd_value === null ? "0" : splitLimit(movement.usd_value),
+      );
+      setSplitErrors(nextErrors);
+      if (
+        nextErrors.total !== undefined ||
+        nextErrors.rows.some((row) => row.category || row.amount)
+      ) {
+        setFocusNonce((nonce) => nonce + 1);
+        return;
+      }
+    } else {
+      // Read-only parts: only "Remove the split" changes them, so there's nothing to validate.
+      setPartTagErrors({});
+      setSplitErrors({ rows: [] });
+    }
+    const nextBody = patchFor(movement, { ...draft, tags: pending.tags, splits: foldedParts });
     if (Object.keys(nextBody).length === 0) {
       onClose();
       return;
@@ -168,7 +240,11 @@ function DrawerForm({
             }}
           />
           <Select
-            label={t("movements.drawer.category")}
+            label={
+              draft.splits.length > 0
+                ? t("movements.split.restCategory")
+                : t("movements.drawer.category")
+            }
             data={categoryData}
             value={draft.category}
             placeholder={t("movements.categoryUnknown")}
@@ -187,6 +263,26 @@ function DrawerForm({
               setCreated((list) => [...list, category]);
               setDraft((current) => ({ ...current, category: String(category.id) }));
             }}
+          />
+          <SplitSection
+            movement={movement}
+            parts={draft.splits}
+            onPartsChange={changeParts}
+            restCategoryName={restCategoryName}
+            categoryOptions={partCategoryData}
+            errors={splitErrors}
+            disabled={busy}
+            categoriesLoading={categories === undefined}
+            knownTags={knownTags}
+            focusNonce={focusNonce}
+            tagErrors={partTagErrors}
+            onClearTagError={(key) =>
+              setPartTagErrors((current) => {
+                const next = { ...current };
+                delete next[key];
+                return next;
+              })
+            }
           />
           <TagsField
             label={t("movements.drawer.tags")}
@@ -217,7 +313,7 @@ function DrawerForm({
         <Group justify="flex-end" gap="sm">
           <PrimaryButton
             type="submit"
-            disabled={(!changed && tagText.trim() === "") || create.isPending}
+            disabled={(!changed && tagText.trim() === "" && !splitPending) || create.isPending}
             loading={update.isPending}
           >
             {t("movements.drawer.save")}

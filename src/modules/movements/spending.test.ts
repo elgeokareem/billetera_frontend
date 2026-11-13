@@ -97,13 +97,14 @@ describe("spendingBreakdown", () => {
 describe("spending definition", () => {
   const base: Pick<
     Movement,
-    "kind" | "direction" | "status" | "category_id" | "review_status"
+    "kind" | "direction" | "status" | "category_id" | "review_status" | "split_rest_usd"
   > = {
     kind: "p2p",
     direction: "out",
     status: "completed",
     category_id: null,
     review_status: null,
+    split_rest_usd: null,
   };
 
   it("filters on completed movements leaving Binance, as kinds withdrawal, p2p, pay and card_spend", () => {
@@ -144,6 +145,19 @@ describe("spending definition", () => {
     expect(needsLabel({ ...base, kind: "convert" })).toBe(false);
     expect(needsLabel({ ...base, kind: "deposit", direction: "in" })).toBe(false);
     expect(needsLabel({ ...base, kind: "card_spend", review_status: "dismissed" })).toBe(false);
+  });
+
+  it("needs a label when an uncategorized rest is above zero", () => {
+    expect(needsLabel({ ...base, split_rest_usd: "30" })).toBe(true);
+  });
+
+  it("doesn't need a label when the movement is fully split, or every part has a category", () => {
+    expect(needsLabel({ ...base, split_rest_usd: "0" })).toBe(false);
+    expect(needsLabel({ ...base, category_id: 3, split_rest_usd: "0" })).toBe(false);
+  });
+
+  it("needs a label when the parts don't apply, since the whole movement is uncategorized", () => {
+    expect(needsLabel({ ...base, split_rest_usd: null })).toBe(true);
   });
 });
 

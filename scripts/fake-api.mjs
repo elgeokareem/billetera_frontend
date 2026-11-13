@@ -38,6 +38,14 @@
 // restores the suggestion), and either one on a Binance row is 422 movement is not detected. The CSV ends with
 // review_status, window_start, window_end and wallet, empty for a Binance row.
 //
+// Splits. A movement can be split into 1 to 20 parts, each with a category, a USD amount and optional tags. Every movement
+// answers splits, split_status (none, applied, exceeds or unpriced) and split_rest_usd, the value left in its own category
+// (null when there are no parts or they don't apply). PATCH /movements/:id takes the whole list under "splits" ([] removes
+// them): each usd_amount is a string above 0 with at most 2 decimals and the parts may add up to at most the movement's
+// value rounded to cents. A non-empty list on an unpriced movement is 422 movement is not priced, and parts above the value
+// are 422 splits exceed movement value. Filters category_id and tag, and totals with group_by=category, work per portion (a
+// part, or the rest). The CSV ends with split_status, split_rest_usd and splits (JSON).
+//
 // A tag has an id and a color, one of 12 palette names. GET /tags lists every tag of the user, used or not, with its
 // movement count (0 included), sorted by name. POST /tags creates one, with a random palette color unless the body gives
 // one; PATCH /tags/:id renames and/or recolors it; DELETE /tags/:id removes it from every movement. The seed registers
@@ -57,6 +65,9 @@
 //                                                      so the list pages (50 a page)
 //                                     card-spends      populated, plus this month's detected balance changes: card spends,
 //                                                      a copy pair, an unexplained gain, a dismissed one and a conflict
+//                                     splits           populated, plus Supermarket and Transport and this month's split
+//                                                      movements: applied with a rest, fully split, an uncategorized rest,
+//                                                      exceeds, unpriced and a sub-cent rest
 //                                     empty            no movements, categories or snapshots
 //   {"unpriced": false}             prices every movement and coin. true (the default) leaves a few unpriced
 //   {"moreCategories": true}        adds Health, Shopping, Transfer and Utilities, so the label card shows a select, and a
@@ -94,7 +105,7 @@ const MASK_MIN_LENGTH = 16;
 const KEY_TEXT = /^[A-Za-z0-9]{16,128}$/;
 const MAX_DELAY_MS = 60_000;
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const ACCOUNT_KINDS = ["populated", "all-labelled", "many-unlabelled", "quiet-month", "single-snapshot", "long-history", "card-spends", "empty"];
+const ACCOUNT_KINDS = ["populated", "all-labelled", "many-unlabelled", "quiet-month", "single-snapshot", "long-history", "card-spends", "splits", "empty"];
 const FLAG_BOOLEANS = ["failSync", "ipRestricted", "rejectKey", "reset", "syncInProgress", "unpriced", "moreCategories", "gapWindow"];
 const FLAG_FIELDS = [...FLAG_BOOLEANS, "delayMs", "account", "failRoute", "failStatus"];
 const FAIL_ROUTES = [
@@ -136,6 +147,7 @@ const MAX_TAG_BODY = 4 << 10;
 const MAX_REASON_RUNES = 500;
 const MAX_TAG_LENGTH = 32;
 const MAX_TAGS = 10;
+const MAX_SPLITS = 20;
 const MAX_HISTORY_POINTS = 2000;
 const EXPORT_MAX_ROWS = 100_000;
 const HOUR = 3_600_000;
@@ -143,6 +155,7 @@ const DAY = 24 * HOUR;
 const HISTORY_DEFAULT_SPAN = 30 * DAY;
 
 const CATEGORY_NAMES = ["Food", "Income", "Rent", "Travel"];
+const SPLIT_CATEGORY_NAMES = ["Supermarket", "Transport"];
 const EXTRA_CATEGORY_NAMES = ["Health", "Shopping", "Transfer", "Utilities"];
 const SPENDING_KINDS = ["withdrawal", "p2p", "pay", "card_spend"];
 const TAG_COLORS = ["red", "pink", "grape", "violet", "indigo", "blue", "cyan", "teal", "green", "lime", "yellow", "orange"];
@@ -386,6 +399,46 @@ function divDec(a, b, scale) {
   return fmtDec(numerator / denominator, scale);
 }
 
+// a - b, exact.
+function subDec(a, b) {
+  const x = parseDec(a);
+  const y = parseDec(b);
+  const scale = Math.max(x.s, y.s);
+  return fmtDec(
+    x.v * 10n ** BigInt(scale - x.s) - y.v * 10n ** BigInt(scale - y.s),
+    scale,
+  );
+}
+
+// A decimal rounded half away from zero to scale decimals, as the backend's round and decimal.Round do.
+function roundDec(text, scale) {
+  const { v, s } = parseDec(text);
+  if (s <= scale) {
+    return fmtDec(v, s);
+  }
+  const factor = 10n ** BigInt(s - scale);
+  const negative = v < 0n;
+  const magnitude = negative ? -v : v;
+  const quotient = (magnitude + factor / 2n) / factor;
+  return fmtDec(negative ? -quotient : quotient, scale);
+}
+
+// a / b, rounded half away from zero to scale decimals, for the portions' coin amounts.
+function divRoundDec(a, b, scale) {
+  const x = parseDec(a);
+  const y = parseDec(b);
+  const numerator = x.v * 10n ** BigInt(y.s + scale);
+  const denominator = y.v * 10n ** BigInt(x.s);
+  const negative = (numerator < 0n) !== (denominator < 0n);
+  const n = numerator < 0n ? -numerator : numerator;
+  const d = denominator < 0n ? -denominator : denominator;
+  let quotient = n / d;
+  if ((n % d) * 2n >= d) {
+    quotient += 1n;
+  }
+  return fmtDec(negative ? -quotient : quotient, scale);
+}
+
 function cmpDec(a, b) {
   const x = parseDec(a);
   const y = parseDec(b);
@@ -580,13 +633,18 @@ function addTag(account, name, color) {
   return tag;
 }
 
-// The seed registers every name its movements use, in name order, with a deterministic color (as the backend backfill
-// does), then one tag no movement has, so GET /tags shows the 0-count case.
+// The seed registers every name its movements use, including a part's tags, in name order, with a deterministic color (as
+// the backend backfill does), then one tag no movement has, so GET /tags shows the 0-count case.
 function registerSeedTags(account) {
   const names = new Set();
   for (const movement of account.movements) {
     for (const name of movement.tags) {
       names.add(name);
+    }
+    for (const part of movement.splits) {
+      for (const name of part.tags) {
+        names.add(name);
+      }
     }
   }
   for (const name of [...names].sort()) {
@@ -602,6 +660,104 @@ function registerMovementTags(account, names) {
       addTag(account, name, randomTagColor());
     }
   }
+}
+
+// A movement's USD value: amount times price, or null when it has no price.
+function movementValue(movement) {
+  return movement.usdPrice === null ? null : mulDec(movement.amount, movement.usdPrice);
+}
+
+// The exact sum of a list of parts.
+function sumParts(parts) {
+  return parts.reduce((sum, part) => addDec(sum, part.usdAmount), "0");
+}
+
+// The backend's FR3 status and rest. none and unpriced have no rest; applied and exceeds have the rest after the clamp
+// and the sub-cent rule, "0" included.
+function splitStateOf(movement) {
+  if (movement.splits.length === 0) {
+    return { status: "none", rest: null };
+  }
+  const value = movementValue(movement);
+  if (value === null || cmpDec(value, "0") <= 0) {
+    return { status: "unpriced", rest: null };
+  }
+  const status = cmpDec(sumParts(movement.splits), roundDec(value, 2)) > 0 ? "exceeds" : "applied";
+  let capped = "0";
+  for (const part of movement.splits) {
+    capped = addDec(capped, part.usdAmount);
+    if (cmpDec(capped, value) > 0) {
+      capped = value;
+    }
+  }
+  let rest = subDec(value, capped);
+  if (cmpDec(rest, "0") > 0 && cmpDec(rest, "0.005") < 0) {
+    rest = "0";
+  }
+  return { status, rest };
+}
+
+// The names in any of the lists, each once, sorted as the backend stores a movement's tags.
+function unionTags(...lists) {
+  return [...new Set(lists.flat())].sort();
+}
+
+// Every tag a movement's whole portion carries: its own tags, plus those of its parts when the parts don't apply.
+function wholeTags(movement) {
+  return unionTags(movement.tags, ...movement.splits.map((part) => part.tags));
+}
+
+// The portions totals sum and filters match, as FR3 and FR4: a part with an effective amount above 0, then the rest above
+// 0, or the whole movement when its parts don't apply. Coin amounts use the cumulative rounding, so they add up exactly.
+function portionsOf(movement) {
+  const value = movementValue(movement);
+  if (movement.splits.length === 0 || value === null || cmpDec(value, "0") <= 0) {
+    return [{
+      categoryId: movement.categoryId,
+      amount: movement.amount,
+      usd: value,
+      tags: wholeTags(movement),
+    }];
+  }
+
+  const caps = [];
+  let cumulative = "0";
+  for (const part of movement.splits) {
+    cumulative = addDec(cumulative, part.usdAmount);
+    caps.push(cmpDec(cumulative, value) > 0 ? value : cumulative);
+  }
+  let rest = subDec(value, caps[caps.length - 1]);
+  if (cmpDec(rest, "0") > 0 && cmpDec(rest, "0.005") < 0) {
+    caps[caps.length - 1] = value;
+    rest = "0";
+  }
+
+  const portions = [];
+  let previousCap = "0";
+  let previousCoin = "0";
+  movement.splits.forEach((part, index) => {
+    const effective = subDec(caps[index], previousCap);
+    const coinShare = divRoundDec(mulDec(movement.amount, caps[index]), value, 18);
+    if (cmpDec(effective, "0") > 0) {
+      portions.push({
+        categoryId: part.categoryId,
+        amount: subDec(coinShare, previousCoin),
+        usd: effective,
+        tags: unionTags(movement.tags, part.tags),
+      });
+    }
+    previousCap = caps[index];
+    previousCoin = coinShare;
+  });
+  if (cmpDec(rest, "0") > 0) {
+    portions.push({
+      categoryId: movement.categoryId,
+      amount: subDec(movement.amount, previousCoin),
+      usd: rest,
+      tags: [...movement.tags],
+    });
+  }
+  return portions;
 }
 
 // One movement of the seed. Its price comes from priceOf, and its category is named, so the seed reads like the design.
@@ -629,6 +785,11 @@ function addMovement(account, options, spec) {
     reasonUpdatedAt: spec.reason ? spec.at : null,
     categoryId: spec.category ? categoryIdNamed(account, spec.category) : null,
     tags: normalizeTags(spec.tags ?? []),
+    splits: (spec.splits ?? []).map((part) => ({
+      categoryId: part.category === undefined ? (part.categoryId ?? null) : categoryIdNamed(account, part.category),
+      usdAmount: part.usdAmount,
+      tags: normalizeTags(part.tags ?? []),
+    })),
     usdPrice: price.price,
     usdPriceSource: price.price ? "binance-1m" : null,
     usdPriceChecked: price.checked,
@@ -851,6 +1012,51 @@ function addCardSpends(account, options, now) {
   });
 }
 
+// The splits account: the populated seed plus Supermarket and Transport and this month's movements that show every state:
+// applied with a rest, a fully split movement out of the label queue, an uncategorized rest that's in it, exceeds, unpriced
+// and the sub-cent rest that joins the last part.
+function addSplits(account, options, now) {
+  const thisMonth = (hours) => thisMonthAgo(now, hours);
+
+  addMovement(account, options, {
+    at: thisMonth(36), kind: "p2p", direction: "out", asset: "USDT", amount: "100",
+    counterAsset: "ARS", counterAmount: "138000", unitPrice: "1380", counterparty: "Ana M.", category: "Food",
+    splits: [
+      { category: "Supermarket", usdAmount: "20", tags: ["groceries"] },
+      { category: "Transport", usdAmount: "30" },
+    ],
+  });
+  addMovement(account, options, {
+    at: thisMonth(60), kind: "pay", direction: "out", asset: "USDT", amount: "60", counterparty: "Carlos R.",
+    splits: [
+      { category: "Supermarket", usdAmount: "35" },
+      { category: "Transport", usdAmount: "25" },
+    ],
+  });
+  addMovement(account, options, {
+    at: thisMonth(84), kind: "withdrawal", direction: "out", asset: "USDT", amount: "45",
+    counterparty: TRON_ADDRESS, sourceStatus: "6",
+    splits: [{ category: "Supermarket", usdAmount: "15" }],
+  });
+  addMovement(account, options, {
+    at: thisMonth(108), kind: "pay", direction: "out", asset: "USDT", amount: "100", counterparty: "Pedro S.",
+    splits: [
+      { category: "Transport", usdAmount: "60" },
+      { category: "Transport", usdAmount: "50" },
+    ],
+  });
+  addMovement(account, options, {
+    at: thisMonth(132), kind: "withdrawal", direction: "out", asset: "SHIB", amount: "1200000",
+    counterparty: TRON_ADDRESS, sourceStatus: "6",
+    splits: [{ category: "Transport", usdAmount: "15" }],
+  });
+  addMovement(account, options, {
+    at: thisMonth(156), kind: "withdrawal", direction: "out", asset: "USDT", amount: "100.004",
+    counterparty: TRON_ADDRESS_2, sourceStatus: "6",
+    splits: [{ category: "Transport", usdAmount: "100" }],
+  });
+}
+
 
 // Snapshots: hourly for the last 72 hours, then every 6 hours for 30 days. Totals are in cents, so they stay exact.
 const SNAPSHOT_HOURS = [
@@ -958,13 +1164,20 @@ function buildAccount(kind, flags, now) {
     return account;
   }
   const options = { unpriced: flags.unpriced, moreCategories: flags.moreCategories };
-  const names = options.moreCategories ? [...CATEGORY_NAMES, ...EXTRA_CATEGORY_NAMES] : CATEGORY_NAMES;
+  const names = [
+    ...CATEGORY_NAMES,
+    ...(kind === "splits" ? SPLIT_CATEGORY_NAMES : []),
+    ...(options.moreCategories ? EXTRA_CATEGORY_NAMES : []),
+  ];
   for (const name of names) {
     addCategory(account, name, now);
   }
   addSeedMovements(account, options, now);
   if (kind === "card-spends") {
     addCardSpends(account, options, now);
+  }
+  if (kind === "splits") {
+    addSplits(account, options, now);
   }
 
   const monthFloor = monthStartNoon(now).getTime();
@@ -1038,6 +1251,7 @@ function buildAccount(kind, flags, now) {
 
 function movementJson(movement) {
   const priced = movement.usdPrice !== null;
+  const splitState = splitStateOf(movement);
   return {
     id: movement.id,
     source: movement.source,
@@ -1069,6 +1283,13 @@ function movementJson(movement) {
         : null,
     review_status: movement.reviewStatus,
     detection: movement.detection ? detectionJson(movement.detection) : null,
+    splits: movement.splits.map((part) => ({
+      category_id: part.categoryId,
+      usd_amount: part.usdAmount,
+      tags: part.tags,
+    })),
+    split_status: splitState.status,
+    split_rest_usd: splitState.rest,
   };
 }
 
@@ -1594,7 +1815,9 @@ function parseMovementFilter(params) {
   };
 }
 
-function matchesFilter(movement, filter) {
+// The filters that are on the movement itself: kind, direction, status, review, asset, search, dates and reason. The
+// category and tag filters are per portion, so they're in matchesFilter and in totalsOf.
+function matchesMovementFilter(movement, filter) {
   if (filter.kinds.length && !filter.kinds.includes(movement.kind)) return false;
   if (filter.direction && movement.direction !== filter.direction) return false;
   if (filter.statuses.length && !filter.statuses.includes(movement.status)) return false;
@@ -1615,21 +1838,34 @@ function matchesFilter(movement, filter) {
     const counterparty = movement.counterparty?.toLowerCase().includes(needle) ?? false;
     if (!reason && !counterparty) return false;
   }
-  if (filter.categoryIDs.length || filter.uncategorized) {
-    const inList = movement.categoryId !== null && filter.categoryIDs.includes(movement.categoryId);
-    const none = filter.uncategorized && movement.categoryId === null;
-    if (!inList && !none) return false;
-  }
-  if (filter.tags.length) {
-    const hit = filter.tagMatchAll
-      ? filter.tags.every((tag) => movement.tags.includes(tag))
-      : filter.tags.some((tag) => movement.tags.includes(tag));
-    if (!hit) return false;
-  }
   if (filter.from && movement.occurredAt.getTime() < filter.from.getTime()) return false;
   if (filter.to && movement.occurredAt.getTime() >= filter.to.getTime()) return false;
   if (filter.hasReason !== null && (movement.reason !== null) !== filter.hasReason) return false;
   return true;
+}
+
+// One portion's category against the category filter. No category filter means every category matches.
+function portionCategoryHit(categoryId, filter) {
+  if (!filter.categoryIDs.length && !filter.uncategorized) return true;
+  if (categoryId !== null && filter.categoryIDs.includes(categoryId)) return true;
+  return filter.uncategorized && categoryId === null;
+}
+
+// One portion's tags against the tag filter. A part inherits the movement's tags (FR4).
+function portionTagsHit(tags, filter) {
+  if (!filter.tags.length) return true;
+  return filter.tagMatchAll
+    ? filter.tags.every((tag) => tags.includes(tag))
+    : filter.tags.some((tag) => tags.includes(tag));
+}
+
+// A movement matches when at least one portion satisfies both the category and tag filters together (FR4).
+function matchesFilter(movement, filter) {
+  if (!matchesMovementFilter(movement, filter)) return false;
+  if (!filter.categoryIDs.length && !filter.uncategorized && !filter.tags.length) return true;
+  return portionsOf(movement).some(
+    (portion) => portionCategoryHit(portion.categoryId, filter) && portionTagsHit(portion.tags, filter),
+  );
 }
 
 // Newest first, with the ID as the tie-break, as the backend orders the list.
@@ -1696,42 +1932,78 @@ function totalsOf(account, filter, period, groupBy, tz) {
   const scoped = { ...filter, statuses };
   const byCategory = groupBy === "category";
   const unit = period || null;
-  const keyPrefix = (movement) => {
+  const keyPrefix = (movement, categoryId) => {
     const parts = [];
     if (unit) parts.push(String(periodStart(movement.occurredAt.getTime(), tz, unit)));
-    if (byCategory) parts.push(movement.categoryId === null ? "null" : String(movement.categoryId));
+    if (byCategory) parts.push(categoryId === null ? "null" : String(categoryId));
     return parts;
   };
-  const rowFields = (movement) => {
+  const rowFields = (movement, categoryId) => {
     const fields = {};
     if (unit) fields.period_start = rfc3339(new Date(periodStart(movement.occurredAt.getTime(), tz, unit)));
-    if (byCategory) fields.category_id = movement.categoryId;
+    if (byCategory) fields.category_id = categoryId;
     return fields;
   };
   const assetRows = new Map();
   const feeRows = new Map();
   const counterRows = new Map();
   const bump = (map, key, seed) => {
-    if (!map.has(key)) map.set(key, { ...seed, count: 0, amount: "0", usd: null, usdTotal: "0", unpriced: 0 });
+    if (!map.has(key)) {
+      map.set(key, {
+        ...seed,
+        count: 0,
+        amount: "0",
+        usd: false,
+        usdTotal: "0",
+        unpriced: 0,
+        ids: new Set(),
+        unpricedIds: new Set(),
+      });
+    }
     return map.get(key);
   };
 
   for (const movement of account.movements) {
-    if (!matchesFilter(movement, scoped)) continue;
-    const prefix = keyPrefix(movement);
-    const assetKey = [...prefix, movement.asset, movement.direction].join("|");
-    const assetRow = bump(assetRows, assetKey, { ...rowFields(movement), asset: movement.asset, direction: movement.direction });
-    assetRow.count += 1;
-    assetRow.amount = addDec(assetRow.amount, movement.amount);
-    if (movement.usdPrice !== null) {
-      assetRow.usdTotal = addDec(assetRow.usdTotal, mulDec(movement.amount, movement.usdPrice));
-      assetRow.usd = true;
-    } else {
-      assetRow.unpriced += 1;
+    if (!matchesMovementFilter(movement, scoped)) continue;
+    // Assets group over portions (FR4). Without a category or tag filter every portion matches, and the fast path's
+    // numbers are the same. A split movement counts once per row it reaches: the rows keep a set of movement IDs.
+    const hasPortionFilter = scoped.categoryIDs.length || scoped.uncategorized || scoped.tags.length;
+    for (const portion of portionsOf(movement)) {
+      if (
+        hasPortionFilter &&
+        !(portionCategoryHit(portion.categoryId, scoped) && portionTagsHit(portion.tags, scoped))
+      ) {
+        continue;
+      }
+      const prefix = keyPrefix(movement, portion.categoryId);
+      const assetKey = [...prefix, movement.asset, movement.direction].join("|");
+      const assetRow = bump(assetRows, assetKey, {
+        ...rowFields(movement, portion.categoryId),
+        asset: movement.asset,
+        direction: movement.direction,
+      });
+      assetRow.ids.add(movement.id);
+      assetRow.amount = addDec(assetRow.amount, portion.amount);
+      if (portion.usd !== null) {
+        assetRow.usdTotal = addDec(assetRow.usdTotal, portion.usd);
+        assetRow.usd = true;
+      } else {
+        assetRow.unpricedIds.add(movement.id);
+      }
     }
 
+    // Fees and the counter side aren't split: their category is the movement's own, and their tag condition matches the
+    // movement's own tags or any part's (FR4).
+    const ownCategoryHit = portionCategoryHit(movement.categoryId, scoped);
+    const tagsHit = portionTagsHit(wholeTags(movement), scoped);
+    if (!ownCategoryHit || !tagsHit) continue;
+    const prefix = keyPrefix(movement, movement.categoryId);
+
     if (movement.feeAsset !== null && movement.feeAmount !== null && parseDec(movement.feeAmount).v > 0n) {
-      const feeRow = bump(feeRows, [...prefix, movement.feeAsset].join("|"), { ...rowFields(movement), asset: movement.feeAsset });
+      const feeRow = bump(feeRows, [...prefix, movement.feeAsset].join("|"), {
+        ...rowFields(movement, movement.categoryId),
+        asset: movement.feeAsset,
+      });
       feeRow.count += 1;
       feeRow.amount = addDec(feeRow.amount, movement.feeAmount);
       const qualifies = movement.feeAsset === movement.asset && movement.usdPrice !== null;
@@ -1746,7 +2018,7 @@ function totalsOf(account, filter, period, groupBy, tz) {
     if (movement.counterAsset !== null) {
       const flow = movement.direction === "in" ? "out" : "in";
       const counterRow = bump(counterRows, [...prefix, movement.counterAsset, flow].join("|"), {
-        ...rowFields(movement),
+        ...rowFields(movement, movement.categoryId),
         asset: movement.counterAsset,
         direction: flow,
       });
@@ -1772,10 +2044,10 @@ function totalsOf(account, filter, period, groupBy, tz) {
       ...byCategory ? { category_id: row.category_id } : {},
       asset: row.asset,
       direction: row.direction,
-      count: row.count,
+      count: row.ids.size,
       amount: row.amount,
       usd_value: row.usd ? row.usdTotal : null,
-      unpriced_count: row.unpriced,
+      unpriced_count: row.unpricedIds.size,
     })),
   );
   const fees = sortRows(
@@ -1846,6 +2118,45 @@ function findMovement(account, text) {
   return account.movements.find((movement) => movement.id === Number(text)) ?? null;
 }
 
+// A part's usd_amount: a string of 1 to 13 digits, an optional point and 1 or 2 decimals, above zero.
+const SPLIT_AMOUNT_PATTERN = /^[0-9]{1,13}(\.[0-9]{1,2})?$/;
+
+// The splits value of a PATCH, in the backend's order: an invalid item or amount is invalid split, a bad tag is invalid
+// tag, then more than 20 parts is too many splits. Unknown keys in an item are ignored. The result is never null.
+function parseSplitsValue(raw) {
+  if (raw === null || !Array.isArray(raw)) return { error: "invalid split" };
+  const parts = [];
+  for (const item of raw) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      return { error: "invalid split" };
+    }
+    const category = item.category_id;
+    if (!Number.isSafeInteger(category) || category < 1) {
+      return { error: "invalid split" };
+    }
+    const amount = item.usd_amount;
+    if (typeof amount !== "string" || !SPLIT_AMOUNT_PATTERN.test(amount) || cmpDec(amount, "0") <= 0) {
+      return { error: "invalid split" };
+    }
+    let tags = [];
+    if (item.tags !== undefined) {
+      if (!Array.isArray(item.tags)) return { error: "invalid tag" };
+      for (const value of item.tags) {
+        if (typeof value !== "string") return { error: "invalid tag" };
+        const name = normalizeTagName(value);
+        if (name === null) return { error: "invalid tag" };
+        if (!tags.includes(name)) tags.push(name);
+      }
+      if (tags.length > MAX_TAGS) return { error: "too many tags" };
+      tags.sort();
+    }
+    const parsed = parseDec(amount);
+    parts.push({ categoryId: category, usdAmount: fmtDec(parsed.v, parsed.s), tags });
+  }
+  if (parts.length > MAX_SPLITS) return { error: "too many splits" };
+  return { splits: parts };
+}
+
 // The body of PATCH /movements/:id. Each key is missing, null or a value. null clears the field.
 function parsePatch(raw) {
   if (raw === null || Buffer.byteLength(raw) > MAX_UPDATE_BODY) return { error: "invalid body" };
@@ -1856,7 +2167,8 @@ function parsePatch(raw) {
       body.category_id === undefined &&
       body.tags === undefined &&
       body.kind === undefined &&
-      body.review === undefined)
+      body.review === undefined &&
+      body.splits === undefined)
   ) {
     return { error: "invalid body" };
   }
@@ -1908,23 +2220,52 @@ function parsePatch(raw) {
     if (names.length > MAX_TAGS) return { error: "too many tags" };
     patch.tags = { set: true, value: names.sort() };
   }
+  if (body.splits !== undefined) {
+    const parsed = parseSplitsValue(body.splits);
+    if (parsed.error) return { error: parsed.error };
+    patch.splits = { set: true, value: parsed.splits };
+  }
   return { patch };
 }
 
-// PATCH /movements/:id. The category is checked before anything changes, so a missing category changes nothing.
+// PATCH /movements/:id. Every check runs before anything changes, so a refused key changes nothing.
 function patchMovement(account, text, raw, reply) {
   const parsed = parsePatch(raw);
   if (parsed.error) return reply(400, { error: parsed.error });
   const movement = findMovement(account, text);
   if (!movement) return reply(404, { error: "movement not found" });
+
+  // The movement's category and every part's are checked together, before any write (FR2 step 3).
+  const categoryIDs = [];
   if (parsed.patch.categoryId?.value !== undefined && parsed.patch.categoryId.value !== null) {
-    const exists = account.categories.some((category) => category.id === parsed.patch.categoryId.value);
-    if (!exists) return reply(404, { error: "category not found" });
+    categoryIDs.push(parsed.patch.categoryId.value);
   }
+  for (const part of parsed.patch.splits?.value ?? []) {
+    categoryIDs.push(part.categoryId);
+  }
+  for (const id of categoryIDs) {
+    if (!account.categories.some((category) => category.id === id)) {
+      return reply(404, { error: "category not found" });
+    }
+  }
+
   // The review keys only mean something for a row the detector made. A Binance row refuses the whole call.
   if ((parsed.patch.kind !== undefined || parsed.patch.review !== undefined) && movement.source !== "detector") {
     return reply(422, { error: "movement is not detected" });
   }
+
+  // Parts need a priced movement with a value above zero, and may not pass the value rounded to cents (FR2 step 5).
+  const splits = parsed.patch.splits?.value;
+  if (splits !== undefined && splits.length > 0) {
+    const value = movementValue(movement);
+    if (value === null || cmpDec(value, "0") <= 0) {
+      return reply(422, { error: "movement is not priced" });
+    }
+    if (cmpDec(sumParts(splits), roundDec(value, 2)) > 0) {
+      return reply(422, { error: "splits exceed movement value" });
+    }
+  }
+
   const now = new Date();
   if (parsed.patch.reason?.set) {
     movement.reason = parsed.patch.reason.value;
@@ -1936,6 +2277,12 @@ function patchMovement(account, text, raw, reply) {
   if (parsed.patch.tags?.set) {
     registerMovementTags(account, parsed.patch.tags.value);
     movement.tags = parsed.patch.tags.value;
+  }
+  if (parsed.patch.splits?.set) {
+    for (const part of parsed.patch.splits.value) {
+      registerMovementTags(account, part.tags);
+    }
+    movement.splits = parsed.patch.splits.value;
   }
   if (parsed.patch.kind !== undefined) {
     movement.kind = parsed.patch.kind;
@@ -1957,11 +2304,14 @@ function patchMovement(account, text, raw, reply) {
 // Tags
 // ---------------------------------------------------------------------------------------------------------------------
 
-// One tag, with how many of the account's movements, in any status, have it.
+// One tag, with how many of the account's movements, in any status, have it on the movement or on a part.
 function tagJson(account, tag) {
   let movement_count = 0;
   for (const movement of account.movements) {
-    if (movement.tags.includes(tag.name)) {
+    if (
+      movement.tags.includes(tag.name) ||
+      movement.splits.some((part) => part.tags.includes(tag.name))
+    ) {
       movement_count++;
     }
   }
@@ -2039,6 +2389,11 @@ function updateTagRoute(account, text, raw, reply) {
       if (movement.tags.includes(previous)) {
         movement.tags = movement.tags.map((name) => (name === previous ? parsed.name : name)).sort();
       }
+      for (const part of movement.splits) {
+        if (part.tags.includes(previous)) {
+          part.tags = part.tags.map((name) => (name === previous ? parsed.name : name)).sort();
+        }
+      }
     }
   }
   if (parsed.color !== undefined) {
@@ -2056,6 +2411,11 @@ function deleteTag(account, text, reply) {
   for (const movement of account.movements) {
     if (movement.tags.includes(tag.name)) {
       movement.tags = movement.tags.filter((name) => name !== tag.name);
+    }
+    for (const part of movement.splits) {
+      if (part.tags.includes(tag.name)) {
+        part.tags = part.tags.filter((name) => name !== tag.name);
+      }
     }
   }
   return reply(204);
@@ -2122,6 +2482,12 @@ function deleteCategory(account, text, reply) {
     if (movement.categoryId === Number(text)) {
       movement.categoryId = null;
     }
+    // A part keeps its amount and tags; it only loses the category (FR6).
+    for (const part of movement.splits) {
+      if (part.categoryId === Number(text)) {
+        part.categoryId = null;
+      }
+    }
   }
   return reply(204);
 }
@@ -2134,7 +2500,7 @@ const CSV_HEADER = [
   "id", "occurred_at", "source", "kind", "external_id", "direction", "status", "source_status", "asset", "amount",
   "fee_asset", "fee_amount", "counter_asset", "counter_amount", "unit_price", "counterparty", "reason", "reason_updated_at",
   "category_id", "category_name", "usd_price", "usd_price_source", "usd_price_status", "usd_value", "fee_usd_value",
-  "tags", "review_status", "window_start", "window_end", "wallet",
+  "tags", "review_status", "window_start", "window_end", "wallet", "split_status", "split_rest_usd", "splits",
 ];
 
 // A cell that a spreadsheet could run as a formula gets a quote in front, and a line break becomes LF.
@@ -2163,6 +2529,17 @@ function exportCsv(account, parsed, reply, sendRaw) {
   const lines = [CSV_HEADER.map(csvField).join(",")];
   for (const movement of rows) {
     const json = movementJson(movement);
+    const splitsCell =
+      movement.splits.length === 0
+        ? ""
+        : JSON.stringify(
+            movement.splits.map((part) => ({
+              category_id: part.categoryId,
+              category_name: part.categoryId === null ? "" : (names.get(part.categoryId) ?? ""),
+              usd_amount: part.usdAmount,
+              tags: part.tags,
+            })),
+          );
     const cells = [
       String(json.id), json.occurred_at, json.source, json.kind, json.external_id, json.direction, json.status,
       json.source_status ?? "", json.asset, json.amount, json.fee_asset ?? "", json.fee_amount ?? "",
@@ -2171,7 +2548,8 @@ function exportCsv(account, parsed, reply, sendRaw) {
       json.category_id === null ? "" : (names.get(json.category_id) ?? ""), json.usd_price ?? "",
       json.usd_price_source ?? "", json.usd_price_status, json.usd_value ?? "", json.fee_usd_value ?? "",
       json.tags.join(", "), json.review_status ?? "", json.detection?.window_start ?? "",
-      json.detection?.window_end ?? "", json.detection?.wallet ?? "",
+      json.detection?.window_end ?? "", json.detection?.wallet ?? "", json.split_status,
+      json.split_rest_usd ?? "", splitsCell,
     ];
     lines.push(cells.map((cell) => csvField(csvCell(cell))).join(","));
   }

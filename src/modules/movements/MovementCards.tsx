@@ -7,6 +7,7 @@ import { TagPills } from "../tags/TagPills";
 import { CoinAmount, ReviewBadge, StatusBadge, UsdValue } from "./MovementParts";
 import { ACCENT } from "./labels";
 import { needsLabel } from "./spending";
+import { SplitSegments } from "./SplitSegments";
 import type { Movement } from "./types";
 
 interface MovementCardsProps {
@@ -28,6 +29,12 @@ function MovementCardsView({ rows, categoryNames, onOpen }: MovementCardsProps) 
       {rows.map((movement) => {
         const name = movement.category_id === null ? undefined : categoryNames.get(movement.category_id);
         const labelNeeded = name === undefined && needsLabel(movement);
+        const splitShown =
+          movement.split_status === "applied" || movement.split_status === "exceeds";
+        const nameOf = (categoryId: number | null) =>
+          categoryId === null
+            ? t("movements.noCategory")
+            : (categoryNames.get(categoryId) ?? t("movements.categoryUnknown"));
         const filing =
           name ??
           (movement.category_id !== null
@@ -62,9 +69,21 @@ function MovementCardsView({ rows, categoryNames, onOpen }: MovementCardsProps) 
                   <StatusBadge movement={movement} />
                   <ReviewBadge movement={movement} />
                 </Group>
-                <Text size="sm" c={labelNeeded ? ACCENT : "dimmed"}>
-                  {formatDate(movement.occurred_at)} · {filing}
-                </Text>
+                {splitShown ? (
+                  <Text size="sm" c="dimmed">
+                    {formatDate(movement.occurred_at)} ·{" "}
+                    <SplitSegments movement={movement} nameOf={nameOf} />
+                  </Text>
+                ) : (
+                  <Text size="sm" c={labelNeeded ? ACCENT : "dimmed"}>
+                    {formatDate(movement.occurred_at)} · {filing}
+                  </Text>
+                )}
+                {movement.split_status === "unpriced" && (
+                  <Text size="sm" c="dimmed">
+                    {t("movements.split.waiting")}
+                  </Text>
+                )}
                 {movement.reason && movementTitle(movement, t) !== movement.reason && (
                   <Text size="sm" c="dimmed" className="truncate">
                     {movement.reason}

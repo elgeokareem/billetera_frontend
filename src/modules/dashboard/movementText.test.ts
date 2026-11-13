@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { Movement, MovementKind } from "../movements/types";
+import i18n from "../shared/i18n";
 import {
   kindKey,
   movementFiling,
@@ -41,6 +42,9 @@ function movement(overrides: Partial<Movement>): Movement {
     fee_usd_value: null,
     review_status: null,
     detection: null,
+    splits: [],
+    split_status: "none",
+    split_rest_usd: null,
     ...overrides,
   };
 }
@@ -88,6 +92,13 @@ describe("movementTitle", () => {
 });
 
 describe("movementFiling", () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  const nameOf = (categoryId: number | null) =>
+    categoryId === null ? "No category" : `Category ${categoryId}`;
+
   it("shows the category's name", () => {
     expect(movementFiling(movement({ category_id: 2 }), "Food", t)).toEqual({ text: "Food", needsLabel: false });
   });
@@ -127,6 +138,64 @@ describe("movementFiling", () => {
   it("still needs a label when it has a reason, since a reason alone isn't a label", () => {
     const withReason = movement({ reason: "Dinner", category_id: null });
     expect(movementFiling(withReason, undefined, t).needsLabel).toBe(true);
+  });
+
+  it("shows one split segment and counts the rest as more", () => {
+    const split = movement({
+      category_id: 9,
+      split_status: "applied",
+      split_rest_usd: "50",
+      splits: [
+        { category_id: 2, usd_amount: "20", tags: [] },
+        { category_id: 3, usd_amount: "30", tags: [] },
+      ],
+    });
+    const filing = movementFiling(split, "Food", t, nameOf);
+    expect(filing.segments).toEqual([{ name: "Category 2", usd: "20" }]);
+    expect(filing.more).toBe(2);
+    expect(filing.text).toBe('Category 2 $20.00 · movements.split.more {"count":"2"}');
+    expect(filing.needsLabel).toBe(false);
+  });
+
+  it("doesn't need a label when a fully split movement has no category", () => {
+    const split = movement({
+      category_id: null,
+      split_status: "applied",
+      split_rest_usd: "0",
+      splits: [
+        { category_id: 2, usd_amount: "35", tags: [] },
+        { category_id: 3, usd_amount: "25", tags: [] },
+      ],
+    });
+    const filing = movementFiling(split, undefined, t, nameOf);
+    expect(filing.needsLabel).toBe(false);
+    expect(filing.segments).toEqual([{ name: "Category 2", usd: "35" }]);
+    expect(filing.more).toBe(1);
+  });
+
+  it("names a deleted part category as no category, and keeps the lines of an exceeds movement", () => {
+    const split = movement({
+      category_id: null,
+      split_status: "exceeds",
+      split_rest_usd: "0",
+      splits: [{ category_id: null, usd_amount: "110", tags: [] }],
+    });
+    expect(movementFiling(split, undefined, t, nameOf).segments).toEqual([
+      { name: "No category", usd: "110" },
+    ]);
+  });
+
+  it("falls back to the needs-a-label line when the parts don't apply", () => {
+    const unpriced = movement({
+      category_id: null,
+      split_status: "unpriced",
+      split_rest_usd: null,
+      splits: [{ category_id: 2, usd_amount: "20", tags: [] }],
+    });
+    expect(movementFiling(unpriced, undefined, t, nameOf)).toEqual({
+      text: "dashboard.recent.needsLabel",
+      needsLabel: true,
+    });
   });
 });
 

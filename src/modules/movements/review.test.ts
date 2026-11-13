@@ -53,6 +53,9 @@ function movement(overrides: Partial<Movement> = {}): Movement {
     fee_usd_value: null,
     review_status: "suspected",
     detection: detection(),
+    splits: [],
+    split_status: "none",
+    split_rest_usd: null,
     ...overrides,
   };
 }

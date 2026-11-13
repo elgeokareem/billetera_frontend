@@ -1,11 +1,12 @@
 import { Group, Paper, Stack, Text } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { Fragment, type ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
 import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { useMovementsList } from "../movements/hooks";
 import { ReviewBadge } from "../movements/MovementParts";
+import { SplitSegments } from "../movements/SplitSegments";
 import type { Movement } from "../movements/types";
 import { Sensitive } from "../shared/components/Sensitive";
 import {
@@ -36,6 +37,10 @@ export function RecentMovements({ now, timeZone }: RecentMovementsProps) {
     () => new Map((categories.data ?? []).map((category) => [category.id, category.name])),
     [categories.data],
   );
+  const nameOf = (categoryId: number | null) =>
+    categoryId === null
+      ? t("movements.noCategory")
+      : (names.get(categoryId) ?? t("movements.categoryUnknown"));
 
   let body;
   if (recent.isPending || categories.isPending) {
@@ -53,6 +58,7 @@ export function RecentMovements({ now, timeZone }: RecentMovementsProps) {
               key={movement.id}
               movement={movement}
               categoryName={movement.category_id === null ? undefined : names.get(movement.category_id)}
+              nameOf={nameOf}
             />
           ))}
         </Stack>
@@ -82,16 +88,33 @@ export function RecentMovements({ now, timeZone }: RecentMovementsProps) {
   );
 }
 
-function MovementRow({ movement, categoryName }: { movement: Movement; categoryName: string | undefined }) {
+function MovementRow({
+  movement,
+  categoryName,
+  nameOf,
+}: {
+  movement: Movement;
+  categoryName: string | undefined;
+  nameOf: (categoryId: number | null) => string;
+}) {
   const { t } = useTranslation();
   const title = movementTitle(movement, t);
-  const filing = movementFiling(movement, categoryName, t);
+  const filing = movementFiling(movement, categoryName, t, nameOf);
   // A row whose title is already its kind doesn't repeat the kind in its second line.
-  const detail = [
-    formatDate(movement.occurred_at),
-    filing.text === title ? null : filing.text,
-    statusNote(movement, t),
-  ].filter(Boolean);
+  const detail: ReactNode[] = [formatDate(movement.occurred_at)];
+  if (filing.text !== title) {
+    detail.push(
+      filing.segments ? (
+        <SplitSegments key="filing" movement={movement} nameOf={nameOf} max={1} />
+      ) : (
+        filing.text
+      ),
+    );
+  }
+  const note = statusNote(movement, t);
+  if (note) {
+    detail.push(note);
+  }
   const missingPrice = priceNote(movement, t);
   const sign = movement.direction === "in" ? "+" : "-";
 
@@ -112,7 +135,12 @@ function MovementRow({ movement, categoryName }: { movement: Movement; categoryN
           <ReviewBadge movement={movement} />
         </Group>
         <Text size="sm" c={filing.needsLabel ? ACCENT : "dimmed"}>
-          {detail.join(" · ")}
+          {detail.map((node, index) => (
+            <Fragment key={index}>
+              {index > 0 ? " · " : null}
+              {node}
+            </Fragment>
+          ))}
         </Text>
       </Stack>
       <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>

@@ -299,7 +299,7 @@ export interface paths {
         head?: never;
         /**
          * Update a movement
-         * @description Changes the reason, the category, the tags, the kind, the review, or any of them, of the user's movement. At least one of reason, category_id, tags, kind and review is needed. A null or blank reason clears it, a null category_id clears the category, and tags replaces every tag of the movement ([] removes them). Tag names are trimmed and stored in lower case. kind is card_spend, copy_trading or transfer and confirms the movement; review is confirmed, dismissed or suspected, and suspected restores the detector's suggestion. Either one on a movement that isn't from the detector is 422 movement is not detected. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Changes the reason, the category, the tags, the kind, the review, the splits, or any of them, of the user's movement. At least one of reason, category_id, tags, kind, review and splits is needed. A null or blank reason clears it, a null category_id clears the category, and tags replaces every tag of the movement ([] removes them). Tag names are trimmed and stored in lower case. kind is card_spend, copy_trading or transfer and confirms the movement; review is confirmed, dismissed or suspected, and suspected restores the detector's suggestion. Either one on a movement that isn't from the detector is 422 movement is not detected. splits replaces every part of the movement ([] removes them): each part has a category_id and a usd_amount decimal string above 0 with at most two decimals, and an optional tags list, and the parts may add up to at most the movement's value rounded to cents. A non-empty splits on an unpriced movement is 422 movement is not priced, and parts above the value are 422 splits exceed movement value. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         patch: operations["movements.update"];
         trace?: never;
@@ -698,6 +698,15 @@ export interface components {
             review_status: "suspected" | "confirmed" | "dismissed" | null;
             source: string;
             source_status: string | null;
+            /** Format: decimal */
+            split_rest_usd: string | null;
+            /** @enum {string} */
+            split_status: "none" | "applied" | "exceeds" | "unpriced";
+            /**
+             * @description Splits is the movement's parts in position order, [] when it has none. SplitStatus says whether they count in totals,
+             *     and SplitRestUsd is the value left in the movement's own category, null when there are no parts or they don't apply.
+             */
+            splits: components["schemas"]["movements.SplitResponse"][];
             /** @enum {string} */
             status: "pending" | "completed" | "failed";
             /** @description Tags is the movement's tag names, in lower case and sorted, and [] when it has none, never null. */
@@ -711,6 +720,18 @@ export interface components {
             usd_price_status: "priced" | "unavailable" | "pending";
             /** Format: decimal */
             usd_value: string | null;
+        };
+        "movements.SplitRequest": {
+            category_id: number;
+            tags?: string[];
+            /** Format: decimal */
+            usd_amount: string;
+        };
+        "movements.SplitResponse": {
+            category_id: number | null;
+            tags: string[];
+            /** Format: decimal */
+            usd_amount: string;
         };
         "movements.TotalsResponse": {
             assets: components["schemas"]["movements.AssetTotalRow"][];
@@ -730,6 +751,7 @@ export interface components {
             reason?: string | null;
             /** @enum {string} */
             review?: "confirmed" | "dismissed" | "suspected";
+            splits?: components["schemas"]["movements.SplitRequest"][];
             tags?: string[];
         };
         "shared.ErrorResponse": {
@@ -2038,7 +2060,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description reason is the text of up to 500 characters once trimmed, or null. category_id is one of the user's category IDs, or null. tags is the whole list of up to 10 tag names, each 1 to 32 characters once trimmed, without commas or control characters, stored in lower case. kind is card_spend, copy_trading or transfer. review is confirmed, dismissed or suspected. At least one of the five is needed */
+        /** @description reason is the text of up to 500 characters once trimmed, or null. category_id is one of the user's category IDs, or null. tags is the whole list of up to 10 tag names, each 1 to 32 characters once trimmed, without commas or control characters, stored in lower case. kind is card_spend, copy_trading or transfer. review is confirmed, dismissed or suspected. splits is the whole list of up to 20 parts, each with a category_id, a usd_amount decimal string and an optional tags list of up to 10 names. At least one of the six is needed */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["movements.UpdateMovementRequest"];
@@ -2054,7 +2076,7 @@ export interface operations {
                     "application/json": components["schemas"]["movements.MovementEnvelope"];
                 };
             };
-            /** @description The body isn't a JSON object with reason, category_id or tags, or a value is invalid */
+            /** @description The body isn't a JSON object with one of the six keys, or a value is invalid, including invalid split and too many splits */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2090,7 +2112,7 @@ export interface operations {
                     "application/json": components["schemas"]["shared.ErrorResponse"];
                 };
             };
-            /** @description The movement isn't from the detector, and the body changes its kind or review */
+            /** @description The movement isn't from the detector and the body changes its kind or review, or a non-empty splits is on an unpriced movement or exceeds its value */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -1,5 +1,6 @@
-import { Box, Select, Stack, Table, Text, UnstyledButton } from "@mantine/core";
-import { memo, type MouseEvent } from "react";
+import { Box, Group, Select, Stack, Table, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
+import { memo, type MouseEvent, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category } from "../categories/types";
 import { kindKey } from "../dashboard/movementText";
@@ -8,6 +9,8 @@ import { TagPills } from "../tags/TagPills";
 import { CoinAmount, ReviewBadge, StatusBadge, UsdValue } from "./MovementParts";
 import { NO_CATEGORY } from "./patch";
 import { needsLabel } from "./spending";
+import { splitSegments } from "./splits";
+import { SplitSegments } from "./SplitSegments";
 import type { Movement } from "./types";
 
 interface MovementsTableProps {
@@ -41,6 +44,29 @@ function MovementsTableView({
     { value: NO_CATEGORY, label: t("movements.noCategory") },
     ...(categories ?? []).map((category) => ({ value: String(category.id), label: category.name })),
   ];
+  const names = useMemo(
+    () => new Map((categories ?? []).map((category) => [category.id, category.name])),
+    [categories],
+  );
+  const nameOf = (categoryId: number | null) =>
+    categoryId === null
+      ? t("movements.noCategory")
+      : (names.get(categoryId) ?? t("movements.categoryUnknown"));
+
+  // The split button's name: the count and names only, never an amount, so a screen reader has nothing to read aloud
+  // when balances are hidden.
+  function splitLabel(movement: Movement) {
+    const all = splitSegments(movement, nameOf);
+    const count = all.segments.length + all.more;
+    const labels = [
+      ...all.segments.map((segment) => segment.name),
+      ...(all.more > 0 ? [t("movements.split.more", { count: all.more })] : []),
+    ];
+    return t("movements.split.segmentsLabel", {
+      count,
+      names: labels.join(", "),
+    });
+  }
 
   // A click on a control inside the row, or on an option of an open select, belongs to that control.
   function openFromRow(event: MouseEvent<HTMLTableRowElement>, movement: Movement) {
@@ -67,6 +93,8 @@ function MovementsTableView({
         <Table.Tbody>
           {rows.map((movement) => {
             const labelNeeded = movement.category_id === null && needsLabel(movement);
+            const splitShown =
+              movement.split_status === "applied" || movement.split_status === "exceeds";
             return (
               <Table.Tr
                 key={movement.id}
@@ -91,36 +119,68 @@ function MovementsTableView({
                   </Stack>
                 </Table.Td>
                 <Table.Td miw={190}>
-                  {/* The select stops its clicks here, so a choice in it never opens the row. */}
-                  <Box onClick={(event) => event.stopPropagation()}>
-                    <Select
-                      aria-label={t("movements.table.category")}
-                      data={categoryData}
-                      value={movement.category_id === null ? null : String(movement.category_id)}
-                      placeholder={
-                        movement.category_id !== null
-                          ? t("movements.categoryUnknown")
-                          : labelNeeded
-                            ? t("movements.needsLabel")
-                            : t("movements.noCategory")
-                      }
-                      classNames={{ input: labelNeeded ? "needs-label-input" : undefined }}
-                      styles={{ input: { minHeight: 44, fontSize: 14 } }}
-                      // A list of 50 rows would otherwise keep 50 hidden dropdowns in the page.
-                      comboboxProps={{ keepMounted: false }}
-                      allowDeselect={false}
-                      disabled={categories === undefined || savingId === movement.id}
-                      onChange={(value) => {
-                        if (!value) {
-                          return;
-                        }
-                        const next = value === NO_CATEGORY ? null : Number(value);
-                        if (next !== movement.category_id) {
-                          onCategoryChange(movement, next);
-                        }
-                      }}
-                    />
-                  </Box>
+                  {splitShown ? (
+                    // The segments open the drawer; the row's own click handler would do the same, but the button keeps
+                    // the category cell keyboard operable and names the split for a screen reader.
+                    <Box onClick={(event) => event.stopPropagation()}>
+                      <UnstyledButton
+                        fz="sm"
+                        onClick={() => onOpen(movement)}
+                        aria-label={splitLabel(movement)}
+                      >
+                        <Group gap={4} wrap="wrap" align="center">
+                          {movement.split_status === "exceeds" && (
+                            <Tooltip label={t("movements.split.exceedsShort")} withArrow>
+                              <IconAlertTriangle
+                                size={16}
+                                color="var(--mantine-color-yellow-5)"
+                                aria-hidden
+                              />
+                            </Tooltip>
+                          )}
+                          <SplitSegments movement={movement} nameOf={nameOf} />
+                        </Group>
+                      </UnstyledButton>
+                    </Box>
+                  ) : (
+                    <>
+                      {/* The select stops its clicks here, so a choice in it never opens the row. */}
+                      <Box onClick={(event) => event.stopPropagation()}>
+                        <Select
+                          aria-label={t("movements.table.category")}
+                          data={categoryData}
+                          value={movement.category_id === null ? null : String(movement.category_id)}
+                          placeholder={
+                            movement.category_id !== null
+                              ? t("movements.categoryUnknown")
+                              : labelNeeded
+                                ? t("movements.needsLabel")
+                                : t("movements.noCategory")
+                          }
+                          classNames={{ input: labelNeeded ? "needs-label-input" : undefined }}
+                          styles={{ input: { minHeight: 44, fontSize: 14 } }}
+                          // A list of 50 rows would otherwise keep 50 hidden dropdowns in the page.
+                          comboboxProps={{ keepMounted: false }}
+                          allowDeselect={false}
+                          disabled={categories === undefined || savingId === movement.id}
+                          onChange={(value) => {
+                            if (!value) {
+                              return;
+                            }
+                            const next = value === NO_CATEGORY ? null : Number(value);
+                            if (next !== movement.category_id) {
+                              onCategoryChange(movement, next);
+                            }
+                          }}
+                        />
+                      </Box>
+                      {movement.split_status === "unpriced" && (
+                        <Text fz="xs" c="dimmed" mt={4}>
+                          {t("movements.split.waiting")}
+                        </Text>
+                      )}
+                    </>
+                  )}
                 </Table.Td>
                 <Table.Td maw={260}>
                   <Stack gap={4}>

@@ -131,7 +131,8 @@
       "undone": "Label removed.",
       "copyTrading": "It's copy trading",
       "notSpend": "Not a spend",
-      "movedToCopy": "Moved to copy trading."
+      "movedToCopy": "Moved to copy trading.",
+      "splitRest": "Split. Pick a category for the rest: <amount/>"
     },
     "balance": {
       "title": "Total balance",
@@ -373,6 +374,33 @@
       "save": "Save changes",
       "saveFailed": "The change wasn't saved.",
       "createdHint": "Category created. Save changes to file this movement under it."
+    },
+    "split": {
+      "title": "Split this movement",
+      "intro": "Divide this movement among categories. What's left stays in its category.",
+      "start": "Split this movement",
+      "restCategory": "Category of the rest",
+      "category": "Category",
+      "amount": "USD",
+      "partTags": "Tags of this part",
+      "add": "Add a part",
+      "limit": "Up to 20 parts",
+      "remove": "Remove part {{n}}",
+      "rest": "Rest: {{name}} {{amount}}",
+      "restNone": "Rest: none",
+      "over": "The parts add up to {{sum}}, {{over}} more than this movement's {{value}}.",
+      "pickCategory": "Pick a category",
+      "badAmount": "Enter an amount above $0 with up to 2 decimals",
+      "unpriced": "Splitting needs a USD value, and this movement has none yet.",
+      "zero": "This movement has no value to split.",
+      "unpricedParts": "These parts count again once the movement has a price.",
+      "removeAll": "Remove the split",
+      "exceedsTitle": "The parts add up to more than this movement is worth now",
+      "exceedsBody": "Its value changed after you split it. Until you fix the parts, they count in order until the value runs out.",
+      "exceedsShort": "The parts add up to more than its value",
+      "segmentsLabel": "Split into {{count}}: {{names}}",
+      "more": "+{{count}}",
+      "waiting": "Split, waiting for a price"
     }
   },
   "settings": {
@@ -396,6 +424,8 @@
     "invalidCategoryName": "Category names must be 1 to 64 characters.",
     "movementNotFound": "That movement no longer exists.",
     "movementNotDetected": "This movement wasn't detected from your balance, so it can't be reviewed.",
+    "movementNotPriced": "This movement has no USD value now, so it can't be split. Close it and open it again.",
+    "splitsExceedValue": "This movement's value changed and the parts no longer fit. Close it and open it again.",
     "snapshotNotFound": "No balance data yet.",
     "tooManyRows": "Too many movements to export. Narrow the filters.",
     "invalidTag": "That tag isn't valid. Tags are 1 to 32 characters, without commas.",

@@ -1,9 +1,9 @@
 import { Alert, Box, Button, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import type { Category } from "../categories/types";
 import type { Movement } from "../movements/types";
 import { formatDate, formatQuantity, formatUsd } from "../shared/format";
-import { abs } from "../shared/money";
+import { abs, compare } from "../shared/money";
 import { PrimaryButton } from "../shared/components/Buttons";
 import { Sensitive } from "../shared/components/Sensitive";
 import { TagsField } from "../tags/TagsField";
@@ -75,6 +75,12 @@ export function LabelCard({
 }: LabelCardProps) {
   const { t } = useTranslation();
   const missingPrice = priceNote(movement, t);
+  const splitRest =
+    movement.category_id === null &&
+    movement.split_rest_usd !== null &&
+    compare(movement.split_rest_usd, "0") > 0
+      ? movement.split_rest_usd
+      : null;
   const suspectedCardSpend =
     movement.review_status === "suspected" && movement.kind === "card_spend";
 
@@ -118,6 +124,16 @@ export function LabelCard({
           {missingPrice && (
             <Text size="xs" c="dimmed">
               {missingPrice}
+            </Text>
+          )}
+          {splitRest !== null && (
+            <Text size="xs" c="dimmed">
+              <Trans
+                i18nKey="dashboard.card.splitRest"
+                components={{
+                  amount: <Sensitive>{formatUsd(splitRest)}</Sensitive>,
+                }}
+              />
             </Text>
           )}
         </div>

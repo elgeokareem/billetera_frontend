@@ -214,6 +214,15 @@ describe("getApiErrorKey", () => {
     ).toBe("errors.movementNotDetected");
   });
 
+  it("reads the split errors", () => {
+    expect(
+      getApiErrorKey(apiError(422, { error: "movement is not priced" })),
+    ).toBe("errors.movementNotPriced");
+    expect(
+      getApiErrorKey(apiError(422, { error: "splits exceed movement value" })),
+    ).toBe("errors.splitsExceedValue");
+  });
+
   it("falls back for unknown text", () => {
     expect(getApiErrorKey(apiError(500, { error: "boom" }))).toBe(
       "errors.generic",

@@ -91,7 +91,8 @@ a {
 
 /* Dashboard. The left column is wider. Below 768px the sections form one column, in the order of the design: the label
    queue, the balance, its chart over time, recent movements, spending, holdings. There the wrappers use display: contents,
-   so each section is an item of the column and the order rules apply. */
+   so each section is an item of the column and the order rules apply. From 768px the chart moves to the left column, below
+   spending and holdings, once the label count says nothing is left to label (see DashboardPage). */
 .dash {
   display: flex;
   flex-direction: column;
@@ -217,6 +218,27 @@ a {
   .dash__spending,
   .dash__holdings {
     order: 0;
+  }
+}
+
+/* The chart fades and rises into place when the label count moves it after the page has loaded. The first placement,
+   which follows the count's first load, appears as it is. Below 768px nothing moves on screen, and reduced motion turns
+   the animation off. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .dash__history--enter {
+    animation: dash-history-enter 250ms ease-out;
+  }
+
+  @keyframes dash-history-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 

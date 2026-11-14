@@ -74,6 +74,13 @@ a {
   font-weight: 700;
 }
 
+/* The icon and the name, side by side, wherever the brand shows. The icon is decorative, so the name is the whole label. */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* The wordmark as a link home, on the login and register pages. It keeps the brand's colour and the 44px target. */
 .brand-link {
   display: inline-flex;

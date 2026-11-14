@@ -1,6 +1,5 @@
-import { Button, Collapse, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
-import { IconAdjustmentsHorizontal, IconSearch } from "@tabler/icons-react";
+import { Badge, Button, Collapse, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { IconAdjustmentsHorizontal, IconChevronDown, IconSearch } from "@tabler/icons-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,12 +9,16 @@ import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
 import { SyncNow } from "../dashboard/SyncNow";
 import { getApiErrorKey } from "../shared/api-errors";
+import { useMotionDuration } from "../shared/motion";
+import { loadPref, savePref } from "../shared/prefs";
 import { useTags } from "../tags/hooks";
 import { ExportButton } from "./ExportButton";
 import { FilterChips } from "./FilterChips";
+import { filterChips } from "./chips";
 import { MovementCards } from "./MovementCards";
 import { MovementDrawer } from "./MovementDrawer";
 import { MovementFilters } from "./MovementFilters";
+import { MovementsChart } from "./MovementsChart";
 import { MovementsTable } from "./MovementsTable";
 import { feedRows, useMovementsFeed, useUpdateMovement } from "./hooks";
 import {
@@ -23,6 +26,7 @@ import {
   listItems,
   type MovementsSearch,
   toMovementsQuery,
+  withFilter,
   withList,
   withText,
 } from "./search";
@@ -30,6 +34,12 @@ import type { Movement } from "./types";
 
 /** The search text is applied this long after the last keystroke. */
 export const SEARCH_DEBOUNCE_MS = 300;
+
+/** The saved open state of the filters panel, per viewer. Missing or any other value reads as closed. */
+const FILTERS_STORAGE_KEY = "billetera.movementFilters";
+const FILTERS_STORAGE_VALUES = ["open", "closed"] as const;
+/** The filters panel's id, which the toggle's aria-controls names. */
+const FILTERS_PANEL_ID = "movement-filters";
 
 /**
  * The Movements view. Its filters live in the URL, so a filtered view can be shared and survives a reload. The list is
@@ -41,9 +51,11 @@ export function MovementsPage() {
   const navigate = useNavigate();
   // Taken once, so the date presets hold while the page is open.
   const [now] = useState(() => new Date());
-  // The filters are always open on a wide screen, and behind a button on a narrow one.
-  const wide = useMediaQuery("(min-width: 48em)", false, { getInitialValueInEffect: false });
-  const [panelOpen, setPanelOpen] = useState(false);
+  // Closed on every width unless the viewer left it open. The choice is saved per browser.
+  const [panelOpen, setPanelOpen] = useState(
+    () => loadPref(FILTERS_STORAGE_KEY, FILTERS_STORAGE_VALUES, "closed") === "open",
+  );
+  const motion = useMotionDuration();
 
   const [text, setText] = useState(search.q ?? "");
   const timer = useRef<number | undefined>(undefined);
@@ -66,6 +78,11 @@ export function MovementsPage() {
   const categoryName = useCallback((id: string) => categoryNames.get(Number(id)), [categoryNames]);
   const rows = useMemo(() => feedRows(feed.data?.pages ?? []), [feed.data]);
   const filtered = hasFilters(search);
+  // One per active filter chip, so the badge and the chips under the panel always agree.
+  const activeFilters = useMemo(
+    () => filterChips(search, { now, t, categoryName }).length,
+    [search, now, t, categoryName],
+  );
 
   // A search that changes some other way (a chip removed, Clear all, the back button) replaces the text. Text being typed
   // stays, while the URL catches up with it. The check runs during render, as React documents for state that follows a prop.
@@ -156,6 +173,13 @@ export function MovementsPage() {
 
   const onUpdated = useCallback((movement: Movement) => setOpened(movement), []);
 
+  // Saves the choice as it changes, so a reload shows the panel as the viewer left it.
+  function toggleFilters() {
+    const next = !panelOpen;
+    setPanelOpen(next);
+    savePref(FILTERS_STORAGE_KEY, next ? "open" : "closed");
+  }
+
   const onDismissed = useCallback(
     (movement: Movement) => {
       setOpened(null);
@@ -204,20 +228,46 @@ export function MovementsPage() {
         />
         <ExportButton query={query} />
         <Button
-          hiddenFrom="sm"
           variant="default"
           radius="xl"
           mih={44}
           leftSection={<IconAdjustmentsHorizontal size={18} aria-hidden />}
+          rightSection={
+            <IconChevronDown
+              size={18}
+              aria-hidden
+              style={{
+                transform: panelOpen ? "rotate(180deg)" : undefined,
+                transition: motion > 0 ? `transform ${motion}ms ease` : undefined,
+              }}
+            />
+          }
           aria-expanded={panelOpen}
-          onClick={() => setPanelOpen((open) => !open)}
+          aria-controls={FILTERS_PANEL_ID}
+          aria-label={
+            !panelOpen && activeFilters > 0
+              ? t("movements.filters.toggleCount", { count: activeFilters })
+              : undefined
+          }
+          onClick={toggleFilters}
         >
-          {t("movements.filters.toggle")}
+          <span>
+            {t("movements.filters.toggle")}
+            {!panelOpen && activeFilters > 0 && (
+              <Badge size="sm" circle ml={6} aria-hidden>
+                {activeFilters}
+              </Badge>
+            )}
+          </span>
         </Button>
       </Group>
 
-      <Collapse expanded={wide || panelOpen}>
-        <Paper bg="dark.6" radius={12} p={{ base: 16, sm: 20 }}>
+      <Collapse
+        expanded={panelOpen}
+        transitionDuration={motion}
+        transitionTimingFunction="ease"
+      >
+        <Paper id={FILTERS_PANEL_ID} bg="dark.6" radius={12} p={{ base: 16, sm: 20 }}>
           <MovementFilters
             search={search}
             onChange={go}
@@ -229,6 +279,12 @@ export function MovementsPage() {
       </Collapse>
 
       <FilterChips search={search} onChange={go} categoryName={categoryName} now={now} />
+
+      <MovementsChart
+        search={search}
+        now={now}
+        onRange={(range) => go(withFilter(withFilter(search, "from", range.from), "to", range.to))}
+      />
 
       {categories.isError && <CategoriesUnavailable onRetry={() => categories.refetch()} />}
 

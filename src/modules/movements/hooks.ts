@@ -65,10 +65,14 @@ export function useMovementsFeed(query: Omit<MovementsQuery, "limit" | "cursor">
   });
 }
 
-export function useMovementTotals(query: TotalsQuery) {
+/**
+ * The totals of a filtered view. A hidden panel passes `enabled: false`, so its queries aren't made until it's shown.
+ */
+export function useMovementTotals(query: TotalsQuery, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: movementKeys.totals(query),
     queryFn: () => fetchMovementTotals(query),
+    enabled: options.enabled ?? true,
   });
 }
 

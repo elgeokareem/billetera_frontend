@@ -26,3 +26,6 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 | [Card Spend Detection](2026-11-13-card-spend-detection/SPEC.md) ([plan](2026-11-13-card-spend-detection/PLAN.md)) | feature | built | Portfolio | 2026-11-13 |
 | [Movement Splits](2026-11-13-movement-splits/SPEC.md) ([plan](2026-11-13-movement-splits/PLAN.md)) | feature | built | Portfolio | 2026-11-13 |
 | [Dashboard Chart Placement](2026-11-13-dashboard-chart-placement/SPEC.md) ([plan](2026-11-13-dashboard-chart-placement/PLAN.md)) | feature | built | Portfolio | 2026-11-13 |
+| [Nav Brand and Logout](2026-11-13-nav-brand-and-logout/SPEC.md) ([plan](2026-11-13-nav-brand-and-logout/PLAN.md)) | feature | built | Platform | 2026-11-13 |
+| [Collapsible Movement Filters](2026-11-14-collapsible-movement-filters/SPEC.md) ([plan](2026-11-14-collapsible-movement-filters/PLAN.md)) | feature | built | Portfolio | 2026-11-14 |
+| [Movements Chart](2026-11-14-movements-chart/SPEC.md) ([plan](2026-11-14-movements-chart/PLAN.md)) | feature | built | Portfolio | 2026-11-14 |

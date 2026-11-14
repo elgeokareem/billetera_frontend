@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "billetera",
+    "appName": "Billetera",
     "comingSoon": "Coming soon",
     "comingSoonBody": "This page isn't ready yet.",
     "language": "Language",
@@ -226,6 +226,7 @@
     },
     "filters": {
       "toggle": "Filters",
+      "toggleCount": "Filters, {{count}} active",
       "search": "Search",
       "searchPlaceholder": "Search reasons and counterparties",
       "kind": "Kind",
@@ -245,6 +246,38 @@
       "clearAll": "Clear all",
       "needsLabel": "Needs a label",
       "review": "Review"
+    },
+    "chart": {
+      "title": {
+        "out": {
+          "day": "Money out by day",
+          "week": "Money out by week",
+          "month": "Money out by month"
+        },
+        "in": {
+          "day": "Money in by day",
+          "week": "Money in by week",
+          "month": "Money in by month"
+        }
+      },
+      "last12Months": "Last 12 months",
+      "total": "Total",
+      "byCategory": "By category",
+      "hide": "Hide chart",
+      "show": "Show chart",
+      "out": "Out",
+      "in": "In",
+      "summaryCount_one": "{{count}} movement",
+      "summaryCount_other": "{{count}} movements",
+      "summaryCompleted_one": "{{count}} completed movement",
+      "summaryCompleted_other": "{{count}} completed movements",
+      "unpriced_one": "{{count}} movement has no price, so the total leaves it out.",
+      "unpriced_other": "{{count}} movements have no price, so the total leaves them out.",
+      "emptyDirection": {
+        "out": "No money out for these filters",
+        "in": "No money in for these filters"
+      },
+      "otherCategories": "Other categories"
     },
     "review": {
       "suspected": "To review",
@@ -577,7 +610,7 @@
   "landing": {
     "hero": {
       "title": "See where your Binance money goes.",
-      "subtitle": "billetera reads your Binance balances and movements with a read-only API key, so you can label your spending and see your history in USD.",
+      "subtitle": "Billetera reads your Binance balances and movements with a read-only API key, so you can label your spending and see your history in USD.",
       "readOnly": "Only read-only Binance keys are accepted."
     },
     "features": {
@@ -607,18 +640,18 @@
       },
       "two": {
         "title": "Connect Binance",
-        "body": "Create a read-only API key in Binance and paste it in. billetera checks it with Binance and refuses it if it can do more than read."
+        "body": "Create a read-only API key in Binance and paste it in. Billetera checks it with Binance and refuses it if it can do more than read."
       },
       "three": {
         "title": "See your money",
-        "body": "The first sync brings your last 90 days of movements, and billetera keeps syncing every hour."
+        "body": "The first sync brings your last 90 days of movements, and Billetera keeps syncing every hour."
       }
     },
     "security": {
       "title": "Your money stays where it is",
       "readOnly": {
         "title": "Read-only, enforced",
-        "body": "A key that can trade, withdraw or transfer is refused when you save it. billetera can't move your funds."
+        "body": "A key that can trade, withdraw or transfer is refused when you save it. Billetera can't move your funds."
       },
       "encrypted": {
         "title": "Encrypted at rest",
@@ -636,8 +669,8 @@
     "faq": {
       "title": "Frequently asked questions",
       "moveMoney": {
-        "question": "Can billetera move or withdraw my money?",
-        "answer": "No. Only read-only keys are accepted, so billetera can't trade, withdraw or transfer."
+        "question": "Can Billetera move or withdraw my money?",
+        "answer": "No. Only read-only keys are accepted, so Billetera can't trade, withdraw or transfer."
       },
       "spending": {
         "question": "What counts as spending?",
@@ -664,7 +697,7 @@
       "title": "Ready to see where your money goes?"
     },
     "footer": {
-      "affiliation": "billetera is an independent project and isn't affiliated with Binance."
+      "affiliation": "Billetera is an independent project and isn't affiliated with Binance."
     }
   }
 }

@@ -1,6 +1,7 @@
 import { Button, Container } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { BrandMark } from "../shared/components/BrandMark";
 import { LanguageSwitch } from "../shared/components/LanguageSwitch";
 import { INK_ON_ACCENT } from "../shared/theme";
 
@@ -15,7 +16,7 @@ export function LandingHeader() {
   return (
     <header>
       <Container size={1120} px="md" className="landing__header">
-        <span className="brand">{t("common.appName")}</span>
+        <BrandMark />
         <LanguageSwitch />
         <nav className="landing__header-actions" aria-label={t("nav.main")}>
           <Button

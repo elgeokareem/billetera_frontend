@@ -5,6 +5,7 @@ import { useCategories } from "../categories/hooks";
 import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
 import { useMovementTotals } from "../movements/hooks";
 import { spendingBreakdown, movementCount, type CategorySpending } from "../movements/spending";
+import { NO_CATEGORY_COLOR, SEGMENT_COLORS } from "../shared/categoryColors";
 import { Sensitive } from "../shared/components/Sensitive";
 import { formatMonth, formatUsd } from "../shared/format";
 import { compare, percentOf } from "../shared/money";
@@ -12,10 +13,6 @@ import { MASK } from "../shared/privacy";
 import { useBalancesHidden } from "../shared/usePrivacy";
 import { dashboardQueries } from "./queries";
 import { SectionError, SectionSkeleton } from "./SectionStates";
-
-// The segments of the bar, in order. Spending with no category is the last one, in the dimmest tone.
-const SEGMENT_COLORS = ["var(--mantine-color-accent-6)", "#8FC7A8", "#5C9C86", "#EEF5F1"];
-const NO_CATEGORY_COLOR = "var(--mantine-color-dark-4)";
 
 interface SpendingCardProps {
   now: Date;

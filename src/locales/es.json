@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "billetera",
+    "appName": "Billetera",
     "comingSoon": "Próximamente",
     "comingSoonBody": "Esta página aún no está lista.",
     "language": "Idioma",
@@ -226,6 +226,7 @@
     },
     "filters": {
       "toggle": "Filtros",
+      "toggleCount": "Filtros, {{count}} activos",
       "search": "Buscar",
       "searchPlaceholder": "Buscar motivos y contrapartes",
       "kind": "Tipo",
@@ -245,6 +246,38 @@
       "clearAll": "Quitar todos los filtros",
       "needsLabel": "Sin etiqueta",
       "review": "Revisión"
+    },
+    "chart": {
+      "title": {
+        "out": {
+          "day": "Salidas por día",
+          "week": "Salidas por semana",
+          "month": "Salidas por mes"
+        },
+        "in": {
+          "day": "Entradas por día",
+          "week": "Entradas por semana",
+          "month": "Entradas por mes"
+        }
+      },
+      "last12Months": "Últimos 12 meses",
+      "total": "Total",
+      "byCategory": "Por categoría",
+      "hide": "Ocultar gráfico",
+      "show": "Mostrar gráfico",
+      "out": "Salidas",
+      "in": "Entradas",
+      "summaryCount_one": "{{count}} movimiento",
+      "summaryCount_other": "{{count}} movimientos",
+      "summaryCompleted_one": "{{count}} movimiento completado",
+      "summaryCompleted_other": "{{count}} movimientos completados",
+      "unpriced_one": "{{count}} movimiento no tiene precio, así que el total no lo incluye.",
+      "unpriced_other": "{{count}} movimientos no tienen precio, así que el total no los incluye.",
+      "emptyDirection": {
+        "out": "No hay salidas con estos filtros",
+        "in": "No hay entradas con estos filtros"
+      },
+      "otherCategories": "Otras categorías"
     },
     "review": {
       "suspected": "Por revisar",
@@ -577,7 +610,7 @@
   "landing": {
     "hero": {
       "title": "Mira a dónde va tu dinero de Binance.",
-      "subtitle": "billetera lee tus saldos y movimientos de Binance con una clave de API de solo lectura, para que etiquetes tus gastos y veas tu historial en USD.",
+      "subtitle": "Billetera lee tus saldos y movimientos de Binance con una clave de API de solo lectura, para que etiquetes tus gastos y veas tu historial en USD.",
       "readOnly": "Solo se aceptan claves de solo lectura de Binance."
     },
     "features": {
@@ -607,18 +640,18 @@
       },
       "two": {
         "title": "Conecta Binance",
-        "body": "Crea una clave de API de solo lectura en Binance y pégala aquí. billetera la comprueba con Binance y la rechaza si puede hacer más que leer."
+        "body": "Crea una clave de API de solo lectura en Binance y pégala aquí. Billetera la comprueba con Binance y la rechaza si puede hacer más que leer."
       },
       "three": {
         "title": "Mira tu dinero",
-        "body": "La primera sincronización trae tus últimos 90 días de movimientos, y billetera sigue sincronizando cada hora."
+        "body": "La primera sincronización trae tus últimos 90 días de movimientos, y Billetera sigue sincronizando cada hora."
       }
     },
     "security": {
       "title": "Tu dinero se queda donde está",
       "readOnly": {
         "title": "Solo lectura, sin excepciones",
-        "body": "Una clave que puede operar, retirar o transferir se rechaza al guardarla. billetera no puede mover tus fondos."
+        "body": "Una clave que puede operar, retirar o transferir se rechaza al guardarla. Billetera no puede mover tus fondos."
       },
       "encrypted": {
         "title": "Cifrada en reposo",
@@ -636,8 +669,8 @@
     "faq": {
       "title": "Preguntas frecuentes",
       "moveMoney": {
-        "question": "¿Puede billetera mover o retirar mi dinero?",
-        "answer": "No. Solo se aceptan claves de solo lectura, así que billetera no puede operar, retirar ni transferir."
+        "question": "¿Puede Billetera mover o retirar mi dinero?",
+        "answer": "No. Solo se aceptan claves de solo lectura, así que Billetera no puede operar, retirar ni transferir."
       },
       "spending": {
         "question": "¿Qué cuenta como gasto?",
@@ -664,7 +697,7 @@
       "title": "¿Listo para ver a dónde va tu dinero?"
     },
     "footer": {
-      "affiliation": "billetera es un proyecto independiente y no está afiliado a Binance."
+      "affiliation": "Billetera es un proyecto independiente y no está afiliado a Binance."
     }
   }
 }

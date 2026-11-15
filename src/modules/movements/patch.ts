@@ -1,6 +1,7 @@
 import {
   isSplitDraftEmpty,
   normalisedSplits,
+  normaliseSplitAmount,
   sameSplits,
   splitDraftsOf,
   type SplitDraft,
@@ -65,4 +66,32 @@ export function patchFor(
     body.splits = splits;
   }
   return body;
+}
+
+/**
+ * True when the form has something to save: a changed field, tag text typed in the movement's tags field, or a part
+ * that differs from the saved ones or needs a fix the user can see. A blank part doesn't count, and neither does tag
+ * text that folds into tags already there, which is what the save resolves without a request.
+ */
+export function hasUnsavedChanges(
+  movement: Pick<Movement, "reason" | "category_id" | "tags" | "splits">,
+  draft: MovementDraft,
+  tagText: string,
+): boolean {
+  if (Object.keys(patchFor(movement, draft)).length > 0) {
+    return true;
+  }
+  if (tagText.trim() !== "") {
+    return true;
+  }
+  // A saved part whose category was deleted keeps Save enabled, as it was when the drawer opened.
+  return (
+    !sameSplits(movement.splits, normalisedSplits(draft.splits)) ||
+    draft.splits.some(
+      (part) =>
+        part.tagText.trim() !== "" ||
+        (!isSplitDraftEmpty(part) &&
+          (part.category === "" || normaliseSplitAmount(part.amount) === undefined)),
+    )
+  );
 }

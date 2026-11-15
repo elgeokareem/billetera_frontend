@@ -4,13 +4,14 @@ import {
   Box,
   Button,
   Group,
+  Paper,
   Select,
   Stack,
   Text,
   TextInput,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Sensitive } from "../shared/components/Sensitive";
@@ -80,6 +81,8 @@ export function SplitSection({
   const categoryRefs = useRef(new Map<number, HTMLInputElement | null>());
   const amountRefs = useRef(new Map<number, HTMLInputElement | null>());
   const lastFocus = useRef(0);
+  // The part just added, whose category select gets the focus once the row is mounted.
+  const pendingFocus = useRef<number | null>(null);
 
   // Focus the first bad field after a save attempt, as B3 asks. Only a new attempt moves the focus; typing doesn't.
   useEffect(() => {
@@ -99,6 +102,21 @@ export function SplitSection({
       }
     }
   }, [focusNonce, errors, parts]);
+
+  // A part added from the header gets the focus on its category select once its row is mounted, which also scrolls it
+  // into view. Only the row just added is focused; the rest of the form keeps its focus.
+  useEffect(() => {
+    const key = pendingFocus.current;
+    if (key === null) {
+      return;
+    }
+    const node = categoryRefs.current.get(key);
+    if (!node) {
+      return;
+    }
+    pendingFocus.current = null;
+    node.focus();
+  }, [parts]);
 
   const editable = canSplit(movement);
   const value = movement.usd_value;
@@ -130,10 +148,12 @@ export function SplitSection({
   }
 
   function addPart() {
+    const key = nextSplitKey(parts);
+    pendingFocus.current = key;
     onPartsChange([
       ...parts,
       {
-        key: nextSplitKey(parts),
+        key,
         category: "",
         amount: "",
         tags: [],
@@ -214,64 +234,97 @@ export function SplitSection({
 
   return (
     <Stack gap="sm">
-      <Text fw={600}>{t("movements.split.title")}</Text>
+      <Group justify="space-between" wrap="wrap">
+        <Text fw={600}>{t("movements.split.title")}</Text>
+        <Button
+          type="button"
+          variant="light"
+          radius="xl"
+          mih={44}
+          leftSection={<IconPlus size={18} aria-hidden />}
+          disabled={disabled || parts.length >= MAX_SPLITS}
+          onClick={addPart}
+        >
+          {t("movements.split.add")}
+        </Button>
+      </Group>
+      {parts.length >= MAX_SPLITS && (
+        <Text size="xs" c="dimmed">
+          {t("movements.split.limit")}
+        </Text>
+      )}
       {movement.split_status === "exceeds" && (
         <Alert color="yellow" variant="light" title={t("movements.split.exceedsTitle")}>
           <Text size="sm">{t("movements.split.exceedsBody")}</Text>
         </Alert>
       )}
       {parts.length === 0 ? (
-        <>
-          <Text size="sm" c="dimmed">
-            {t("movements.split.intro")}
-          </Text>
-          <Group>
-            <Button
-              type="button"
-              variant="subtle"
-              radius="xl"
-              mih={44}
-              disabled={disabled}
-              onClick={addPart}
-            >
-              {t("movements.split.start")}
-            </Button>
-          </Group>
-        </>
+        <Text size="sm" c="dimmed">
+          {t("movements.split.intro")}
+        </Text>
       ) : (
         <>
           <Stack gap="md">
             {parts.map((part, index) => (
-              <Stack key={part.key} gap="xs">
-                <Box
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "flex-start",
-                    flexWrap: narrow ? "wrap" : "nowrap",
-                  }}
-                >
-                  <Select
-                    ref={(node) => {
-                      categoryRefs.current.set(part.key, node);
+              <Paper key={part.key} withBorder radius="md" p="sm">
+                <Stack gap="xs">
+                  <Group justify="space-between" gap="sm" wrap="nowrap">
+                    <Group gap="xs" wrap="nowrap">
+                      <Box
+                        aria-hidden
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          flexShrink: 0,
+                          background: `var(--mantine-color-${SPLIT_COLORS[index % SPLIT_COLORS.length]}-5)`,
+                        }}
+                      />
+                      <Text size="sm" fw={600}>
+                        {t("movements.split.part", { n: index + 1 })}
+                      </Text>
+                    </Group>
+                    <ActionIcon
+                      type="button"
+                      variant="subtle"
+                      color="red"
+                      radius="xl"
+                      size={44}
+                      aria-label={t("movements.split.remove", { n: index + 1 })}
+                      disabled={disabled}
+                      onClick={() => removePart(part.key)}
+                    >
+                      <IconTrash size={18} aria-hidden />
+                    </ActionIcon>
+                  </Group>
+                  <Box
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "flex-start",
+                      flexWrap: narrow ? "wrap" : "nowrap",
                     }}
-                    aria-label={`${t("movements.split.category")} ${index + 1}`}
-                    placeholder={t("movements.split.category")}
-                    data={[...categoryOptions]}
-                    value={part.category === "" ? null : part.category}
-                    allowDeselect={false}
-                    disabled={disabled || categoriesLoading}
-                    error={categoryError(part, index)}
-                    onChange={(next) =>
-                      updatePart(part.key, {
-                        category: next ?? "",
-                        missingCategory: undefined,
-                      })
-                    }
-                    style={{ flex: narrow ? "1 1 100%" : 1, minWidth: 0 }}
-                    styles={{ input: { minHeight: 44 } }}
-                  />
-                  <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                  >
+                    <Select
+                      ref={(node) => {
+                        categoryRefs.current.set(part.key, node);
+                      }}
+                      aria-label={`${t("movements.split.category")} ${index + 1}`}
+                      placeholder={t("movements.split.category")}
+                      data={[...categoryOptions]}
+                      value={part.category === "" ? null : part.category}
+                      allowDeselect={false}
+                      disabled={disabled || categoriesLoading}
+                      error={categoryError(part, index)}
+                      onChange={(next) =>
+                        updatePart(part.key, {
+                          category: next ?? "",
+                          missingCategory: undefined,
+                        })
+                      }
+                      style={{ flex: narrow ? "1 1 100%" : 1, minWidth: 0 }}
+                      styles={{ input: { minHeight: 44 } }}
+                    />
                     <TextInput
                       ref={(node) => {
                         amountRefs.current.set(part.key, node);
@@ -292,63 +345,34 @@ export function SplitSection({
                           amount: event.currentTarget.value,
                         })
                       }
-                      w={140}
+                      w={narrow ? "100%" : 140}
                       styles={{ input: { minHeight: 44 } }}
                     />
-                    <ActionIcon
-                      type="button"
-                      variant="subtle"
-                      color="red"
-                      radius="xl"
-                      size={44}
-                      aria-label={t("movements.split.remove", { n: index + 1 })}
-                      disabled={disabled}
-                      onClick={() => removePart(part.key)}
-                    >
-                      <IconTrash size={18} aria-hidden />
-                    </ActionIcon>
-                  </Group>
-                </Box>
-                <TagsField
-                  label={t("movements.split.partTags")}
-                  description={t("movements.drawer.tagsHelp")}
-                  placeholder={t("movements.drawer.tagsPlaceholder")}
-                  suggestions={knownTags}
-                  value={part.tags}
-                  searchValue={part.tagText}
-                  onSearchChange={(text) => {
-                    updatePart(part.key, { tagText: text });
-                    onClearTagError?.(part.key);
-                  }}
-                  onChange={(tags) => {
-                    updatePart(part.key, { tags });
-                    onClearTagError?.(part.key);
-                  }}
-                  disabled={disabled}
-                  error={
-                    tagErrors?.[part.key] ? t(tagErrors[part.key]) : undefined
-                  }
-                />
-              </Stack>
+                  </Box>
+                  <TagsField
+                    label={t("movements.split.partTags")}
+                    description={t("movements.drawer.tagsHelp")}
+                    placeholder={t("movements.drawer.tagsPlaceholder")}
+                    suggestions={knownTags}
+                    value={part.tags}
+                    searchValue={part.tagText}
+                    onSearchChange={(text) => {
+                      updatePart(part.key, { tagText: text });
+                      onClearTagError?.(part.key);
+                    }}
+                    onChange={(tags) => {
+                      updatePart(part.key, { tags });
+                      onClearTagError?.(part.key);
+                    }}
+                    disabled={disabled}
+                    error={
+                      tagErrors?.[part.key] ? t(tagErrors[part.key]) : undefined
+                    }
+                  />
+                </Stack>
+              </Paper>
             ))}
           </Stack>
-          <Group gap="sm" wrap="wrap">
-            <Button
-              type="button"
-              variant="subtle"
-              radius="xl"
-              mih={44}
-              disabled={disabled || parts.length >= MAX_SPLITS}
-              onClick={addPart}
-            >
-              {t("movements.split.add")}
-            </Button>
-            {parts.length >= MAX_SPLITS && (
-              <Text size="xs" c="dimmed">
-                {t("movements.split.limit")}
-              </Text>
-            )}
-          </Group>
           {value !== null && (
             <SplitBar
               value={value}

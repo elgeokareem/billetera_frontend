@@ -413,10 +413,10 @@
     "split": {
       "title": "Dividir este movimiento",
       "intro": "Reparte este movimiento entre categorías. Lo que sobre queda en su categoría.",
-      "start": "Dividir este movimiento",
       "restCategory": "Categoría del resto",
       "category": "Categoría",
       "amount": "USD",
+      "part": "Parte {{n}}",
       "partTags": "Etiquetas de esta parte",
       "add": "Agregar una parte",
       "limit": "Hasta 20 partes",

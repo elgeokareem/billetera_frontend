@@ -102,6 +102,10 @@ Manual checks against the fake API (`{"syncCooldown": 60}`): AC1, AC2, AC4, AC6,
 | D3 | One store per tab, in memory | `localStorage`: the server is the source of truth, and a stale countdown after a reload is worse than one 429 |
 | D4 | The countdown line isn't a live region | A live region announcing every second |
 
+## Follow-up
+
+2026-11-15: the disabled button now reads as inactive on both cards. On the lime card a translucent dark wash (`rgba(15, 42, 38, 0.18)`) carries dark ink at 80% opacity (5.5:1); on a dark card `dark-4` carries `dark-0` text (4.9:1). Both keep `cursor: not-allowed`, which Mantine's disabled button doesn't suppress because it leaves pointer events alone.
+
 ## Open Questions
 
 None. Backend Q1 to Q3 don't change this spec's behaviour.

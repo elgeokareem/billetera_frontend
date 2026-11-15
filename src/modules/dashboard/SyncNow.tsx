@@ -40,17 +40,29 @@ export function SyncNow({ label, onAccent = false }: SyncNowProps) {
         loading={sync.isPending}
         disabled={coolingDown}
         color={onAccent ? "dark" : "accent"}
-        c={onAccent ? "dark.0" : INK_ON_ACCENT}
+        // Mantine's disabled text color can't beat this inline `c`, so the label color is chosen here: dark ink at 80% on
+        // the accent card's muted wash (5.5:1), and light text on the dark card's grey fill (4.9:1).
+        c={
+          coolingDown
+            ? onAccent
+              ? "rgba(22, 39, 12, 0.8)"
+              : "dark.0"
+            : onAccent
+              ? "dark.0"
+              : INK_ON_ACCENT
+        }
         aria-describedby={coolingDown ? cooldownId : undefined}
-        // Mantine's disabled fill is dark, and its disabled text color can't beat the button's inline one, so the
-        // accent button's dark ink would vanish. Each variant gets a fill its own text reads on: the dark button
-        // keeps its dark fill, and the accent one turns pale.
+        // A disabled button must read as inactive: a translucent dark wash on the lime card, a mid grey on the dark one.
+        // Mantine's disabled button leaves pointer events alone, so its not-allowed cursor still shows.
         style={
-          {
-            "--mantine-color-disabled": onAccent
-              ? "var(--mantine-color-dark-6)"
-              : "var(--mantine-color-dark-1)",
-          } as CSSProperties
+          coolingDown
+            ? ({
+                "--mantine-color-disabled": onAccent
+                  ? "rgba(15, 42, 38, 0.18)"
+                  : "var(--mantine-color-dark-4)",
+                cursor: "not-allowed",
+              } as CSSProperties)
+            : undefined
         }
         onClick={() => sync.mutate()}
       >

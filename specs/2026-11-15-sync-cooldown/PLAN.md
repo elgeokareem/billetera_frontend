@@ -95,3 +95,7 @@ Built 2026-11-15. All phases are implemented.
 - AC4's manual pass used 502 on both routes because the fake's `failSync` is global; the 502 + 429 mix is covered by the unit tests.
 - `syncCooldownSeconds` takes the larger of the default (fulfilled or 502) and the 429 waits, which is what SPEC B3's first bullet and AC3 need together.
 - The fake's CORS `Access-Control-Expose-Headers` now also exposes `Retry-After`, so the dev page can read the header fallback.
+
+### Follow-up
+
+- 2026-11-15, after the manual pass: the disabled button didn't look disabled on either card, so `SyncNow` was restyled. On the accent card a translucent dark wash (`rgba(15, 42, 38, 0.18)`) carries dark ink at 80% (5.5:1); on a normal card `dark-4` carries `dark-0` text (4.9:1). Both set `cursor: not-allowed`. This supersedes the `dark-6`/`dark-1` disabled fills in the deviation above; the label is still set through the inline `c`, since it beats Mantine's disabled color.

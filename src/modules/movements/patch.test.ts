@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftOf, NO_CATEGORY, patchFor } from "./patch";
+import { draftOf, hasUnsavedChanges, NO_CATEGORY, patchFor } from "./patch";
 import type { MovementDraft } from "./patch";
 import type { Split } from "./types";
 
@@ -176,6 +176,88 @@ describe("patchFor", () => {
         }),
       ),
     ).toEqual({});
+  });
+});
+
+describe("hasUnsavedChanges", () => {
+  it("has nothing to save when the draft is the saved movement", () => {
+    expect(hasUnsavedChanges(saved, draftOf(saved), "")).toBe(false);
+  });
+
+  it("has nothing to save when the saved amounts round-trip through the draft", () => {
+    const split = {
+      ...saved,
+      splits: [
+        savedPart({ category_id: 4, usd_amount: "12.50" }),
+        savedPart({ category_id: 5, usd_amount: "3" }),
+      ],
+    };
+    expect(hasUnsavedChanges(split, draftOf(split), "")).toBe(false);
+  });
+
+  it("has something to save when a field or a saved tag changed", () => {
+    expect(hasUnsavedChanges(saved, draft({ reason: "Rent for November" }), "")).toBe(true);
+    expect(hasUnsavedChanges(saved, draft({ category: "7" }), "")).toBe(true);
+    expect(hasUnsavedChanges(saved, draft({ tags: ["rent", "home"] }), "")).toBe(true);
+  });
+
+  it("has something to save when tag text is typed", () => {
+    expect(hasUnsavedChanges(saved, draftOf(saved), "home")).toBe(true);
+  });
+
+  it("has something to save when a part has typed tag text", () => {
+    const split = { ...saved, splits: [savedPart()] };
+    const changed = draftOf(split);
+    expect(
+      hasUnsavedChanges(
+        split,
+        {
+          ...changed,
+          splits: changed.splits.map((part) => ({ ...part, tagText: "home" })),
+        },
+        "",
+      ),
+    ).toBe(true);
+  });
+
+  it("has nothing to save for an added blank part", () => {
+    const blank = { key: 1, category: "", amount: "", tags: [], tagText: "" };
+    expect(hasUnsavedChanges(saved, { ...draftOf(saved), splits: [blank] }, "")).toBe(false);
+  });
+
+  it("has something to save for a part with a category and no amount", () => {
+    expect(
+      hasUnsavedChanges(
+        saved,
+        draft({
+          splits: [{ key: 0, category: "4", amount: "", tags: [], tagText: "" }],
+        }),
+        "",
+      ),
+    ).toBe(true);
+  });
+
+  it("has something to save for a saved part whose category was deleted", () => {
+    const split = { ...saved, splits: [savedPart({ category_id: null })] };
+    expect(hasUnsavedChanges(split, draftOf(split), "")).toBe(true);
+  });
+
+  it("has nothing to save once a response movement becomes the draft", () => {
+    const changed = draft({
+      splits: [
+        { key: 0, category: "4", amount: "12.5", tags: ["groceries"], tagText: "" },
+        { key: 1, category: "5", amount: "3", tags: [], tagText: "" },
+      ],
+    });
+    expect(hasUnsavedChanges(saved, changed, "")).toBe(true);
+    const response = {
+      ...saved,
+      splits: [
+        savedPart({ category_id: 4, usd_amount: "12.50", tags: ["groceries"] }),
+        savedPart({ category_id: 5, usd_amount: "3" }),
+      ],
+    };
+    expect(hasUnsavedChanges(response, draftOf(response), "")).toBe(false);
   });
 });
 

@@ -1,6 +1,6 @@
 import { Alert, Drawer, Group, Select, Stack, Text, Textarea } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useCreateCategory } from "../categories/hooks";
@@ -16,17 +16,13 @@ import { withPendingTag } from "../tags/names";
 import { signOf } from "./labels";
 import { CoinAmount, UsdValue } from "./MovementParts";
 import { DetectionSection } from "./DetectionSection";
-import { draftOf, NO_CATEGORY, type MovementDraft, patchFor } from "./patch";
+import { draftOf, hasUnsavedChanges, NO_CATEGORY, type MovementDraft, patchFor } from "./patch";
 import { drawerCategoryOptions } from "./drawerCategories";
 import { NewCategoryField } from "./NewCategoryField";
 import { reviewStatusKey } from "./review";
 import { useUpdateMovement } from "./hooks";
 import {
   canSplit,
-  isSplitDraftEmpty,
-  normalisedSplits,
-  normaliseSplitAmount,
-  sameSplits,
   splitDraftErrors,
   splitLimit,
   type SplitDraft,
@@ -45,7 +41,7 @@ interface MovementDrawerProps {
   /** The tags the autocomplete offers. */
   knownTags: readonly string[];
   onClose: () => void;
-  /** A review action's PATCH response, so the drawer shows the new state. */
+  /** A PATCH response from a save or a review action, so the drawer shows the new state. */
   onUpdated: (movement: Movement) => void;
   /** A dismissed movement: the page closes the drawer and shows the Undo toast. */
   onDismissed: (movement: Movement) => void;
@@ -84,7 +80,6 @@ export function MovementDrawer({ movement, categories, knownTags, onClose, onUpd
           movement={shown}
           categories={categories}
           knownTags={knownTags}
-          onClose={onClose}
           onUpdated={onUpdated}
           onDismissed={onDismissed}
         />
@@ -97,14 +92,12 @@ function DrawerForm({
   movement,
   categories,
   knownTags,
-  onClose,
   onUpdated,
   onDismissed,
 }: {
   movement: Movement;
   categories: readonly Category[] | undefined;
   knownTags: readonly string[];
-  onClose: () => void;
   onUpdated: (movement: Movement) => void;
   onDismissed: (movement: Movement) => void;
 }) {
@@ -118,8 +111,11 @@ function DrawerForm({
   const [splitErrors, setSplitErrors] = useState<SplitDraftErrors>({ rows: [] });
   const [partTagErrors, setPartTagErrors] = useState<Record<number, string>>({});
   const [focusNonce, setFocusNonce] = useState(0);
-  const body = patchFor(movement, draft);
-  const changed = Object.keys(body).length > 0;
+  const reasonRef = useRef<HTMLTextAreaElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  // The control that had focus when a save started, and whether one is running, so it gets the focus back after.
+  const focusBack = useRef<HTMLElement | null>(null);
+  const savePending = useRef(false);
   const categoryData = drawerCategoryOptions(categories ?? [], created, t("movements.noCategory"));
   const partCategoryData = categoryData.filter((option) => option.value !== NO_CATEGORY);
   const currentCategory = categoryData.find((option) => option.value === draft.category);
@@ -129,16 +125,27 @@ function DrawerForm({
       : (currentCategory?.label ?? t("movements.categoryUnknown"));
   const reasonLength = [...draft.reason.trim()].length;
   const busy = update.isPending || create.isPending;
-  const createdSelected = created.some((category) => String(category.id) === draft.category);
-  // The save is enabled when the draft's parts differ from the saved ones, or when a row needs a fix the user can see.
-  const splitPending =
-    !sameSplits(movement.splits, normalisedSplits(draft.splits)) ||
-    draft.splits.some(
-      (part) =>
-        part.tagText.trim() !== "" ||
-        (!isSplitDraftEmpty(part) &&
-          (part.category === "" || normaliseSplitAmount(part.amount) === undefined)),
-    );
+  // The hint belongs to a category created in this drawer while it's still unsaved, so it goes away on the response.
+  const savedCategory = movement.category_id === null ? NO_CATEGORY : String(movement.category_id);
+  const createdSelected =
+    draft.category !== savedCategory &&
+    created.some((category) => String(category.id) === draft.category);
+  const unsaved = hasUnsavedChanges(movement, draft, tagText);
+
+  // Every field is disabled while the save runs, so the browser drops focus. Once it settles, focus goes back to the
+  // control the user was in, or to the reason field when Save was clicked and is now disabled.
+  useEffect(() => {
+    if (savePending.current && !update.isPending) {
+      const target = focusBack.current;
+      focusBack.current = null;
+      if (target && target.isConnected && formRef.current?.contains(target) && isEnabled(target)) {
+        target.focus({ preventScroll: true });
+      } else {
+        reasonRef.current?.focus({ preventScroll: true });
+      }
+    }
+    savePending.current = update.isPending;
+  }, [update.isPending]);
 
   function changeParts(parts: SplitDraft[]) {
     setDraft((current) => ({ ...current, splits: parts }));
@@ -197,22 +204,34 @@ function DrawerForm({
     }
     const nextBody = patchFor(movement, { ...draft, tags: pending.tags, splits: foldedParts });
     if (Object.keys(nextBody).length === 0) {
-      onClose();
+      // Nothing to send: the typed tag text folded into tags that were already there. Show the folded state and keep
+      // the drawer open, so Save turns disabled without a request or a toast.
+      setDraft({ ...draft, tags: pending.tags, splits: foldedParts });
+      setTagText("");
+      setTagError(undefined);
+      setPartTagErrors({});
+      setSplitErrors({ rows: [] });
       return;
     }
     setTagError(undefined);
+    focusBack.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    savePending.current = true;
     try {
-      await update.mutateAsync({ id: movement.id, body: nextBody });
+      const updated = await update.mutateAsync({ id: movement.id, body: nextBody });
+      onUpdated(updated);
+      setDraft(draftOf(updated));
       setTagText("");
+      setTagError(undefined);
+      setPartTagErrors({});
+      setSplitErrors({ rows: [] });
       toast.success(t("movements.drawer.saved"));
-      onClose();
     } catch {
       // The error shows in the drawer, and the typed reason and tags stay.
     }
   }
 
   return (
-    <form onSubmit={save}>
+    <form ref={formRef} onSubmit={save}>
       <Stack gap="lg">
         {movement.detection !== null && (
           <DetectionSection
@@ -224,6 +243,7 @@ function DrawerForm({
         <Stack gap="sm">
           <Text fw={600}>{t("movements.drawer.label")}</Text>
           <Textarea
+            ref={reasonRef}
             label={t("movements.drawer.reason")}
             placeholder={t("movements.drawer.reasonPlaceholder")}
             description={t("movements.drawer.reasonHelp", { count: reasonLength, limit: REASON_LIMIT })}
@@ -313,7 +333,7 @@ function DrawerForm({
         <Group justify="flex-end" gap="sm">
           <PrimaryButton
             type="submit"
-            disabled={(!changed && tagText.trim() === "" && !splitPending) || create.isPending}
+            disabled={!unsaved || create.isPending}
             loading={update.isPending}
           >
             {t("movements.drawer.save")}
@@ -399,6 +419,11 @@ function DrawerForm({
       </Stack>
     </form>
   );
+}
+
+/** A control is still usable: mounted, not disabled, and not aria-disabled. */
+function isEnabled(element: HTMLElement) {
+  return !element.hasAttribute("disabled") && element.getAttribute("aria-disabled") !== "true";
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {

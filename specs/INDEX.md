@@ -29,3 +29,4 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 | [Nav Brand and Logout](2026-11-13-nav-brand-and-logout/SPEC.md) ([plan](2026-11-13-nav-brand-and-logout/PLAN.md)) | feature | built | Platform | 2026-11-13 |
 | [Collapsible Movement Filters](2026-11-14-collapsible-movement-filters/SPEC.md) ([plan](2026-11-14-collapsible-movement-filters/PLAN.md)) | feature | built | Portfolio | 2026-11-14 |
 | [Movements Chart](2026-11-14-movements-chart/SPEC.md) ([plan](2026-11-14-movements-chart/PLAN.md)) | feature | built | Portfolio | 2026-11-14 |
+| [Sync Cooldown](2026-11-15-sync-cooldown/SPEC.md) ([plan](2026-11-15-sync-cooldown/PLAN.md)) | feature | built | Portfolio | 2026-11-15 |

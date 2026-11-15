@@ -74,6 +74,9 @@
 //                                   sixth coin, SOL, so Holdings shows five of six
 //   {"gapWindow": true}             no snapshot from 24 to 48 hours ago, so the balance comparison is hidden
 //   {"syncInProgress": true}        both sync calls answer 409 sync already in progress
+//   {"syncCooldown": 60}            both sync calls answer 429 sync cooldown, with retry_after and Retry-After, during
+//                                   the 60 s after a run, as the backend does. Each route has its own cooldown, a success
+//                                   or a 502 keeps it and a 409 gives it back. 0, the default, turns it off.
 //   {"failRoute": "GET /movements/totals", "failStatus": 503}
 //                                   that call answers failStatus with a generic error, until failRoute is null. The route is
 //                                   the method and the path with its ID shown as :id, :asset, or the path itself. A 422 on
@@ -107,7 +110,7 @@ const MAX_DELAY_MS = 60_000;
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const ACCOUNT_KINDS = ["populated", "all-labelled", "many-unlabelled", "quiet-month", "single-snapshot", "long-history", "card-spends", "splits", "empty"];
 const FLAG_BOOLEANS = ["failSync", "ipRestricted", "rejectKey", "reset", "syncInProgress", "unpriced", "moreCategories", "gapWindow"];
-const FLAG_FIELDS = [...FLAG_BOOLEANS, "delayMs", "account", "failRoute", "failStatus"];
+const FLAG_FIELDS = [...FLAG_BOOLEANS, "delayMs", "account", "failRoute", "failStatus", "syncCooldown"];
 const FAIL_ROUTES = [
   "GET /movements",
   "GET /movements/totals",
@@ -170,6 +173,7 @@ function freshState() {
     ipRestricted: false,
     delayMs: 0,
     syncInProgress: false,
+    syncCooldown: 0,
     unpriced: true,
     moreCategories: false,
     gapWindow: false,
@@ -183,6 +187,7 @@ function freshState() {
     keys: new Map(), // user id -> { mask, ipRestricted, validatedAt, updatedAt, rejectedAt }
     accounts: new Map([[1, buildAccount(flags.account, flags, now)]]), // user id -> account
     history: { snapshots: 0, movementSyncs: 0 }, // never cleared by DELETE /binance/credentials
+    cooldowns: new Map(), // "<user id>:balances|movements" -> until, in ms
     flags,
     nextUserId: 2,
   };
@@ -352,6 +357,45 @@ function syncFailure(key) {
     return { status: 502, body: { error: "binance request failed" } };
   }
   return null;
+}
+
+// The manual syncs' cooldown, as the backend's syncCooldowns: one per user and route, in memory, started at admission and
+// kept after every run that may have called Binance, successes and 502s included. A run refused before that point (no key,
+// already running) gives it back with restore. With syncCooldown at 0, nothing is checked or kept.
+function beginSync(userId, route) {
+  if (state.flags.syncCooldown <= 0) {
+    return { restore: () => {} };
+  }
+  const key = `${userId}:${route}`;
+  const now = Date.now();
+  const previous = state.cooldowns.get(key);
+  if (previous !== undefined && now < previous) {
+    return { retryAfter: Math.max(1, Math.ceil((previous - now) / 1000)) };
+  }
+  const until = now + state.flags.syncCooldown * 1000;
+  state.cooldowns.set(key, until);
+  return {
+    restore: () => {
+      // Like the backend's token check: a cooldown another request started in the meantime stays.
+      if (state.cooldowns.get(key) !== until) {
+        return;
+      }
+      if (previous === undefined) {
+        state.cooldowns.delete(key);
+      } else {
+        state.cooldowns.set(key, previous);
+      }
+    },
+  };
+}
+
+// The 429 of a request that arrives within its route's cooldown, with the body and the header the backend sends.
+function cooldownReply(retryAfter, reply) {
+  return reply(
+    429,
+    { error: "sync cooldown", retry_after: retryAfter },
+    { "Retry-After": String(retryAfter) },
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1428,6 +1472,9 @@ function applyFakeState(raw) {
   ) {
     return { status: 400, body: { error: `delayMs must be 0 to ${MAX_DELAY_MS}` } };
   }
+  if (body.syncCooldown !== undefined && !(Number.isInteger(body.syncCooldown) && body.syncCooldown >= 0)) {
+    return { status: 400, body: { error: "syncCooldown must be 0 or more seconds" } };
+  }
   if (body.account !== undefined && !ACCOUNT_KINDS.includes(body.account)) {
     return { status: 400, body: { error: `account must be one of ${ACCOUNT_KINDS.join(", ")}` } };
   }
@@ -1452,6 +1499,9 @@ function applyFakeState(raw) {
   }
   if (body.delayMs !== undefined) {
     state.flags.delayMs = body.delayMs;
+  }
+  if (body.syncCooldown !== undefined) {
+    state.flags.syncCooldown = body.syncCooldown;
   }
   if (body.syncInProgress !== undefined) {
     state.flags.syncInProgress = body.syncInProgress;
@@ -1606,11 +1656,17 @@ function syncBalances(req, reply) {
   if (userId === null) {
     return;
   }
+  const admission = beginSync(userId, "balances");
+  if (admission.retryAfter !== undefined) {
+    return cooldownReply(admission.retryAfter, reply);
+  }
   const key = state.keys.get(userId);
   if (!key) {
+    admission.restore();
     return reply(409, { error: "binance credentials not set" });
   }
   if (state.flags.syncInProgress) {
+    admission.restore();
     return reply(409, { error: "sync already in progress" });
   }
   const failure = syncFailure(key);
@@ -1631,11 +1687,17 @@ function syncMovements(req, reply) {
   if (userId === null) {
     return;
   }
+  const admission = beginSync(userId, "movements");
+  if (admission.retryAfter !== undefined) {
+    return cooldownReply(admission.retryAfter, reply);
+  }
   const key = state.keys.get(userId);
   if (!key) {
+    admission.restore();
     return reply(409, { error: "binance credentials not set" });
   }
   if (state.flags.syncInProgress) {
+    admission.restore();
     return reply(409, { error: "sync already in progress" });
   }
   const failure = syncFailure(key);
@@ -2746,7 +2808,7 @@ async function handle(req, res) {
       ? {
           "Access-Control-Allow-Origin": APP_ORIGIN,
           "Access-Control-Allow-Credentials": "true",
-          "Access-Control-Expose-Headers": "Content-Disposition",
+          "Access-Control-Expose-Headers": "Content-Disposition, Retry-After",
           Vary: "Origin",
         }
       : {};

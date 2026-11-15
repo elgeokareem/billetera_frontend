@@ -148,7 +148,9 @@
     },
     "sync": {
       "action": "Sincronizar",
-      "actionNow": "Sincronizar ahora"
+      "actionNow": "Sincronizar ahora",
+      "cooldown_one": "Podrás sincronizar de nuevo en {{count}} segundo.",
+      "cooldown_other": "Podrás sincronizar de nuevo en {{count}} segundos."
     },
     "noSnapshot": {
       "title": "Aún no hay datos de saldo",
@@ -452,6 +454,7 @@
     "binanceFailed": "Binance no respondió. Inténtalo de nuevo.",
     "keyNotSet": "No hay ninguna clave de Binance conectada.",
     "syncInProgress": "Ya hay una sincronización en curso.",
+    "syncCooldown": "Demasiadas sincronizaciones. Espera un momento e inténtalo de nuevo.",
     "categoryExists": "Ya existe una categoría con ese nombre.",
     "categoryNotFound": "Esa categoría ya no existe.",
     "invalidCategoryName": "El nombre de una categoría debe tener de 1 a 64 caracteres.",

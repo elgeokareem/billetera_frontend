@@ -123,7 +123,7 @@ export interface paths {
         put?: never;
         /**
          * Sync movements
-         * @description Syncs the user's deposits, withdrawals, Pay transactions, P2P orders and Convert trades from Binance, then detects the balance changes that no movement explains and prices the movements that have no price yet. The detection step's outcome is in detection and the pricing step's in valuation; a detection failure or a pricing step that stops early doesn't fail the sync. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Syncs the user's deposits, withdrawals, Pay transactions, P2P orders and Convert trades from Binance, then detects the balance changes that no movement explains and prices the movements that have no price yet. The detection step's outcome is in detection and the pricing step's in valuation; a detection failure or a pricing step that stops early doesn't fail the sync. A manual sync of this kind that ran less than MANUAL_SYNC_COOLDOWN ago is answered 429 with the seconds until the next one is allowed, so a user can't make Binance calls on every click. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         post: operations["binance.movementsSync"];
         delete?: never;
@@ -163,7 +163,7 @@ export interface paths {
         put?: never;
         /**
          * Sync balances
-         * @description Reads the user's spot and funding balances from Binance and saves them as a snapshot. A sync already running for the user is refused. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Reads the user's spot and funding balances from Binance and saves them as a snapshot. A sync already running for the user is refused. A manual sync of this kind that ran less than MANUAL_SYNC_COOLDOWN ago is answered 429 with the seconds until the next one is allowed, so a user can't make Binance calls on every click. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         post: operations["binance.sync"];
         delete?: never;
@@ -460,6 +460,10 @@ export interface components {
             binance_code?: number;
             binance_msg?: string;
             error: string;
+        };
+        "binance.CooldownErrorResponse": {
+            error: string;
+            retry_after: number;
         };
         "binance.CredentialsConfigured": {
             api_key_masked: string;
@@ -1300,13 +1304,24 @@ export interface operations {
                     "application/json": components["schemas"]["shared.ErrorResponse"];
                 };
             };
-            /** @description A sync is already in progress, or the user has no stored Binance key */
+            /** @description A sync is already in progress (the cron holds the lock), or the user has no stored Binance key */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description A manual sync of this kind ran less than the cooldown ago */
+            429: {
+                headers: {
+                    /** @description Seconds until the next manual sync is allowed */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["binance.CooldownErrorResponse"];
                 };
             };
             /** @description Server error */
@@ -1430,13 +1445,24 @@ export interface operations {
                     "application/json": components["schemas"]["shared.ErrorResponse"];
                 };
             };
-            /** @description A sync is already in progress, or the user has no stored Binance key */
+            /** @description A sync is already in progress (the cron holds the lock), or the user has no stored Binance key */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["shared.ErrorResponse"];
+                };
+            };
+            /** @description A manual sync of this kind ran less than the cooldown ago */
+            429: {
+                headers: {
+                    /** @description Seconds until the next manual sync is allowed */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["binance.CooldownErrorResponse"];
                 };
             };
             /** @description Server error */

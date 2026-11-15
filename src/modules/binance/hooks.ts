@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import type { Schemas } from "../shared/api-types";
 import { type BinanceCredentials, sessionQuery } from "../shared/session";
-import { syncFailure } from "./sync";
+import { syncCooldownSeconds, syncFailure } from "./sync";
+import { syncCooldownStore } from "./syncCooldown";
 
 export interface CredentialsValues {
   apiKey: string;
@@ -57,19 +58,23 @@ export function useDeleteCredentials() {
 
 /**
  * Runs the balance sync and the movements sync side by side. It fails when either one fails, once both are done. A real
- * failure is reported before a sync that's already running.
+ * failure is reported before a cooldown, which comes before a sync that's already running. A success, a 502 or a 429
+ * leaves the server's cooldown on, so the shared countdown starts as soon as both answer.
  */
 export function useSyncBinanceData() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      const failure = syncFailure(
-        await Promise.allSettled([
-          axios.post("/binance/sync"),
-          axios.post("/binance/movements/sync"),
-        ]),
-      );
+      const results = await Promise.allSettled([
+        axios.post("/binance/sync"),
+        axios.post("/binance/movements/sync"),
+      ]);
+      const cooldown = syncCooldownSeconds(results);
+      if (cooldown !== undefined) {
+        syncCooldownStore.getState().start(cooldown, Date.now());
+      }
+      const failure = syncFailure(results);
       if (failure !== undefined) {
         throw failure;
       }

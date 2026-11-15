@@ -223,6 +223,15 @@ describe("getApiErrorKey", () => {
     ).toBe("errors.splitsExceedValue");
   });
 
+  it("reads the sync errors", () => {
+    expect(
+      getApiErrorKey(apiError(429, { error: "sync cooldown" })),
+    ).toBe("errors.syncCooldown");
+    expect(
+      getApiErrorKey(apiError(409, { error: "sync already in progress" })),
+    ).toBe("errors.syncInProgress");
+  });
+
   it("falls back for unknown text", () => {
     expect(getApiErrorKey(apiError(500, { error: "boom" }))).toBe(
       "errors.generic",

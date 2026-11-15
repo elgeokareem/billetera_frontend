@@ -148,7 +148,9 @@
     },
     "sync": {
       "action": "Sync",
-      "actionNow": "Sync now"
+      "actionNow": "Sync now",
+      "cooldown_one": "You can sync again in {{count}} second.",
+      "cooldown_other": "You can sync again in {{count}} seconds."
     },
     "noSnapshot": {
       "title": "No balance data yet",
@@ -452,6 +454,7 @@
     "binanceFailed": "Binance didn't respond. Please try again.",
     "keyNotSet": "No Binance key is connected.",
     "syncInProgress": "A sync is already running.",
+    "syncCooldown": "Too many syncs. Wait a moment and try again.",
     "categoryExists": "A category with that name already exists.",
     "categoryNotFound": "That category no longer exists.",
     "invalidCategoryName": "Category names must be 1 to 64 characters.",

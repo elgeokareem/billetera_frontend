@@ -13,6 +13,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   "binance credentials not set": "errors.keyNotSet",
   "credentials not found": "errors.keyNotSet",
   "sync already in progress": "errors.syncInProgress",
+  "sync cooldown": "errors.syncCooldown",
   "category already exists": "errors.categoryExists",
   "category not found": "errors.categoryNotFound",
   "invalid name": "errors.invalidCategoryName",

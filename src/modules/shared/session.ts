@@ -7,6 +7,7 @@ import {
 import { redirect, useNavigate } from "@tanstack/react-router";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { syncCooldownStore } from "../binance/syncCooldown";
 import { getApiErrorKey } from "./api-errors";
 import type { Schemas } from "./api-types";
 import i18n from "./i18n";
@@ -72,6 +73,8 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => axios.post("/auth/logout"),
     onSuccess: () => {
+      // The next user on this browser starts without the previous user's countdown.
+      syncCooldownStore.getState().reset();
       queryClient.clear();
       navigate({ to: "/login" });
     },

@@ -92,6 +92,15 @@ export function filterChips(search: MovementsSearch, { now, t, categoryName }: C
       without: withList(search, "category_id", categories.filter((item) => item !== id)),
     });
   }
+  const excluded = listItems(search.exclude_category_id);
+  for (const id of excluded) {
+    const name = id === "none" ? t("movements.noCategory") : (categoryName(id) ?? "…");
+    chips.push({
+      key: `excluded:${id}`,
+      label: labelled(t("movements.chips.excluded"), name),
+      without: withList(search, "exclude_category_id", excluded.filter((item) => item !== id)),
+    });
+  }
   const tags = listItems(search.tag);
   for (const tag of tags) {
     chips.push({

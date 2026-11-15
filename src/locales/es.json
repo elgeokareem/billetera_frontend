@@ -8,7 +8,10 @@
     "loading": "Cargando",
     "retry": "Reintentar",
     "somethingWrong": "Algo salió mal",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "notCounting": "Sin contar: {{names}}",
+    "notCountingMore_one": "{{names}} y {{count}} más",
+    "notCountingMore_other": "{{names}} y {{count}} más"
   },
   "privacy": {
     "toggle": "Mostrar saldos",
@@ -239,6 +242,8 @@
       "assetMatch": "Incluir la otra moneda de las conversiones",
       "category": "Categoría",
       "categoryPlaceholder": "Cualquier categoría",
+      "excludeCategory": "Excluir categorías",
+      "excludeCategoryPlaceholder": "Ninguna",
       "tag": "Tag",
       "tagPlaceholder": "Por ejemplo, viaje-2026",
       "tagMatch": "Con todos los tags",
@@ -328,6 +333,7 @@
     },
     "chips": {
       "labelled": "{{label}}: {{value}}",
+      "excluded": "Excluida",
       "assetMatch": "Incluye conversiones",
       "tagMatch": "Todos los tags",
       "withReason": "Con motivo",
@@ -482,6 +488,8 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "rename": "Renombrar {{name}}",
+    "countsAsSpending": "Cuenta como gasto",
+    "notCounted": "No se cuenta",
     "notPriced_one": "{{count}} sin precio",
     "notPriced_other": "{{count}} sin precio",
     "deleted": "Categoría eliminada.",

@@ -100,6 +100,25 @@ describe("parseMovementsSearch", () => {
     expect(parse(parseSearch("?tag=trip%202026"))).toEqual({ tag: "trip 2026" });
   });
 
+  it("keeps a valid exclude list, dropping the invalid items and a repeat", () => {
+    expect(parse({ exclude_category_id: "7,9,none,7,0,abc,-1,1.5" })).toEqual({
+      exclude_category_id: "7,9,none",
+    });
+  });
+
+  it("caps the exclude list at 20 items", () => {
+    const many = Array.from({ length: 25 }, (_, index) => `${index + 1}`).join(",");
+    expect(parse({ exclude_category_id: many }).exclude_category_id?.split(",")).toHaveLength(20);
+  });
+
+  it("drops an excluded item that is also included, since include wins and the API refuses the overlap", () => {
+    expect(parse({ category_id: "7,none", exclude_category_id: "7,9,none" })).toEqual({
+      category_id: "7,none",
+      exclude_category_id: "9",
+    });
+    expect(parse({ category_id: "7", exclude_category_id: "7" })).toEqual({ category_id: "7" });
+  });
+
   it("keeps tag_match only as all, and only with a tag", () => {
     expect(parse({ tag_match: "all" })).toEqual({});
     expect(parse({ tag: "trip-2026", tag_match: "any" })).toEqual({ tag: "trip-2026" });
@@ -186,6 +205,15 @@ describe("toMovementsQuery", () => {
     );
   });
 
+  it("carries the excluded categories to the list, the totals and the export", () => {
+    expect(queryString(toMovementsQuery(parse({ exclude_category_id: "7,9" })))).toBe(
+      "?exclude_category_id=7,9",
+    );
+    expect(
+      queryString(toMovementsQuery(parse({ category_id: "3", exclude_category_id: "7,none" }))),
+    ).toBe("?category_id=3&exclude_category_id=7,none");
+  });
+
   it("sends the Review link's search", () => {
     expect(queryString(toMovementsQuery(REVIEW_SEARCH))).toBe("?review=suspected");
   });
@@ -260,6 +288,27 @@ describe("changing the search", () => {
     expect(withoutKey({ tag: "a", tag_match: "all" }, "tag")).toEqual({});
   });
 
+  it("sets a category list, and removes those items from the exclusions", () => {
+    expect(
+      withList({ category_id: "3", exclude_category_id: "3,7,none" }, "category_id", ["3", "9"]),
+    ).toEqual({ category_id: "3,9", exclude_category_id: "7,none" });
+  });
+
+  it("sets an exclusion, and removes those items from the included categories", () => {
+    expect(
+      withList({ category_id: "3,7", exclude_category_id: "9" }, "exclude_category_id", ["7", "9"]),
+    ).toEqual({ category_id: "3", exclude_category_id: "7,9" });
+  });
+
+  it("clearing one category control leaves the other alone", () => {
+    expect(withList({ category_id: "3", exclude_category_id: "7" }, "exclude_category_id", [])).toEqual({
+      category_id: "3",
+    });
+    expect(withList({ category_id: "3", exclude_category_id: "7" }, "category_id", [])).toEqual({
+      exclude_category_id: "7",
+    });
+  });
+
   it("keeps the first 20 tag names after normalising", () => {
     const many = Array.from({ length: 25 }, (_, index) => `Tag-${index + 1}`);
     expect(withList({}, "tag", many).tag?.split(",")).toHaveLength(20);
@@ -276,6 +325,12 @@ describe("changing the search", () => {
     expect(withoutKey(dated, "to")).toEqual(search);
   });
 
+  it("removes an exclusion without touching the included categories", () => {
+    expect(withoutKey({ category_id: "3", exclude_category_id: "7" }, "exclude_category_id")).toEqual({
+      category_id: "3",
+    });
+  });
+
   it("sets the search text trimmed, and blank text removes it", () => {
     expect(withText(search, "  food ")).toMatchObject({ q: "food" });
     expect(withText(withText(search, "food"), "   ")).not.toHaveProperty("q");
@@ -283,6 +338,7 @@ describe("changing the search", () => {
 
   it("tells whether a filter is set, and reads empty after the last one is removed", () => {
     expect(hasFilters(search)).toBe(true);
+    expect(hasFilters({ exclude_category_id: "7" })).toBe(true);
     expect(hasFilters({ tag: "trip-2026" })).toBe(true);
     expect(hasFilters({ tag: "trip-2026", tag_match: "all" })).toBe(true);
     const none = withList(withList(search, "kind", []), "category_id", []);

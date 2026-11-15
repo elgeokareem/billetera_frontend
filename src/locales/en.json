@@ -8,7 +8,10 @@
     "loading": "Loading",
     "retry": "Try again",
     "somethingWrong": "Something went wrong",
-    "close": "Close"
+    "close": "Close",
+    "notCounting": "Not counting: {{names}}",
+    "notCountingMore_one": "{{names}} and {{count}} more",
+    "notCountingMore_other": "{{names}} and {{count}} more"
   },
   "privacy": {
     "toggle": "Show balances",
@@ -239,6 +242,8 @@
       "assetMatch": "Include the other side of a Convert",
       "category": "Category",
       "categoryPlaceholder": "Any category",
+      "excludeCategory": "Exclude categories",
+      "excludeCategoryPlaceholder": "None",
       "tag": "Tag",
       "tagPlaceholder": "For example, trip-2026",
       "tagMatch": "Match all tags",
@@ -328,6 +333,7 @@
     },
     "chips": {
       "labelled": "{{label}}: {{value}}",
+      "excluded": "Excluded",
       "assetMatch": "Includes Convert",
       "tagMatch": "All tags",
       "withReason": "With reason",
@@ -482,6 +488,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "rename": "Rename {{name}}",
+    "countsAsSpending": "Counts as spending",
+    "notCounted": "Not counted",
     "notPriced_one": "{{count}} unpriced",
     "notPriced_other": "{{count}} unpriced",
     "deleted": "Category deleted.",

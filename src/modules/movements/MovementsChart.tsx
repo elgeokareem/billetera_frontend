@@ -2,6 +2,7 @@ import { Button, Collapse, Group, Paper, SegmentedControl, Stack, Text } from "@
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
+import { notCountingCaption, notCountingNames } from "../categories/counting";
 import { SectionError, SectionSkeleton } from "../dashboard/SectionStates";
 import { NO_CATEGORY_COLOR, OTHER_CATEGORY_COLOR, SEGMENT_COLORS } from "../shared/categoryColors";
 import { Sensitive } from "../shared/components/Sensitive";
@@ -21,10 +22,11 @@ import {
   chartRows,
   type ChartSummary,
   chartSummary,
+  chartTotalsQuery,
 } from "./chart";
 import { useMovementTotals } from "./hooks";
 import type { BarSeriesView } from "./MovementsBarChart";
-import { type MovementsSearch, toMovementsQuery } from "./search";
+import type { MovementsSearch } from "./search";
 
 // The chart's library loads with the first chart, so the rest of the page doesn't wait for it.
 const MovementsBarChart = lazy(() => import("./MovementsBarChart"));
@@ -59,10 +61,10 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
   const range = useMemo(() => chartRange(search, now), [search, now]);
   const timeZone = useMemo(() => browserTimeZone(), []);
 
-  const totalsQuery = useMemo<TotalsQuery>(() => {
-    const base = toMovementsQuery(search);
-    return { ...base, from: range.from, to: range.to, period, tz: timeZone };
-  }, [search, range, period, timeZone]);
+  const totalsQuery = useMemo(
+    () => chartTotalsQuery(search, range, period, timeZone),
+    [search, range, period, timeZone],
+  );
   const summary = useMovementTotals(totalsQuery, { enabled: shown });
   const groupedQuery = useMemo<TotalsQuery>(
     () => ({ ...totalsQuery, group_by: "category" }),
@@ -84,6 +86,15 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
   const names = useMemo(
     () => new Map((categories.data ?? []).map((category) => [category.id, category.name])),
     [categories.data],
+  );
+  // The names the numbers leave out. They're names, not amounts, so Hide Balances doesn't mask them. Nothing shows
+  // while the names are loading or failed.
+  const notCounting = useMemo(
+    () =>
+      categories.isSuccess
+        ? notCountingCaption(notCountingNames(categories.data, search), t)
+        : null,
+    [categories.data, categories.isSuccess, search, t],
   );
   const labelOf = useCallback(
     (key: string) => {
@@ -192,6 +203,11 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
             {range.capped && (
               <Text size="xs" c="dimmed">
                 {t("movements.chart.last12Months")}
+              </Text>
+            )}
+            {notCounting && (
+              <Text size="xs" c="dimmed">
+                {notCounting}
               </Text>
             )}
           </div>

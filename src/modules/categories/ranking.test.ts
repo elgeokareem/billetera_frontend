@@ -4,7 +4,7 @@ import { isValidCategoryName } from "./api";
 import { splitCategories } from "./ranking";
 
 function category(id: number, name: string): Category {
-  return { id, name, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" };
+  return { id, name, counts_as_spending: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" };
 }
 
 const names = (list: Category[]) => list.map((item) => item.name);

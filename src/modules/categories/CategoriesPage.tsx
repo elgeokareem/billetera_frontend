@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Modal, Paper, SimpleGrid, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Paper, SimpleGrid, Skeleton, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
@@ -15,7 +15,7 @@ import { Sensitive } from "../shared/components/Sensitive";
 import { formatUsd } from "../shared/format";
 import { TagsColumn } from "../tags/TagsColumn";
 import { isValidCategoryName } from "./api";
-import { useCategories, useCreateCategory, useDeleteCategory, useRenameCategory } from "./hooks";
+import { useCategories, useCreateCategory, useDeleteCategory, useUpdateCategory } from "./hooks";
 import type { Category } from "./types";
 
 /** The categories the empty state offers. They are translated, so they follow the active language. */
@@ -43,9 +43,10 @@ export function CategoriesPage() {
   const [now] = useState(() => new Date());
   const [timeZone] = useState(browserTimeZone);
   const categories = useCategories();
-  const spending = useMovementTotals(dashboardQueries(now, timeZone).spending);
+  // Every category's real amount: the Dashboard's query leaves a flagged category out, and here it's shown dimmed.
+  const spending = useMovementTotals(dashboardQueries(now, timeZone).spendingAllCategories);
   const create = useCreateCategory();
-  const rename = useRenameCategory();
+  const update = useUpdateCategory();
   const remove = useDeleteCategory();
 
   const [name, setName] = useState("");
@@ -105,10 +106,20 @@ export function CategoriesPage() {
       return;
     }
     try {
-      await rename.mutateAsync({ id: renaming.id, name: next });
+      await update.mutateAsync({ id: renaming.id, body: { name: next } });
       setRenaming(null);
     } catch (error) {
       setRenaming((existing) => (existing ? { ...existing, error: getApiErrorKey(error) } : existing));
+    }
+  }
+
+  // The switch follows the server's value: it changes once the save lands and the categories refetch, and an error
+  // leaves it where it was.
+  async function saveSpending(category: Category, countsAsSpending: boolean) {
+    try {
+      await update.mutateAsync({ id: category.id, body: { counts_as_spending: countsAsSpending } });
+    } catch (error) {
+      toast.error(t(getApiErrorKey(error)));
     }
   }
 
@@ -153,7 +164,8 @@ export function CategoriesPage() {
             onStartRename={() => setRenaming({ id: category.id, name: category.name, error: null })}
             onSaveRename={() => void saveRename()}
             onCancelRename={() => setRenaming(null)}
-            busy={rename.isPending && renaming?.id === category.id}
+            busy={update.isPending && update.variables?.id === category.id}
+            onToggleSpending={(counts) => void saveSpending(category, counts)}
             onDelete={() => setDeleting(category)}
           />
         ))}
@@ -243,6 +255,7 @@ interface CategoryRowProps {
   onStartRename: () => void;
   onSaveRename: () => void;
   onCancelRename: () => void;
+  onToggleSpending: (countsAsSpending: boolean) => void;
   onDelete: () => void;
 }
 
@@ -258,6 +271,7 @@ function CategoryRow({
   onStartRename,
   onSaveRename,
   onCancelRename,
+  onToggleSpending,
   onDelete,
 }: CategoryRowProps) {
   const { t } = useTranslation();
@@ -306,19 +320,32 @@ function CategoryRow({
           </Stack>
         </form>
       ) : (
-        <Link
-          to="/movements"
-          search={{ category_id: String(category.id) }}
-          className="truncate"
-          style={{ minWidth: 0, flex: 1, fontWeight: 500 }}
-        >
-          {category.name}
-        </Link>
+        <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
+          <Link
+            to="/movements"
+            search={{ category_id: String(category.id) }}
+            className="truncate"
+            style={{ minWidth: 0, fontWeight: 500 }}
+          >
+            {category.name}
+          </Link>
+          <Switch
+            size="sm"
+            label={t("categories.countsAsSpending")}
+            checked={category.counts_as_spending}
+            disabled={busy}
+            onChange={(event) => onToggleSpending(event.currentTarget.checked)}
+            styles={{
+              root: { minHeight: 44 },
+              labelWrapper: { minHeight: 44, display: "flex", alignItems: "center" },
+            }}
+          />
+        </Stack>
       )}
 
       {!renaming && (
         <Group gap="sm" wrap="nowrap" align="center" style={{ flexShrink: 0 }}>
-          <SpendingCell spending={spending} group={group} />
+          <SpendingCell spending={spending} group={group} counted={category.counts_as_spending} />
           <ActionIcon
             variant="default"
             radius="xl"
@@ -345,9 +372,18 @@ function CategoryRow({
 
 /**
  * This month's spending in the category. A category with no spending shows zero. A category whose rows are all unpriced
- * shows "No price", and the rows that have no price are counted under it.
+ * shows "No price", and the rows that have no price are counted under it. A category that doesn't count as spending keeps
+ * its real amount, dimmed and marked, so the page can say the same number the movements show.
  */
-function SpendingCell({ spending, group }: { spending: ReturnType<typeof useMovementTotals>; group: CategorySpending | undefined }) {
+function SpendingCell({
+  spending,
+  group,
+  counted,
+}: {
+  spending: ReturnType<typeof useMovementTotals>;
+  group: CategorySpending | undefined;
+  counted: boolean;
+}) {
   const { t } = useTranslation();
 
   if (spending.isPending) {
@@ -358,13 +394,18 @@ function SpendingCell({ spending, group }: { spending: ReturnType<typeof useMove
   }
   return (
     <Stack gap={2} align="flex-end">
-      <Text fz="sm" fw={500} style={{ whiteSpace: "nowrap" }}>
+      <Text fz="sm" fw={500} c={counted ? undefined : "dimmed"} style={{ whiteSpace: "nowrap" }}>
         {group && group.usd === null ? (
           t("dashboard.recent.noPrice")
         ) : (
           <Sensitive>{formatUsd(group ? group.usd : "0")}</Sensitive>
         )}
       </Text>
+      {!counted && (
+        <Text fz="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
+          {t("categories.notCounted")}
+        </Text>
+      )}
       {group && group.unpricedCount > 0 && (
         <Text fz="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
           {t("categories.notPriced", { count: group.unpricedCount })}

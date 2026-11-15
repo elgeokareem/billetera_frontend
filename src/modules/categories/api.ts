@@ -33,10 +33,20 @@ export async function createCategory(name: string) {
   return data.category;
 }
 
-export async function renameCategory(id: number, name: string) {
+/**
+ * PATCH /categories/:id. A name is trimmed here, as the backend does. A key left out keeps its value, so a rename
+ * sends only the name and the spending switch sends only the flag.
+ */
+export async function updateCategory(
+  id: number,
+  body: { name?: string; counts_as_spending?: boolean },
+) {
   const { data } = await axios.patch<Schemas["categories.CategoryEnvelope"]>(
     `/categories/${id}`,
-    { name: name.trim() },
+    {
+      ...body,
+      ...(body.name === undefined ? {} : { name: body.name.trim() }),
+    },
   );
   return data.category;
 }

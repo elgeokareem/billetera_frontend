@@ -45,6 +45,11 @@ export function MovementFilters({ search, onChange, categories, knownTags, now }
     { value: "none", label: t("movements.noCategory") },
     ...(categories ?? []).map((category) => ({ value: String(category.id), label: category.name })),
   ];
+  const includedCategories = listItems(search.category_id);
+  const excludedCategories = listItems(search.exclude_category_id);
+  // The two category controls never offer an item the other one already has: the API refuses an overlap.
+  const includedData = categoryData.filter((option) => !excludedCategories.includes(option.value));
+  const excludedData = categoryData.filter((option) => !includedCategories.includes(option.value));
 
   function pickDates(value: string | null) {
     if (!value || value === "all") {
@@ -136,9 +141,20 @@ export function MovementFilters({ search, onChange, categories, knownTags, now }
         <MultiSelect
           aria-label={t("movements.filters.category")}
           placeholder={t("movements.filters.categoryPlaceholder")}
-          data={categoryData}
-          value={listItems(search.category_id)}
+          data={includedData}
+          value={includedCategories}
           onChange={(items) => onChange(withList(search, "category_id", items))}
+          searchable
+          clearable
+          hidePickedOptions
+        />
+        <MultiSelect
+          label={t("movements.filters.excludeCategory")}
+          aria-label={t("movements.filters.excludeCategory")}
+          placeholder={t("movements.filters.excludeCategoryPlaceholder")}
+          data={excludedData}
+          value={excludedCategories}
+          onChange={(items) => onChange(withList(search, "exclude_category_id", items))}
           searchable
           clearable
           hidePickedOptions

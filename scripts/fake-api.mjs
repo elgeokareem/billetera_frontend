@@ -46,6 +46,18 @@
 // are 422 splits exceed movement value. Filters category_id and tag, and totals with group_by=category, work per portion (a
 // part, or the rest). The CSV ends with split_status, split_rest_usd and splits (JSON).
 //
+// Categories. A category has a name and counts_as_spending, true unless the body says otherwise. POST /categories takes
+// the name and an optional counts_as_spending; PATCH /categories/:id takes the name, the flag or both, and a body with
+// neither is 400 invalid name. A flag that isn't a JSON boolean is 400 invalid counts_as_spending. Every answer carries
+// the flag.
+//
+// Category exclusion. GET /movements, GET /movements/totals and GET /movements/export take exclude_category_id, a comma
+// list of up to 20 category IDs or none, and counted_only=true|false. An item that category_id also names is 400 invalid
+// exclude_category_id, and any other counted_only value is 400 invalid counted_only. A portion in an excluded category is
+// left out of the totals; the list keeps a movement while one of its portions is kept; and fees and the counter side
+// follow the movement's own category. counted_only=true adds the user's categories with counts_as_spending false to the
+// excluded set, unless category_id is set: then the named categories are shown, flagged or not.
+//
 // A tag has an id and a color, one of 12 palette names. GET /tags lists every tag of the user, used or not, with its
 // movement count (0 included), sorted by name. POST /tags creates one, with a random palette color unless the body gives
 // one; PATCH /tags/:id renames and/or recolors it; DELETE /tags/:id removes it from every movement. The seed registers
@@ -132,9 +144,9 @@ const FAIL_ROUTES = [
   "POST /binance/sync",
   "POST /binance/movements/sync",
 ];
-const LIST_PARAMS = ["limit", "cursor", "kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "review", "from", "to", "has_reason", "q"];
-const TOTALS_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "review", "from", "to", "has_reason", "q", "period", "group_by", "tz"];
-const EXPORT_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "tag", "tag_match", "review", "from", "to", "has_reason", "q"];
+const LIST_PARAMS = ["limit", "cursor", "kind", "direction", "status", "asset", "asset_match", "category_id", "exclude_category_id", "counted_only", "tag", "tag_match", "review", "from", "to", "has_reason", "q"];
+const TOTALS_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "exclude_category_id", "counted_only", "tag", "tag_match", "review", "from", "to", "has_reason", "q", "period", "group_by", "tz"];
+const EXPORT_PARAMS = ["kind", "direction", "status", "asset", "asset_match", "category_id", "exclude_category_id", "counted_only", "tag", "tag_match", "review", "from", "to", "has_reason", "q"];
 const HISTORY_PARAMS = ["from", "to", "bucket", "tz"];
 const MOVEMENT_KINDS = ["deposit", "withdrawal", "pay", "p2p", "convert", "card_spend", "copy_trading", "transfer"];
 const DETECTION_KINDS = ["card_spend", "copy_trading", "transfer"];
@@ -636,6 +648,7 @@ function addCategory(account, name, now) {
   const category = {
     id: account.nextCategoryId++,
     name,
+    countsAsSpending: true,
     createdAt: new Date(now.getTime() - 120 * DAY),
     updatedAt: new Date(now.getTime() - 120 * DAY),
   };
@@ -1357,6 +1370,7 @@ function categoryJson(category) {
   return {
     id: category.id,
     name: category.name,
+    counts_as_spending: category.countsAsSpending,
     created_at: rfc3339(category.createdAt),
     updated_at: rfc3339(category.updatedAt),
   };
@@ -1839,6 +1853,15 @@ function parseMovementFilter(params) {
   }
   const categories = list(params, "category_id", categoryItemAllowed);
   if (categories.items === null) return { error: "invalid category_id" };
+  const excluded = list(params, "exclude_category_id", categoryItemAllowed);
+  if (excluded.items === null) return { error: "invalid exclude_category_id" };
+  if (excluded.items.some((item) => categories.items.includes(item))) {
+    return { error: "invalid exclude_category_id" };
+  }
+  const countedOnly = single(params, "counted_only");
+  if (countedOnly.present && (!countedOnly.ok || (countedOnly.value !== "true" && countedOnly.value !== "false"))) {
+    return { error: "invalid counted_only" };
+  }
   const tags = list(params, "tag", (item) => normalizeTagName(item) !== null);
   if (tags.items === null) return { error: "invalid tag" };
   const tagMatch = single(params, "tag_match");
@@ -1867,6 +1890,9 @@ function parseMovementFilter(params) {
       search: text,
       categoryIDs: categories.items.filter((item) => item !== "none").map((item) => Number(item)),
       uncategorized: categories.items.includes("none"),
+      excludeIDs: excluded.items.filter((item) => item !== "none").map((item) => Number(item)),
+      excludeNone: excluded.items.includes("none"),
+      countedOnly: countedOnly.present && countedOnly.value === "true",
       tags: [...new Set(tags.items.map((item) => normalizeTagName(item)))],
       tagMatchAll: tagMatch.present && tagMatch.value === "all",
       direction: direction.present ? direction.value : "",
@@ -1921,12 +1947,41 @@ function portionTagsHit(tags, filter) {
     : filter.tags.some((tag) => tags.includes(tag));
 }
 
-// A movement matches when at least one portion satisfies both the category and tag filters together (FR4).
+// Whether a portion's category is in the excluded set (FR2). No category is a member only when "none" was named.
+function portionExcluded(categoryId, filter) {
+  return categoryId === null ? filter.excludeNone : filter.excludeIDs.includes(categoryId);
+}
+
+// Whether the request leaves any category out. Any request with a non-empty excluded set uses the portion path.
+function hasExcluded(filter) {
+  return filter.excludeIDs.length > 0 || filter.excludeNone;
+}
+
+// counted_only=true adds the user's flagged categories to the excluded set, unless category_id is set: then the include
+// list already decides what counts, so naming a flagged category shows it (FR4). It never makes a request a 400.
+function resolveCounted(account, filter) {
+  if (!filter.countedOnly || filter.categoryIDs.length > 0 || filter.uncategorized) {
+    return filter;
+  }
+  const flagged = account.categories
+    .filter((category) => !category.countsAsSpending)
+    .map((category) => category.id);
+  if (flagged.length === 0) {
+    return filter;
+  }
+  return { ...filter, excludeIDs: [...new Set([...filter.excludeIDs, ...flagged])] };
+}
+
+// A movement matches when at least one portion satisfies both the category and tag filters together and isn't excluded
+// (FR2, FR4). Without any portion filter the whole movement matches.
 function matchesFilter(movement, filter) {
   if (!matchesMovementFilter(movement, filter)) return false;
-  if (!filter.categoryIDs.length && !filter.uncategorized && !filter.tags.length) return true;
+  if (!filter.categoryIDs.length && !filter.uncategorized && !filter.tags.length && !hasExcluded(filter)) return true;
   return portionsOf(movement).some(
-    (portion) => portionCategoryHit(portion.categoryId, filter) && portionTagsHit(portion.tags, filter),
+    (portion) =>
+      portionCategoryHit(portion.categoryId, filter) &&
+      portionTagsHit(portion.tags, filter) &&
+      !portionExcluded(portion.categoryId, filter),
   );
 }
 
@@ -1970,7 +2025,7 @@ function listMovements(account, parsed, reply) {
   }
   const parsedFilter = parseMovementFilter(params);
   if (parsedFilter.error) return reply(400, { error: parsedFilter.error });
-  const { filter } = parsedFilter;
+  const filter = resolveCounted(account, parsedFilter.filter);
 
   let rows = account.movements.filter((movement) => matchesFilter(movement, filter)).sort(newestFirst);
   if (cursor) {
@@ -2027,13 +2082,18 @@ function totalsOf(account, filter, period, groupBy, tz) {
 
   for (const movement of account.movements) {
     if (!matchesMovementFilter(movement, scoped)) continue;
-    // Assets group over portions (FR4). Without a category or tag filter every portion matches, and the fast path's
-    // numbers are the same. A split movement counts once per row it reaches: the rows keep a set of movement IDs.
-    const hasPortionFilter = scoped.categoryIDs.length || scoped.uncategorized || scoped.tags.length;
+    // Assets group over portions (FR4). Without a category, tag or exclusion filter every portion matches, and the fast
+    // path's numbers are the same. A split movement counts once per row it reaches: the rows keep a set of movement IDs.
+    const hasPortionFilter =
+      scoped.categoryIDs.length || scoped.uncategorized || scoped.tags.length || hasExcluded(scoped);
     for (const portion of portionsOf(movement)) {
       if (
         hasPortionFilter &&
-        !(portionCategoryHit(portion.categoryId, scoped) && portionTagsHit(portion.tags, scoped))
+        !(
+          portionCategoryHit(portion.categoryId, scoped) &&
+          portionTagsHit(portion.tags, scoped) &&
+          !portionExcluded(portion.categoryId, scoped)
+        )
       ) {
         continue;
       }
@@ -2055,8 +2115,9 @@ function totalsOf(account, filter, period, groupBy, tz) {
     }
 
     // Fees and the counter side aren't split: their category is the movement's own, and their tag condition matches the
-    // movement's own tags or any part's (FR4).
-    const ownCategoryHit = portionCategoryHit(movement.categoryId, scoped);
+    // movement's own tags or any part's (FR4). The own category follows the same exclusion as the portions (FR2).
+    const ownCategoryHit =
+      portionCategoryHit(movement.categoryId, scoped) && !portionExcluded(movement.categoryId, scoped);
     const tagsHit = portionTagsHit(wholeTags(movement), scoped);
     if (!ownCategoryHit || !tagsHit) continue;
     const prefix = keyPrefix(movement, movement.categoryId);
@@ -2166,7 +2227,7 @@ function totalsRoute(account, parsed, reply) {
     }
     tz = zone.value;
   }
-  return reply(200, totalsOf(account, parsedFilter.filter, period.present ? period.value : "", groupBy.present ? "category" : "", tz));
+  return reply(200, totalsOf(account, resolveCounted(account, parsedFilter.filter), period.present ? period.value : "", groupBy.present ? "category" : "", tz));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -2487,15 +2548,33 @@ function deleteTag(account, text, reply) {
 // Categories
 // ---------------------------------------------------------------------------------------------------------------------
 
-// The name of a POST or PATCH body: trimmed, 1 to 64 characters, and no control characters. Null when it isn't valid.
-function parseName(raw) {
-  if (raw === null || Buffer.byteLength(raw) > MAX_BODY) return null;
-  const body = parseObject(raw);
-  if (!body || typeof body.name !== "string") return null;
-  const name = body.name.trim();
+// The name of a category body: trimmed, 1 to 64 characters, and no control characters. Null when it isn't valid.
+function categoryNameOf(value) {
+  if (typeof value !== "string") return null;
+  const name = value.trim();
   const runes = [...name].length;
   if (runes < 1 || runes > MAX_CATEGORY_RUNES || /\p{Cc}/u.test(name)) return null;
   return name;
+}
+
+// counts_as_spending is optional, but when it's there it must be a JSON boolean: null and strings are refused.
+function countsAsSpendingOf(body) {
+  if (body.counts_as_spending === undefined) {
+    return { present: false, value: undefined };
+  }
+  if (typeof body.counts_as_spending !== "boolean") {
+    return { error: "invalid counts_as_spending" };
+  }
+  return { present: true, value: body.counts_as_spending };
+}
+
+function categoryBody(raw) {
+  if (raw === null || Buffer.byteLength(raw) > MAX_BODY) return { error: "invalid name" };
+  const body = parseObject(raw);
+  if (!body) return { error: "invalid name" };
+  const counts = countsAsSpendingOf(body);
+  if (counts.error) return counts;
+  return { body, counts };
 }
 
 const sameNameIgnoringCase = (a, b) => a.toLowerCase() === b.toLowerCase();
@@ -2510,27 +2589,51 @@ function listCategories(account, reply) {
 }
 
 function createCategory(account, raw, reply) {
-  const name = parseName(raw);
+  const parsed = categoryBody(raw);
+  if (parsed.error) return reply(400, { error: parsed.error });
+  const name = categoryNameOf(parsed.body.name);
   if (name === null) return reply(400, { error: "invalid name" });
   if (account.categories.some((category) => sameNameIgnoringCase(category.name, name))) {
     return reply(409, { error: "category already exists" });
   }
   const now = new Date();
-  const category = { id: account.nextCategoryId++, name, createdAt: now, updatedAt: now };
+  const category = {
+    id: account.nextCategoryId++,
+    name,
+    countsAsSpending: parsed.counts.present ? parsed.counts.value : true,
+    createdAt: now,
+    updatedAt: now,
+  };
   account.categories.push(category);
   return reply(201, { category: categoryJson(category) });
 }
 
-function renameCategory(account, text, raw, reply) {
+// PATCH /categories/:id: name, counts_as_spending or both. A key left out keeps its value. A body with neither key is
+// 400 invalid name, as before; a non-boolean flag is 400 invalid counts_as_spending.
+function updateCategory(account, text, raw, reply) {
   if (!isPositiveId(text)) return reply(404, { error: "category not found" });
-  const name = parseName(raw);
-  if (name === null) return reply(400, { error: "invalid name" });
   const category = account.categories.find((candidate) => candidate.id === Number(text));
   if (!category) return reply(404, { error: "category not found" });
-  if (account.categories.some((other) => other.id !== category.id && sameNameIgnoringCase(other.name, name))) {
-    return reply(409, { error: "category already exists" });
+  const parsed = categoryBody(raw);
+  if (parsed.error) return reply(400, { error: parsed.error });
+
+  let name;
+  if (parsed.body.name !== undefined && parsed.body.name !== null) {
+    name = categoryNameOf(parsed.body.name);
+    if (name === null) return reply(400, { error: "invalid name" });
   }
-  category.name = name;
+  if (name === undefined && !parsed.counts.present) {
+    return reply(400, { error: "invalid name" });
+  }
+  if (name !== undefined) {
+    if (account.categories.some((other) => other.id !== category.id && sameNameIgnoringCase(other.name, name))) {
+      return reply(409, { error: "category already exists" });
+    }
+    category.name = name;
+  }
+  if (parsed.counts.present) {
+    category.countsAsSpending = parsed.counts.value;
+  }
   category.updatedAt = new Date();
   return reply(200, { category: categoryJson(category) });
 }
@@ -2585,7 +2688,9 @@ function exportCsv(account, parsed, reply, sendRaw) {
   if (unreadable) return reply(400, { error: `invalid ${unreadable}` });
   const parsedFilter = parseMovementFilter(parsed.params);
   if (parsedFilter.error) return reply(400, { error: parsedFilter.error });
-  const rows = account.movements.filter((movement) => matchesFilter(movement, parsedFilter.filter)).sort(newestFirst);
+  const rows = account.movements
+    .filter((movement) => matchesFilter(movement, resolveCounted(account, parsedFilter.filter)))
+    .sort(newestFirst);
   if (rows.length > EXPORT_MAX_ROWS) return reply(422, { error: "too many rows, narrow the filters" });
   const names = new Map(account.categories.map((category) => [category.id, category.name]));
   const lines = [CSV_HEADER.map(csvField).join(",")];
@@ -2932,7 +3037,7 @@ async function handle(req, res) {
     if (isCategories) {
       if (route === "GET /categories") return listCategories(account, reply);
       if (route === "POST /categories") return createCategory(account, raw, reply);
-      if (pattern === "PATCH /categories/:id") return renameCategory(account, id, raw, reply);
+      if (pattern === "PATCH /categories/:id") return updateCategory(account, id, raw, reply);
       if (pattern === "DELETE /categories/:id") return deleteCategory(account, id, reply);
     }
     if (isSnapshots) {

@@ -76,6 +76,35 @@ describe("filterChips", () => {
     ]);
   });
 
+  it("gives each excluded category its own chip after the included ones", () => {
+    const search = parseMovementsSearch({ category_id: "3", exclude_category_id: "7,none,99" });
+    const chips = filterChips(search, { now, t, categoryName });
+    expect(chips.map((chip) => chip.key)).toEqual([
+      "category:3",
+      "excluded:7",
+      "excluded:none",
+      "excluded:99",
+    ]);
+    expect(chips[1].label).toBe(
+      'movements.chips.labelled {"label":"movements.chips.excluded","value":"Rent"}',
+    );
+    expect(chips[2].label).toBe(
+      'movements.chips.labelled {"label":"movements.chips.excluded","value":"movements.noCategory"}',
+    );
+    expect(chips[3].label).toBe(
+      'movements.chips.labelled {"label":"movements.chips.excluded","value":"…"}',
+    );
+  });
+
+  it("removing one exclusion keeps the others", () => {
+    const search = parseMovementsSearch({ exclude_category_id: "7,9" });
+    const chips = filterChips(search, { now, t, categoryName });
+    expect(chips.map((chip) => chip.without)).toEqual([
+      { exclude_category_id: "9" },
+      { exclude_category_id: "7" },
+    ]);
+  });
+
   it("shows a date preset by its name, and a range that isn't one by its dates", () => {
     const { from, to } = presetRange("lastMonth", now);
     const [preset] = chipsOf({ from, to });
@@ -106,6 +135,7 @@ describe("filterChips", () => {
       asset: "BTC",
       asset_match: "any",
       category_id: "7",
+      exclude_category_id: "9",
       tag: "trip-2026",
       tag_match: "all",
       has_reason: "true",
@@ -119,6 +149,7 @@ describe("filterChips", () => {
       "asset:BTC",
       "asset_match",
       "category:7",
+      "excluded:9",
       "tag:trip-2026",
       "tag_match",
       "has_reason",

@@ -17,6 +17,8 @@ export interface MovementsSearch {
   asset?: string;
   asset_match?: "any";
   category_id?: string;
+  /** Categories whose portions are left out, in the same item rule as category_id. It never shares an item with it. */
+  exclude_category_id?: string;
   tag?: string;
   tag_match?: "all";
   review?: string;
@@ -113,6 +115,12 @@ export function parseMovementsSearch(raw: Record<string, unknown>): MovementsSea
   put("asset", readList(raw.asset, (item) => ASSET_SYMBOL.test(item), (item) => item.toUpperCase()));
   put("asset_match", search.asset !== undefined && raw.asset_match === "any" ? "any" : undefined);
   put("category_id", readList(raw.category_id, readCategory));
+  // Include wins in a hand-typed URL: the API refuses an item in both lists, and the overlap would match nothing.
+  const included = new Set(listItems(search.category_id));
+  const excluded = listItems(readList(raw.exclude_category_id, readCategory)).filter(
+    (item) => !included.has(item),
+  );
+  put("exclude_category_id", excluded.length > 0 ? excluded.join(",") : undefined);
   put(
     "tag",
     readList(raw.tag, (item) => item !== "", (item) => normaliseTagName(item) ?? ""),
@@ -143,6 +151,7 @@ export function toMovementsQuery(search: MovementsSearch): Omit<MovementsQuery, 
     asset: search.asset,
     asset_match: search.asset_match,
     category_id: search.category_id,
+    exclude_category_id: search.exclude_category_id,
     tag: search.tag,
     tag_match: search.tag_match,
     review: search.review,
@@ -204,15 +213,25 @@ export function tagNames(items: readonly string[]) {
 
 /**
  * Sets a list filter to these items, or removes it when there are none. A coin filter with no coins also drops
- * asset_match, and a tag filter with no tags drops tag_match.
+ * asset_match, and a tag filter with no tags drops tag_match. The category include and exclude lists are mutually
+ * exclusive, so picking an item in one takes it out of the other; the API refuses an item in both.
  */
 export function withList(
   search: MovementsSearch,
-  key: "kind" | "status" | "asset" | "category_id" | "tag" | "review",
+  key: "kind" | "status" | "asset" | "category_id" | "exclude_category_id" | "tag" | "review",
   items: string[],
 ) {
-  const value = unique(key === "tag" ? tagNames(items) : items).join(",") || undefined;
+  const kept = unique(key === "tag" ? tagNames(items) : items);
+  const value = kept.join(",") || undefined;
   const next = withFilter(search, key, value);
+  if (key === "category_id" || key === "exclude_category_id") {
+    const other = key === "category_id" ? "exclude_category_id" : "category_id";
+    const remaining = listItems(search[other]).filter((item) => !kept.includes(item));
+    next[other] = remaining.join(",") || undefined;
+    if (next[other] === undefined) {
+      delete next[other];
+    }
+  }
   if (key === "asset" && value === undefined) {
     delete next.asset_match;
   }
@@ -266,6 +285,7 @@ const FILTER_KEYS = [
   "asset",
   "asset_match",
   "category_id",
+  "exclude_category_id",
   "tag",
   "tag_match",
   "review",

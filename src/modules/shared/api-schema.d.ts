@@ -187,7 +187,7 @@ export interface paths {
         put?: never;
         /**
          * Create a category
-         * @description Saves a category with the name, trimmed. A name the user already has, ignoring case, is refused. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * @description Saves a category with the name, trimmed, and the spending flag. A name the user already has, ignoring case, is refused. counts_as_spending is optional and true when it's left out. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         post: operations["categories.create"];
         delete?: never;
@@ -214,8 +214,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a category
-         * @description Changes the name of the user's category. The new name is trimmed, and another of the user's categories with that name, ignoring case, is refused. A request that authenticates with the access_token cookie must come from an allowed origin.
+         * Update a category
+         * @description Changes the name, the spending flag or both of the user's category. A key that's left out keeps its value. The new name is trimmed, and another of the user's categories with that name, ignoring case, is refused. counts_as_spending must be a boolean. A body with neither key is refused. A request that authenticates with the access_token cookie must come from an allowed origin.
          */
         patch: operations["categories.rename"];
         trace?: never;
@@ -589,6 +589,7 @@ export interface components {
             category: components["schemas"]["categories.CategoryResponse"];
         };
         "categories.CategoryResponse": {
+            counts_as_spending: boolean;
             /** Format: date-time */
             created_at: string;
             id: number;
@@ -596,11 +597,16 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        "categories.CreateRequest": {
+            counts_as_spending?: boolean;
+            name: string;
+        };
         "categories.ListResponse": {
             categories: components["schemas"]["categories.CategoryResponse"][];
         };
-        "categories.NameRequest": {
-            name: string;
+        "categories.UpdateRequest": {
+            counts_as_spending?: boolean;
+            name?: string;
         };
         "movements.AssetTotalRow": {
             /** Format: decimal */
@@ -1539,10 +1545,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description The name. Trimmed, it must be 1 to 64 characters with no control characters */
+        /** @description The name, trimmed, 1 to 64 characters with no control characters, and counts_as_spending, an optional boolean */
         requestBody: {
             content: {
-                "application/json": components["schemas"]["categories.NameRequest"];
+                "application/json": components["schemas"]["categories.CreateRequest"];
             };
         };
         responses: {
@@ -1555,7 +1561,7 @@ export interface operations {
                     "application/json": components["schemas"]["categories.CategoryEnvelope"];
                 };
             };
-            /** @description The name is missing, empty, longer than 64 characters, or has a control character */
+            /** @description The name is missing, empty, longer than 64 characters, or has a control character, or counts_as_spending isn't a boolean */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1669,10 +1675,10 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description The new name. Trimmed, it must be 1 to 64 characters with no control characters */
+        /** @description The new name and counts_as_spending, either or both. A name is 1 to 64 characters with no control characters, and counts_as_spending is a boolean */
         requestBody: {
             content: {
-                "application/json": components["schemas"]["categories.NameRequest"];
+                "application/json": components["schemas"]["categories.UpdateRequest"];
             };
         };
         responses: {
@@ -1685,7 +1691,7 @@ export interface operations {
                     "application/json": components["schemas"]["categories.CategoryEnvelope"];
                 };
             };
-            /** @description The name is missing, empty, longer than 64 characters, or has a control character */
+            /** @description The body has neither key, or the name is empty, longer than 64 characters or has a control character, or counts_as_spending isn't a boolean */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1760,6 +1766,10 @@ export interface operations {
                 asset_match?: "asset" | "any";
                 /** @description Comma list of up to 20 category IDs, such as 3,4. none selects the movements with no category */
                 category_id?: string;
+                /** @description Comma list of up to 20 category IDs or none, such as 7,9. Portions in these categories are left out. An item that category_id also names is refused */
+                exclude_category_id?: string;
+                /** @description true also leaves out the portions of the categories that don't count as spending, unless category_id is set */
+                counted_only?: "true" | "false";
                 /** @description Comma list of up to 20 tag names, such as trip-2026,shared. Case is ignored */
                 tag?: string;
                 /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
@@ -1843,6 +1853,10 @@ export interface operations {
                 asset_match?: "asset" | "any";
                 /** @description Comma list of up to 20 category IDs, such as 3,4. none selects the movements with no category */
                 category_id?: string;
+                /** @description Comma list of up to 20 category IDs or none, such as 7,9. A movement is left out when every one of its portions is in these categories. An item that category_id also names is refused */
+                exclude_category_id?: string;
+                /** @description true also leaves out the movements whose portions are all in categories that don't count as spending, unless category_id is set */
+                counted_only?: "true" | "false";
                 /** @description Comma list of up to 20 tag names, such as trip-2026,shared. Case is ignored */
                 tag?: string;
                 /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */
@@ -1943,6 +1957,10 @@ export interface operations {
                 asset_match?: "asset" | "any";
                 /** @description Comma list of up to 20 category IDs, such as 3,4. none selects the movements with no category */
                 category_id?: string;
+                /** @description Comma list of up to 20 category IDs or none, such as 7,9. Only the portions outside these categories are summed. An item that category_id also names is refused */
+                exclude_category_id?: string;
+                /** @description true also leaves out the portions of the categories that don't count as spending, unless category_id is set */
+                counted_only?: "true" | "false";
                 /** @description Comma list of up to 20 tag names, such as trip-2026,shared. Case is ignored */
                 tag?: string;
                 /** @description any, the default, matches a movement that has one of the tags. all matches a movement that has every one */

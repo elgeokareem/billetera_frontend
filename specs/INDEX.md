@@ -31,3 +31,4 @@ See [ROADMAP.md](ROADMAP.md) for the overall plan.
 | [Movements Chart](2026-11-14-movements-chart/SPEC.md) ([plan](2026-11-14-movements-chart/PLAN.md)) | feature | built | Portfolio | 2026-11-14 |
 | [Sync Cooldown](2026-11-15-sync-cooldown/SPEC.md) ([plan](2026-11-15-sync-cooldown/PLAN.md)) | feature | built | Portfolio | 2026-11-15 |
 | [Split Editor Usability](2026-11-15-split-editor-usability/SPEC.md) ([plan](2026-11-15-split-editor-usability/PLAN.md)) | feature | built | Portfolio | 2026-11-15 |
+| [Category Exclusion](2026-11-15-category-exclusion/SPEC.md) ([plan](2026-11-15-category-exclusion/PLAN.md)) | feature | built | Portfolio | 2026-11-15 |

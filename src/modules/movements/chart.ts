@@ -1,9 +1,10 @@
 import { SEGMENT_COLORS } from "../shared/categoryColors";
 import { apiInstant } from "../shared/dateRange";
 import { compare, sum, sumKnown } from "../shared/money";
+import type { TotalsQuery } from "./api";
 import type { AssetTotalRow, MovementTotals } from "./types";
 import { movementCount } from "./spending";
-import type { MovementsSearch } from "./search";
+import { type MovementsSearch, toMovementsQuery } from "./search";
 
 /** A bar's width in time: one local day, one local week starting Monday, or one local month. */
 export type ChartPeriod = "day" | "week" | "month";
@@ -70,6 +71,27 @@ export function chartRange(search: Pick<MovementsSearch, "from" | "to">, now: Da
     from: search.from ? apiInstant(new Date(search.from)) : undefined,
     to: search.to ? apiInstant(new Date(search.to)) : undefined,
     capped: false,
+  };
+}
+
+/**
+ * The totals query of the chart. It always sends counted_only, so a category flagged as not spending is left out of the
+ * bars, the summary and the count, unless category_id names it: the backend then shows exactly the named categories.
+ * The list and the export don't send it, so those movements can still be found (SPEC Q1).
+ */
+export function chartTotalsQuery(
+  search: MovementsSearch,
+  range: ChartRange,
+  period: ChartPeriod,
+  tz: string,
+): TotalsQuery {
+  return {
+    ...toMovementsQuery(search),
+    from: range.from,
+    to: range.to,
+    period,
+    tz,
+    counted_only: "true",
   };
 }
 

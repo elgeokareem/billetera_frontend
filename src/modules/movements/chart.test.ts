@@ -9,8 +9,10 @@ import {
   chartRange,
   chartRows,
   chartSummary,
+  chartTotalsQuery,
 } from "./chart";
 import type { AssetTotalRow } from "./types";
+import { parseMovementsSearch } from "./search";
 
 /** An asset row, out of the USDT account unless the test says otherwise. */
 function row(overrides: Partial<AssetTotalRow>): AssetTotalRow {
@@ -217,6 +219,42 @@ describe("chartSummary", () => {
   it("gives null for a direction with no priced movement", () => {
     const summary = chartSummary({ assets: [row({ direction: "out", usd_value: null, unpriced_count: 1 })] });
     expect(summary).toEqual({ out: null, in: null, count: 1, unpriced: { out: 1, in: 0 } });
+  });
+});
+
+describe("chartTotalsQuery", () => {
+  const range = { from: "2026-01-01T00:00:00Z", to: "2026-02-01T00:00:00Z", capped: false };
+  const parse = parseMovementsSearch;
+
+  it("always leaves out the categories that don't count as spending", () => {
+    expect(chartTotalsQuery(parse({}), range, "day", "America/Santiago").counted_only).toBe("true");
+    expect(
+      chartTotalsQuery(parse({ category_id: "7" }), range, "month", "UTC").counted_only,
+    ).toBe("true");
+  });
+
+  it("carries the category exclusion, and the chart's own range, period and zone", () => {
+    const query = chartTotalsQuery(
+      parse({ exclude_category_id: "7,9", direction: "out" }),
+      range,
+      "week",
+      "America/Santiago",
+    );
+    expect(query).toMatchObject({
+      exclude_category_id: "7,9",
+      direction: "out",
+      from: range.from,
+      to: range.to,
+      period: "week",
+      tz: "America/Santiago",
+      counted_only: "true",
+    });
+  });
+
+  it("uses the capped range when the search has no dates", () => {
+    const capped = { from: "2025-12-01T03:00:00Z", capped: true };
+    expect(chartTotalsQuery(parse({}), capped, "month", "UTC").from).toBe(capped.from);
+    expect(chartTotalsQuery(parse({}), capped, "month", "UTC").to).toBeUndefined();
   });
 });
 

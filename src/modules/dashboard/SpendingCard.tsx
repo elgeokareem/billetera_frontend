@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "../categories/hooks";
 import { CategoriesUnavailable } from "../categories/CategoriesUnavailable";
+import { notCountingCaption, notCountingNames } from "../categories/counting";
 import { useMovementTotals } from "../movements/hooks";
 import { spendingBreakdown, movementCount, type CategorySpending } from "../movements/spending";
 import { NO_CATEGORY_COLOR, SEGMENT_COLORS } from "../shared/categoryColors";
@@ -37,6 +38,13 @@ export function SpendingCard({ now, timeZone }: SpendingCardProps) {
   const names = useMemo(
     () => new Map((categories.data ?? []).map((category) => [category.id, category.name])),
     [categories.data],
+  );
+  // The Dashboard leaves flagged categories out of its spending, so it says which ones. These are names, not amounts:
+  // Hide Balances doesn't mask them. Nothing shows while the names are loading or failed.
+  const notCounting = useMemo(
+    () =>
+      categories.isSuccess ? notCountingCaption(notCountingNames(categories.data, {}), t) : null,
+    [categories.data, categories.isSuccess, t],
   );
 
   const nameOf = (group: CategorySpending) =>
@@ -79,6 +87,11 @@ export function SpendingCard({ now, timeZone }: SpendingCardProps) {
               summary(formatUsd(total))
             )}
           </Text>
+          {notCounting && (
+            <Text size="xs" c="dimmed">
+              {notCounting}
+            </Text>
+          )}
           {unconfirmedCount !== null && unconfirmedCount > 0 && (
             <Text size="sm" c="dimmed">
               {t("dashboard.spending.unconfirmed", { count: unconfirmedCount })}

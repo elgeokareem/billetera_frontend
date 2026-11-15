@@ -30,6 +30,17 @@ export function dashboardQueries(now: Date, timeZone: string) {
     spending: {
       ...SPENDING_FILTER,
       group_by: "category",
+      counted_only: "true",
+      ...month,
+      tz: timeZone,
+    } satisfies TotalsQuery,
+    /**
+     * The same spending, leaving nothing out for a category's own flag. The Categories page shows every category's real
+     * amount, dimmed when it doesn't count, so it can't use the Dashboard's query.
+     */
+    spendingAllCategories: {
+      ...SPENDING_FILTER,
+      group_by: "category",
       ...month,
       tz: timeZone,
     } satisfies TotalsQuery,
@@ -41,6 +52,7 @@ export function dashboardQueries(now: Date, timeZone: string) {
       ...SPENDING_FILTER,
       kind: "card_spend",
       review: "suspected",
+      counted_only: "true",
       ...month,
     } satisfies TotalsQuery,
     change: {

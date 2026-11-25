@@ -35,6 +35,11 @@
   .xlab { position: absolute; left: 64px; right: 8px; bottom: 0; display: flex; }
   .xlab span { flex: 1; text-align: center; font-size: 11px; color: #8BA89C; }
   .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
+  .piewrap { display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 18px; }
+  .piewrap .piearea { margin-top: 0; }
+  .legend.side { display: flex; flex-direction: column; gap: 10px; margin-top: 0; align-items: flex-start; }
+  .li .pct { color: #B4CBC1; }
+  .li .amt { color: #EEF5F1; font-weight: 600; white-space: nowrap; }
   .li { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #B4CBC1; }
   .sw { width: 10px; height: 10px; border-radius: 3px; }
   .piearea { display: flex; justify-content: center; margin-top: 18px; position: relative; }
@@ -62,7 +67,7 @@
     <div class="legend" id="legend1"></div>
   </div>
 
-  <div class="caption" style="margin-top:12px;">Proposed — Pie view: the percent shows on each slice, and on hover the tooltip adds the amount</div>
+  <div class="caption" style="margin-top:12px;">Proposed — Pie view: percents on the slices, and the legend beside the pie with percent and exact amount (it wraps below on narrow screens)</div>
   <div class="card">
     <div class="head">
       <div class="headleft">
@@ -72,8 +77,10 @@
       <div class="hide">Hide chart</div>
     </div>
     <div class="summary" style="margin-top:18px;">Out <b>$16,950.00</b> · In <b>$4,120.00</b> · 143 completed movements</div>
-    <div class="piearea" id="piearea"></div>
-    <div class="legend" id="legend2"></div>
+    <div class="piewrap">
+      <div class="piearea" id="piearea"></div>
+      <div class="legend side" id="legend2"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -122,7 +129,7 @@
     const s = document.createElement("span"); s.textContent = label; xl.appendChild(s);
   }
   chart.appendChild(bars); chart.appendChild(xl);
-  for (const id of ["legend1", "legend2"]) {
+  for (const id of ["legend1"]) {
     document.getElementById(id).innerHTML = NAMES.map((n, i) =>
       `<div class="li"><span class="sw" style="background:${C[i]}"></span>${n}</div>`).join("");
   }
@@ -179,9 +186,12 @@
   tip.className = "tooltip";
   tip.innerHTML = `<div class="tt-name">Groceries</div><div class="tt-row"><span>36%</span><b>$6,102.00</b></div>`;
   const sv = svg.getBoundingClientRect(), ar = area.getBoundingClientRect();
-  tip.style.left = (sv.left - ar.left + 330) + "px";
-  tip.style.top = (sv.top - ar.top + 18) + "px";
+  tip.style.left = (sv.left - ar.left + 195) + "px";
+  tip.style.top = (sv.top - ar.top + 14) + "px";
   area.appendChild(tip);
+  const AMOUNTS = ["$6,102.00", "$3,390.00", "$2,542.50", "$1,525.50", "$2,203.50", "$1,186.50"];
+  document.getElementById("legend2").innerHTML = SLICES.map(([name, pct], i) =>
+    `<div class="li"><span class="sw" style="background:${C[i]}"></span>${name} <span class="pct">${pct}%</span> <span class="amt">${AMOUNTS[i]}</span></div>`).join("");
 </script>
 </body>
 </html>

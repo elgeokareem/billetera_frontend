@@ -90,3 +90,9 @@ dist/assets/MovementsBarChart-CV59c186.js        28.27 kB │ gzip:  9.62 kB
 
 (The build's pre-existing "chunks larger than 500 kB" warning is unchanged by this work; the pie is its own lazy chunk.)
 
+### Improvement 2026-11-25: legend beside the pie, with its figures
+
+`ChartLegendItem` gained an optional `trailing` node, rendered inline after the name; the bars pass none, so their legend is unchanged. `MovementsPieChart` now lays the pie and the legend in a wrapping `Group` (`justify="center"`, `align="center"`, `gap="xl"`, `wrap="wrap"`) instead of a `Stack`, and every legend row carries its percent (`Math.round(cell.value / total * 100)`, dimmed, never masked) and its exact amount (`maskText(formatUsd(cell.amount), hidden)`, `fw={600}`). The legend lives in a `Box` with `flex: "0 1 300px"`, so it forms one row per category beside the pie while there is room and the same flex wrap drops the whole column below it when the card narrows — no media query. A plain unflexed legend was measured to drop below the pie even at 1280px (its max-content width exceeds the ~696px left beside the pie), so the column's flex basis is what keeps AC11 true at that width.
+
+`pnpm verify` green on 2026-11-25: API check, ESLint, 553 tests in 39 files, and `tsc -b && vite build` (the pie chunk is 22.33 kB). The manual acceptance walk was not run.
+

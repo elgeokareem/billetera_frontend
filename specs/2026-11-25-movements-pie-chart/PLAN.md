@@ -96,3 +96,9 @@ dist/assets/MovementsBarChart-CV59c186.js        28.27 kB │ gzip:  9.62 kB
 
 `pnpm verify` green on 2026-11-25: API check, ESLint, 553 tests in 39 files, and `tsc -b && vite build` (the pie chunk is 22.33 kB). The manual acceptance walk was not run.
 
+### Sorting 2026-11-25: the pie reads by size
+
+`MovementsChart`'s `cells` memo now ranks the named series in `pieRows.series` order and colours each cell from that rank (`SEGMENT_COLORS[rank % …]`), while Other categories and no category keep their reserved constants; the cells then sort by `value` descending, and the stable sort keeps a tie in `chartRows` order. The bars, `colorOf`, `chart.ts` and the labels are untouched, so every category keeps the tone it has on the bars while the pie's slices and legend read largest first (SPEC B3, AC12).
+
+`pnpm verify` green on 2026-11-25: API check, ESLint, 553 tests in 39 files, and `tsc -b && vite build`. The manual acceptance walk was not run.
+

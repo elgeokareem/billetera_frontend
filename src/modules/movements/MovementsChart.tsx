@@ -148,10 +148,24 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
       })),
     [bars, labelOf, colorOf],
   );
-  // Every pie cell carries the exact decimal string, so the tooltip never formats the rounded slice size.
-  const cells = useMemo<PieSliceView[]>(
-    () =>
-      (pieRows?.series ?? []).flatMap((item, index) =>
+  // Every pie cell carries the exact decimal string, so the tooltip never formats the rounded slice size. The cells sort by
+  // size, so the slices and the legend read largest first; the sort is stable, so a tie keeps the chartRows order (named
+  // before Other categories, before no category).
+  //
+  // The colour stays bound to the category, not to the cell's sorted position: a named series takes the palette tone of its
+  // rank among the named series (the bars' order, which is named-first), so a large Other categories or no category share
+  // interleaves by size without recolouring anything, and the pie's tones keep matching the bars'. The bars keep the
+  // chartRows order untouched.
+  const cells = useMemo<PieSliceView[]>(() => {
+    const pieSeries = pieRows?.series ?? [];
+    const namedRank = new Map<string, number>();
+    for (const item of pieSeries) {
+      if (item.key !== CHART_OTHER_KEY && item.key !== CHART_NO_CATEGORY_KEY) {
+        namedRank.set(item.key, namedRank.size);
+      }
+    }
+    return pieSeries
+      .flatMap((item) =>
         item.total === null
           ? []
           : [
@@ -159,13 +173,13 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
                 key: item.key,
                 name: labelOf(item.key),
                 value: Number(item.total),
-                color: colorOf(item.key, index),
+                color: colorOf(item.key, namedRank.get(item.key) ?? 0),
                 amount: item.total,
               },
             ],
-      ),
-    [pieRows, labelOf, colorOf],
-  );
+      )
+      .sort((a, b) => b.value - a.value);
+  }, [pieRows, labelOf, colorOf]);
 
   const pick = useCallback(
     (periodStart: string) => {

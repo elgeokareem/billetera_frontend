@@ -19,7 +19,7 @@ export interface PieSliceView {
 }
 
 interface MovementsPieChartProps {
-  /** In draw order: the largest categories first, then Other categories, then no category last. */
+  /** Sorted by value, largest first; a tie keeps the chartRows order (named, then Other categories, then no category). */
   cells: PieSliceView[];
   /** Describes the chart to screen readers. */
   label: string;

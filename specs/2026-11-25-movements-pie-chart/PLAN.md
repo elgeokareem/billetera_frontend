@@ -54,6 +54,10 @@ Rules:
 | `src/locales/en.json` | `movements.chart.bars`, `.pie`, `.chartType`, `.title.out.pie`, `.title.in.pie`. |
 | `src/locales/es.json` | The same five keys in Spanish. |
 
+### Correction 2026-11-25: B1's first fix did not fix the alignment
+
+The requester's screenshot showed the selected pill short and top-aligned inside the 44px control. Root cause, measured with a repro built on the repo's own tooling (`.seg-fix-repro`, since removed): Mantine's `FloatingIndicator` copies the active **label's** box, and the label is content-sized inside the stretched `control` flex item — the first fix (`styles.label` flex-centering) centered text inside the short label and changed nothing. The fix on both controls is `styles={{ control: { display: "flex" }, label: { display: "flex", alignItems: "center", justifyContent: "center", flex: 1 } }}` with `mih={44}` kept; measured after: root 44, label 36, indicator 36, pill top 4. An alternative (`--sc-padding: 0.5rem 1rem`) also fills the pill but makes the control 45.7px, so it was rejected. SPEC B1 was rewritten to describe this.
+
 ### Fit notes and drift
 
 - `PieChart` defaults `withTooltip` to `false` (unlike `BarChart`), so `MovementsPieChart` sets `withTooltip` explicitly; B5's tooltip would not render otherwise. This is the only prop the spec did not name.

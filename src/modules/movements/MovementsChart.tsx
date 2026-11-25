@@ -267,13 +267,16 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
                 { label: t("movements.chart.bars"), value: "bars" },
                 { label: t("movements.chart.pie"), value: "pie" },
               ]}
-              // The accent marks this control apart from the mode control, whose selected segment keeps the default.
+              // The accent marks this control apart from the mode control, whose selected segment keeps the default. The
+              // control's flex and the label's make the label fill the 44px control: the moving pill copies the label's box, so
+              // a content-sized label leaves it short and top-aligned inside a stretched control.
               styles={{
                 root: {
                   "--sc-color": "var(--mantine-color-accent-6)",
                   "--sc-label-color": INK_ON_ACCENT,
                 },
-                label: { display: "flex", alignItems: "center", justifyContent: "center" },
+                control: { display: "flex" },
+                label: { display: "flex", alignItems: "center", justifyContent: "center", flex: 1 },
               }}
             />
           </Group>
@@ -300,7 +303,12 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
                   { label: t("movements.chart.total"), value: "total" },
                   { label: t("movements.chart.byCategory"), value: "category" },
                 ]}
-                styles={{ label: { display: "flex", alignItems: "center", justifyContent: "center" } }}
+                // Same label-filling styles as the header toggle: the moving pill copies the label's box, so without them it
+                // rides short and high inside the 44px control.
+                styles={{
+                  control: { display: "flex" },
+                  label: { display: "flex", alignItems: "center", justifyContent: "center", flex: 1 },
+                }}
               />
             )}
             {body}

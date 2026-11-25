@@ -1,12 +1,13 @@
 import "@mantine/charts/styles.css";
 import { BarChart } from "@mantine/charts";
-import { Box, Group, Paper, Stack, Text } from "@mantine/core";
+import { Group, Paper, Stack, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMonth, formatShortDate, formatUsd } from "../shared/format";
 import { formatUsdTick } from "../shared/chartFormat";
 import { maskText } from "../shared/privacy";
 import { useBalancesHidden } from "../shared/usePrivacy";
 import type { ChartBucket, ChartMode, ChartPeriod } from "./chart";
+import ChartLegend from "./ChartLegend";
 
 /** A bar series as the chart draws it: its data key, its label and its colour. */
 export interface BarSeriesView {
@@ -102,53 +103,42 @@ export default function MovementsBarChart({
 
   return (
     <Stack gap="sm">
-    <BarChart
-      h={260}
-      data={data}
-      dataKey="periodStart"
-      series={series.map((item) => ({
-        name: item.key,
-        label: item.label,
-        color: item.color,
-        ...(mode === "category" ? { stackId: "category" } : {}),
-      }))}
-      type={mode === "category" ? "stacked" : "default"}
-      withLegend={false}
-      gridAxis="y"
-      xAxisProps={{
-        tickFormatter: (value) => axisLabel(period, String(value)),
-        interval: "preserveStartEnd",
-        minTickGap: 8,
-      }}
-      yAxisProps={{ width: VALUE_AXIS_WIDTH }}
-      valueFormatter={(value) => maskText(formatUsdTick(value), hidden)}
-      tooltipProps={{ content: readout }}
-      barProps={() => ({
-        style: { cursor: "pointer" },
-        onClick: (entry: { payload?: { periodStart?: unknown } }) => {
-          const periodStart = entry.payload?.periodStart;
-          if (typeof periodStart === "string") {
-            onPick(periodStart);
-          }
-        },
-      })}
-      accessibilityLayer={false}
-      role="img"
-      aria-label={label}
-    />
+      <BarChart
+        h={260}
+        data={data}
+        dataKey="periodStart"
+        series={series.map((item) => ({
+          name: item.key,
+          label: item.label,
+          color: item.color,
+          ...(mode === "category" ? { stackId: "category" } : {}),
+        }))}
+        type={mode === "category" ? "stacked" : "default"}
+        withLegend={false}
+        gridAxis="y"
+        xAxisProps={{
+          tickFormatter: (value) => axisLabel(period, String(value)),
+          interval: "preserveStartEnd",
+          minTickGap: 8,
+        }}
+        yAxisProps={{ width: VALUE_AXIS_WIDTH }}
+        valueFormatter={(value) => maskText(formatUsdTick(value), hidden)}
+        tooltipProps={{ content: readout }}
+        barProps={() => ({
+          style: { cursor: "pointer" },
+          onClick: (entry: { payload?: { periodStart?: unknown } }) => {
+            const periodStart = entry.payload?.periodStart;
+            if (typeof periodStart === "string") {
+              onPick(periodStart);
+            }
+          },
+        })}
+        accessibilityLayer={false}
+        role="img"
+        aria-label={label}
+      />
       {/* By category, a legend names each colour; the tooltip alone would make the viewer hover to read the bars. */}
-      {mode === "category" && (
-        <Group gap="md" wrap="wrap">
-          {series.map((item) => (
-            <Group key={item.key} gap={6} wrap="nowrap">
-              <Box w={10} h={10} style={{ borderRadius: 3, background: item.color }} aria-hidden />
-              <Text size="xs" c="dimmed">
-                {item.label}
-              </Text>
-            </Group>
-          ))}
-        </Group>
-      )}
+      {mode === "category" && <ChartLegend items={series} />}
     </Stack>
   );
 }

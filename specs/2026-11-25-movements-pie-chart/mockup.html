@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --radius: 12px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px 0; background: #0B211D; font-family: 'DM Sans', sans-serif; }
+  .wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .caption { font-size: 12px; color: var(--foreground, #e6e6e6); opacity: .78; padding-left: 2px; }
+  .card { background: #16372F; border-radius: var(--radius); padding: 24px; color: #EEF5F1; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .headleft { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .titlebox h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .titlebox .sub { font-size: 12px; color: #B4CBC1; margin-top: 2px; }
+  .hide { font-size: 14px; font-weight: 500; color: #EEF5F1; opacity: .85; white-space: nowrap; }
+  .seg { display: inline-flex; background: #071815; border: 1px solid rgba(74,114,102,.45); border-radius: 8px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: #B4CBC1; font: 500 13px 'DM Sans', sans-serif; padding: 0 14px; height: 36px; border-radius: 6px; cursor: pointer; }
+  .seg button.on { background: #2B5247; color: #EEF5F1; }
+  .seg.alt button.on { background: #C8F169; color: #16270C; }
+  .center { display: flex; justify-content: center; }
+  .summary { font-size: 13px; color: #B4CBC1; }
+  .summary b { color: #EEF5F1; font-weight: 600; }
+  .chart { position: relative; height: 260px; margin-top: 14px; }
+  .grid { position: absolute; left: 56px; right: 0; border-top: 1px dashed rgba(74,114,102,.35); }
+  .grid.base { border-top: 1px solid rgba(74,114,102,.6); }
+  .grid span { position: absolute; left: -56px; top: -7px; width: 48px; text-align: right; font-size: 10px; color: #8BA89C; }
+  .bars { position: absolute; left: 64px; right: 8px; bottom: 22px; top: 8px; display: flex; align-items: flex-end; }
+  .bcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .bar { width: 46%; max-width: 34px; display: flex; flex-direction: column-reverse; border-radius: 3px; overflow: hidden; cursor: pointer; }
+  .bar i { display: block; }
+  .xlab { position: absolute; left: 64px; right: 8px; bottom: 0; display: flex; }
+  .xlab span { flex: 1; text-align: center; font-size: 11px; color: #8BA89C; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
+  .li { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #B4CBC1; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; }
+  .piearea { display: flex; justify-content: center; margin-top: 18px; position: relative; }
+  .tooltip { position: absolute; background: #2B5247; border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 12px rgba(0,0,0,.35); min-width: 132px; }
+  .tt-name { font-size: 12px; color: #B4CBC1; }
+  .tt-row { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; font-size: 13px; }
+  .tt-row span { color: #B4CBC1; }
+  .tt-row b { color: #EEF5F1; font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="caption">Bars view — the mode selector stays on the left as today; labels sit centered inside the pill</div>
+  <div class="card">
+    <div class="head">
+      <div class="headleft">
+        <div class="titlebox"><h2>Money out by month</h2><div class="sub">Last 12 months</div></div>
+        <div class="seg alt"><button class="on">Bars</button><button>Pie</button></div>
+      </div>
+      <div class="hide">Hide chart</div>
+    </div>
+    <div style="margin-top:18px;"><div class="seg"><button>Total</button><button class="on">By category</button></div></div>
+    <div class="summary" style="margin-top:16px;">Out <b>$16,950.00</b> · In <b>$4,120.00</b> · 143 completed movements</div>
+    <div class="chart" id="chart"></div>
+    <div class="legend" id="legend1"></div>
+  </div>
+
+  <div class="caption" style="margin-top:12px;">Proposed — Pie view: the percent shows on each slice, and on hover the tooltip adds the amount</div>
+  <div class="card">
+    <div class="head">
+      <div class="headleft">
+        <div class="titlebox"><h2>Money out by category</h2><div class="sub">Last 12 months</div></div>
+        <div class="seg alt"><button>Bars</button><button class="on">Pie</button></div>
+      </div>
+      <div class="hide">Hide chart</div>
+    </div>
+    <div class="summary" style="margin-top:18px;">Out <b>$16,950.00</b> · In <b>$4,120.00</b> · 143 completed movements</div>
+    <div class="piearea" id="piearea"></div>
+    <div class="legend" id="legend2"></div>
+  </div>
+</div>
+<script>
+  const C = ["#C8F169", "#8FC7A8", "#5C9C86", "#EEF5F1", "#B4CBC1", "#4A7266"];
+  const NAMES = ["Groceries", "Transport", "Eating out", "Health", "Other categories", "No category"];
+  const MONTHS = [
+    ["Dec", 1820, [.30, .20, .16, .12, .15, .07]],
+    ["Jan", 1350, [.38, .18, .14, .08, .16, .06]],
+    ["Feb", 1180, [.35, .22, .15, .10, .12, .06]],
+    ["Mar", 1520, [.28, .24, .18, .09, .14, .07]],
+    ["Apr",  990, [.40, .20, .13, .07, .13, .07]],
+    ["May", 1740, [.33, .21, .16, .11, .12, .07]],
+    ["Jun", 1210, [.36, .19, .14, .09, .15, .07]],
+    ["Jul", 1680, [.31, .23, .17, .10, .12, .07]],
+    ["Aug", 1130, [.37, .20, .13, .08, .15, .07]],
+    ["Sep", 1480, [.29, .25, .16, .10, .13, .07]],
+    ["Oct", 1290, [.34, .22, .15, .09, .13, .07]],
+    ["Nov", 1560, [.32, .24, .17, .09, .12, .06]],
+  ];
+  const PLOT_TOP = 8, PLOT_BOTTOM = 238, MAX = 2000;
+  const y = (v) => PLOT_BOTTOM - (v / MAX) * (PLOT_BOTTOM - PLOT_TOP);
+  const chart = document.getElementById("chart");
+  for (const v of [0, 500, 1000, 1500, 2000]) {
+    const g = document.createElement("div");
+    g.className = "grid" + (v === 0 ? " base" : "");
+    g.style.top = y(v) + "px";
+    const s = document.createElement("span");
+    s.textContent = v === 0 ? "$0" : "$" + (v / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    g.appendChild(s);
+    chart.appendChild(g);
+  }
+  const bars = document.createElement("div"); bars.className = "bars";
+  const xl = document.createElement("div"); xl.className = "xlab";
+  for (const [label, total, mix] of MONTHS) {
+    const col = document.createElement("div"); col.className = "bcol";
+    const bar = document.createElement("div"); bar.className = "bar";
+    const barH = (total / MAX) * (PLOT_BOTTOM - PLOT_TOP);
+    bar.style.height = barH + "px";
+    mix.forEach((f, i) => {
+      const seg = document.createElement("i");
+      seg.style.height = (f * barH) + "px";
+      seg.style.background = C[i];
+      bar.appendChild(seg);
+    });
+    col.appendChild(bar); bars.appendChild(col);
+    const s = document.createElement("span"); s.textContent = label; xl.appendChild(s);
+  }
+  chart.appendChild(bars); chart.appendChild(xl);
+  for (const id of ["legend1", "legend2"]) {
+    document.getElementById(id).innerHTML = NAMES.map((n, i) =>
+      `<div class="li"><span class="sw" style="background:${C[i]}"></span>${n}</div>`).join("");
+  }
+  const SLICES = [
+    ["Groceries", 36, "#C8F169"],
+    ["Transport", 20, "#8FC7A8"],
+    ["Eating out", 15, "#5C9C86"],
+    ["Health", 9, "#EEF5F1"],
+    ["Other categories", 13, "#B4CBC1"],
+    ["No category", 7, "#4A7266"],
+  ];
+  const NSVG = "http://www.w3.org/2000/svg";
+  const CX = 170, CY = 135, R = 115;
+  const area = document.getElementById("piearea");
+  const svg = document.createElementNS(NSVG, "svg");
+  svg.setAttribute("width", "340");
+  svg.setAttribute("height", "270");
+  svg.setAttribute("viewBox", "0 0 340 270");
+  let acc = 0;
+  for (const [name, pct, color] of SLICES) {
+    const a0 = (acc * 3.6 - 90) * Math.PI / 180;
+    acc += pct;
+    const a1 = (acc * 3.6 - 90) * Math.PI / 180;
+    const pt = (r, a) => [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+    const [x0, y0] = pt(R, a0), [x1, y1] = pt(R, a1);
+    const path = document.createElementNS(NSVG, "path");
+    path.setAttribute("d", `M ${CX} ${CY} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${R} ${R} 0 ${pct > 50 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z`);
+    path.setAttribute("fill", color);
+    path.setAttribute("stroke", "#16372F");
+    path.setAttribute("stroke-width", "2");
+    if (name === "Groceries") path.setAttribute("filter", "brightness(1.06)");
+    svg.appendChild(path);
+    const mid = (a0 + a1) / 2;
+    const [lx0, ly0] = pt(R + 3, mid), [lx1, ly1] = pt(R + 12, mid);
+    const line = document.createElementNS(NSVG, "line");
+    line.setAttribute("x1", lx0.toFixed(1)); line.setAttribute("y1", ly0.toFixed(1));
+    line.setAttribute("x2", lx1.toFixed(1)); line.setAttribute("y2", ly1.toFixed(1));
+    line.setAttribute("stroke", "#8BA89C");
+    line.setAttribute("stroke-width", "1");
+    svg.appendChild(line);
+    const [tx, ty] = pt(R + 16, mid);
+    const label = document.createElementNS(NSVG, "text");
+    label.setAttribute("x", tx.toFixed(1)); label.setAttribute("y", ty.toFixed(1));
+    label.setAttribute("text-anchor", tx > CX ? "start" : "end");
+    label.setAttribute("dominant-baseline", "central");
+    label.setAttribute("fill", "#B4CBC1");
+    label.setAttribute("font-size", "12");
+    label.setAttribute("font-family", "'DM Sans', sans-serif");
+    label.textContent = pct + "%";
+    svg.appendChild(label);
+  }
+  area.appendChild(svg);
+  const tip = document.createElement("div");
+  tip.className = "tooltip";
+  tip.innerHTML = `<div class="tt-name">Groceries</div><div class="tt-row"><span>36%</span><b>$6,102.00</b></div>`;
+  const sv = svg.getBoundingClientRect(), ar = area.getBoundingClientRect();
+  tip.style.left = (sv.left - ar.left + 330) + "px";
+  tip.style.top = (sv.top - ar.top + 18) + "px";
+  area.appendChild(tip);
+</script>
+</body>
+</html>

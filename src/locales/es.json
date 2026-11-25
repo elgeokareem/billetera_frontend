@@ -259,14 +259,19 @@
         "out": {
           "day": "Salidas por día",
           "week": "Salidas por semana",
-          "month": "Salidas por mes"
+          "month": "Salidas por mes",
+          "pie": "Salidas por categoría"
         },
         "in": {
           "day": "Entradas por día",
           "week": "Entradas por semana",
-          "month": "Entradas por mes"
+          "month": "Entradas por mes",
+          "pie": "Entradas por categoría"
         }
       },
+      "bars": "Barras",
+      "pie": "Pastel",
+      "chartType": "Tipo de gráfico",
       "last12Months": "Últimos 12 meses",
       "total": "Total",
       "byCategory": "Por categoría",

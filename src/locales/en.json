@@ -259,14 +259,19 @@
         "out": {
           "day": "Money out by day",
           "week": "Money out by week",
-          "month": "Money out by month"
+          "month": "Money out by month",
+          "pie": "Money out by category"
         },
         "in": {
           "day": "Money in by day",
           "week": "Money in by week",
-          "month": "Money in by month"
+          "month": "Money in by month",
+          "pie": "Money in by category"
         }
       },
+      "bars": "Bars",
+      "pie": "Pie",
+      "chartType": "Chart type",
       "last12Months": "Last 12 months",
       "total": "Total",
       "byCategory": "By category",

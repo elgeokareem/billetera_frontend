@@ -10,6 +10,7 @@ import { browserTimeZone } from "../shared/dateRange";
 import { formatUsd } from "../shared/format";
 import { useMotionDuration } from "../shared/motion";
 import { loadPref, savePref } from "../shared/prefs";
+import { INK_ON_ACCENT } from "../shared/theme";
 import type { TotalsQuery } from "./api";
 import {
   barRange,
@@ -26,10 +27,15 @@ import {
 } from "./chart";
 import { useMovementTotals } from "./hooks";
 import type { BarSeriesView } from "./MovementsBarChart";
+import type { PieSliceView } from "./MovementsPieChart";
 import type { MovementsSearch } from "./search";
 
 // The chart's library loads with the first chart, so the rest of the page doesn't wait for it.
 const MovementsBarChart = lazy(() => import("./MovementsBarChart"));
+const MovementsPieChart = lazy(() => import("./MovementsPieChart"));
+
+/** How the chart draws the same filtered range: one bar per period, or one slice per category. */
+type ChartType = "bars" | "pie";
 
 /** The saved visibility of the chart, per viewer. Missing or any other value reads as shown. */
 const CHART_STORAGE_KEY = "billetera.movementsChart";
@@ -46,17 +52,22 @@ interface MovementsChartProps {
 
 /**
  * How much money moved in each period of the filters, either as one total or split by category. It reads the same filters as
- * the list, and picks a bar to narrow the dates to it. Hide chart saves the choice, and while hidden no totals request is
- * made. With no date filter the chart covers the last 12 months and says so; the list below keeps its own range.
+ * the list, and picks a bar to narrow the dates to it. A chart-type toggle draws the same range as a pie of the direction's
+ * categories, which is read-only. Hide chart saves the choice, and while hidden no totals request is made. With no date filter
+ * the chart covers the last 12 months and says so; the list below keeps its own range.
  */
 export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
   const { t } = useTranslation();
   const motion = useMotionDuration();
   const [mode, setMode] = useState<ChartMode>("total");
+  // The chart type is a viewer's temporary choice, like the mode: not saved, so a reload starts on the bars.
+  const [chartType, setChartType] = useState<ChartType>("bars");
   const [shown, setShown] = useState(
     () => loadPref(CHART_STORAGE_KEY, CHART_STORAGE_VALUES, "shown") === "shown",
   );
   const direction = search.direction === "in" ? "in" : "out";
+  // The pie is always by category, so it needs the grouped response whatever the saved mode is.
+  const needsGrouped = mode === "category" || chartType === "pie";
   const period = useMemo(() => chartPeriod(search, now), [search, now]);
   const range = useMemo(() => chartRange(search, now), [search, now]);
   const timeZone = useMemo(() => browserTimeZone(), []);
@@ -70,7 +81,7 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
     () => ({ ...totalsQuery, group_by: "category" }),
     [totalsQuery],
   );
-  const grouped = useMovementTotals(groupedQuery, { enabled: shown && mode === "category" });
+  const grouped = useMovementTotals(groupedQuery, { enabled: shown && needsGrouped });
 
   const summaryInfo = useMemo(
     () => (summary.data ? chartSummary(summary.data) : null),
@@ -81,6 +92,13 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
     () => (barTotals ? chartRows(barTotals.assets, direction, mode) : null),
     [barTotals, direction, mode],
   );
+  // The pie reads the same grouped rows the By category bars do, so both views split the range identically.
+  const pieRows = useMemo(
+    () => (grouped.data ? chartRows(grouped.data.assets, direction, "category") : null),
+    [grouped.data, direction],
+  );
+  // The rows the shown chart type draws. Null while its response is still missing.
+  const rows = chartType === "pie" ? pieRows : bars;
 
   const categories = useCategories();
   const names = useMemo(
@@ -111,19 +129,42 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
     },
     [names, t],
   );
+  // The colour of a series, shared by the bars and the pie so a category keeps its tone in both views.
+  const colorOf = useCallback(
+    (key: string, index: number) =>
+      key === CHART_OTHER_KEY
+        ? OTHER_CATEGORY_COLOR
+        : key === CHART_NO_CATEGORY_KEY
+          ? NO_CATEGORY_COLOR
+          : SEGMENT_COLORS[index % SEGMENT_COLORS.length],
+    [],
+  );
   const series = useMemo<BarSeriesView[]>(
     () =>
       (bars?.series ?? []).map((item, index) => ({
         key: item.key,
         label: labelOf(item.key),
-        color:
-          item.key === CHART_OTHER_KEY
-            ? OTHER_CATEGORY_COLOR
-            : item.key === CHART_NO_CATEGORY_KEY
-              ? NO_CATEGORY_COLOR
-              : SEGMENT_COLORS[index % SEGMENT_COLORS.length],
+        color: colorOf(item.key, index),
       })),
-    [bars, labelOf],
+    [bars, labelOf, colorOf],
+  );
+  // Every pie cell carries the exact decimal string, so the tooltip never formats the rounded slice size.
+  const cells = useMemo<PieSliceView[]>(
+    () =>
+      (pieRows?.series ?? []).flatMap((item, index) =>
+        item.total === null
+          ? []
+          : [
+              {
+                key: item.key,
+                name: labelOf(item.key),
+                value: Number(item.total),
+                color: colorOf(item.key, index),
+                amount: item.total,
+              },
+            ],
+      ),
+    [pieRows, labelOf, colorOf],
   );
 
   const pick = useCallback(
@@ -145,23 +186,24 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
     return null;
   }
 
-  const title = t(`movements.chart.title.${direction}.${period}`);
+  // The pie has no periods, so its title names the categories; the bars keep the period title.
+  const title = t(`movements.chart.title.${direction}.${chartType === "pie" ? "pie" : period}`);
   let body;
-  if (summary.isPending || (mode === "category" && grouped.isPending)) {
+  if (summary.isPending || (needsGrouped && grouped.isPending)) {
     body = <SectionSkeleton lines={4} />;
-  } else if (summary.isError || (mode === "category" && grouped.isError)) {
+  } else if (summary.isError || (needsGrouped && grouped.isError)) {
     body = (
       <SectionError
         error={summary.isError ? summary.error : grouped.error}
         onRetry={() => {
           void summary.refetch();
-          if (mode === "category") {
+          if (needsGrouped) {
             void grouped.refetch();
           }
         }}
       />
     );
-  } else if (summaryInfo === null || bars === null) {
+  } else if (summaryInfo === null || rows === null) {
     body = <SectionSkeleton lines={4} />;
   } else {
     body = (
@@ -172,20 +214,24 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
             {t("movements.chart.unpriced", { count: summaryInfo.unpriced[direction] })}
           </Text>
         )}
-        {bars.rows.length === 0 ? (
+        {rows.rows.length === 0 ? (
           <Text size="sm" c="dimmed">
             {t(`movements.chart.emptyDirection.${direction}`)}
           </Text>
         ) : (
           <Suspense fallback={<SectionSkeleton lines={4} />}>
-            <MovementsBarChart
-              buckets={bars.rows}
-              series={series}
-              mode={mode}
-              period={period}
-              label={title}
-              onPick={pick}
-            />
+            {chartType === "pie" ? (
+              <MovementsPieChart cells={cells} label={title} />
+            ) : (
+              <MovementsBarChart
+                buckets={rows.rows}
+                series={series}
+                mode={mode}
+                period={period}
+                label={title}
+                onPick={pick}
+              />
+            )}
           </Suspense>
         )}
       </Stack>
@@ -196,21 +242,41 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
     <Paper bg="dark.6" radius={12} p={{ base: 20, sm: 24 }}>
       <Stack gap="md">
         <Group justify="space-between" align="center" gap="md" wrap="wrap">
-          <div>
-            <Text component="h2" fw={600} fz={16} m={0}>
-              {title}
-            </Text>
-            {range.capped && (
-              <Text size="xs" c="dimmed">
-                {t("movements.chart.last12Months")}
+          <Group gap="md" align="center" wrap="wrap">
+            <div>
+              <Text component="h2" fw={600} fz={16} m={0}>
+                {title}
               </Text>
-            )}
-            {notCounting && (
-              <Text size="xs" c="dimmed">
-                {notCounting}
-              </Text>
-            )}
-          </div>
+              {range.capped && (
+                <Text size="xs" c="dimmed">
+                  {t("movements.chart.last12Months")}
+                </Text>
+              )}
+              {notCounting && (
+                <Text size="xs" c="dimmed">
+                  {notCounting}
+                </Text>
+              )}
+            </div>
+            <SegmentedControl
+              mih={44}
+              aria-label={t("movements.chart.chartType")}
+              value={chartType}
+              onChange={(value) => setChartType(value === "pie" ? "pie" : "bars")}
+              data={[
+                { label: t("movements.chart.bars"), value: "bars" },
+                { label: t("movements.chart.pie"), value: "pie" },
+              ]}
+              // The accent marks this control apart from the mode control, whose selected segment keeps the default.
+              styles={{
+                root: {
+                  "--sc-color": "var(--mantine-color-accent-6)",
+                  "--sc-label-color": INK_ON_ACCENT,
+                },
+                label: { display: "flex", alignItems: "center", justifyContent: "center" },
+              }}
+            />
+          </Group>
           <Button
             variant="subtle"
             mih={44}
@@ -223,16 +289,20 @@ export function MovementsChart({ search, now, onRange }: MovementsChartProps) {
         </Group>
         <Collapse expanded={shown} transitionDuration={motion} transitionTimingFunction="ease">
           <Stack gap="md" id={CHART_BODY_ID}>
-            <SegmentedControl
-              w="fit-content"
-              mih={44}
-              value={mode}
-              onChange={(value) => setMode(value === "category" ? "category" : "total")}
-              data={[
-                { label: t("movements.chart.total"), value: "total" },
-                { label: t("movements.chart.byCategory"), value: "category" },
-              ]}
-            />
+            {/* The pie is always by category, so the mode control only makes sense over the bars. */}
+            {chartType === "bars" && (
+              <SegmentedControl
+                w="fit-content"
+                mih={44}
+                value={mode}
+                onChange={(value) => setMode(value === "category" ? "category" : "total")}
+                data={[
+                  { label: t("movements.chart.total"), value: "total" },
+                  { label: t("movements.chart.byCategory"), value: "category" },
+                ]}
+                styles={{ label: { display: "flex", alignItems: "center", justifyContent: "center" } }}
+              />
+            )}
             {body}
           </Stack>
         </Collapse>
